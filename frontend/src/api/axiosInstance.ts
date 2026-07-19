@@ -1,19 +1,25 @@
 import axios from 'axios';
 
+// Read API URL from environment variables, defaulting to local v1 api endpoint
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  baseURL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor (can be used for adding auth tokens in the future)
+// Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // TODO: Add JWT token logic here (Engineer 1)
+    // Example: Read token from store/localStorage and append to Authorization header:
+    // const token = localStorage.getItem('token');
+    // if (token && config.headers) {
+    //   config.headers.Authorization = `Bearer ${token}`;
+    // }
     return config;
   },
   (error) => {
@@ -21,11 +27,14 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Response interceptor (can be used for error handling globally)
+// Response interceptor
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // TODO: Add response interceptor logic if needed in the future
+    return response;
+  },
   (error) => {
-    // Handle global errors e.g. token expired (401)
+    // TODO: Add response error/refresh token logic here (Engineer 1)
     return Promise.reject(error);
   }
 );

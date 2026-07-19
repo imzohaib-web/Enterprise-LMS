@@ -1,20 +1,21 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 
 interface ProtectedRouteProps {
-  redirectPath?: string;
+  children?: React.ReactNode;
   isAllowed?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  redirectPath = '/signin',
-  isAllowed = true, // By default we allow entry since auth is not implemented yet
-}) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, isAllowed = true }) => {
+  // TODO: Implement authentication check (e.g., check if user is logged in, verify JWT validity, or retrieve auth state from Redux)
+  // TODO: Implement Role-Based Access Control (RBAC) (e.g., check if the user's role is allowed to access this route)
+  // TODO: Implement redirects (e.g., redirect to '/signin' if unauthenticated, or to '/unauthorized' if unauthorized or isAllowed is false)
+
   if (!isAllowed) {
-    return <Navigate to={redirectPath} replace />;
+    // Return redirect or fallback when not allowed (placeholder logic)
   }
 
-  return <Outlet />;
+  return children ? <>{children}</> : <Outlet />;
 };
 
 export default ProtectedRoute;

@@ -14,9 +14,14 @@ import {
   PlugInIcon,
   TableIcon,
   UserCircleIcon,
+  TaskIcon,
+  ShootingStarIcon,
+  ChatIcon,
+  MailIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
+import { STUDENT, INSTRUCTOR } from "../constants/routes";
 
 type NavItem = {
   name: string;
@@ -61,6 +66,62 @@ const navItems: NavItem[] = [
   },
 ];
 
+const studentNavItems: NavItem[] = [
+  {
+    name: "Dashboard",
+    icon: <GridIcon />,
+    path: STUDENT.DASHBOARD,
+  },
+  {
+    name: "Assessments",
+    icon: <TaskIcon />,
+    path: STUDENT.ASSESSMENTS,
+  },
+  {
+    name: "Progress",
+    icon: <PieChartIcon />,
+    path: STUDENT.PROGRESS,
+  },
+  {
+    name: "Certificates",
+    icon: <ShootingStarIcon />,
+    path: STUDENT.CERTIFICATES,
+  },
+  {
+    name: "Discussions",
+    icon: <ChatIcon />,
+    path: STUDENT.DISCUSSIONS,
+  },
+  {
+    name: "Notifications",
+    icon: <MailIcon />,
+    path: STUDENT.NOTIFICATIONS,
+  },
+];
+
+const instructorNavItems: NavItem[] = [
+  {
+    name: "Dashboard",
+    icon: <GridIcon />,
+    path: INSTRUCTOR.DASHBOARD,
+  },
+  {
+    name: "Assessments",
+    icon: <TaskIcon />,
+    path: INSTRUCTOR.ASSESSMENTS,
+  },
+  {
+    name: "Discussions",
+    icon: <ChatIcon />,
+    path: INSTRUCTOR.DISCUSSIONS,
+  },
+  {
+    name: "Notifications",
+    icon: <MailIcon />,
+    path: INSTRUCTOR.NOTIFICATIONS,
+  },
+];
+
 const othersItems: NavItem[] = [
   {
     icon: <PieChartIcon />,
@@ -97,7 +158,7 @@ const AppSidebar: React.FC = () => {
   const location = useLocation();
 
   const [openSubmenu, setOpenSubmenu] = useState<{
-    type: "main" | "others";
+    type: "main" | "others" | "student" | "instructor";
     index: number;
   } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
@@ -105,7 +166,6 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // const isActive = (path: string) => location.pathname === path;
   const isActive = useCallback(
     (path: string) => location.pathname === path,
     [location.pathname]
@@ -113,14 +173,21 @@ const AppSidebar: React.FC = () => {
 
   useEffect(() => {
     let submenuMatched = false;
-    ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
+    ["main", "others", "student", "instructor"].forEach((menuType) => {
+      const items =
+        menuType === "main"
+          ? navItems
+          : menuType === "others"
+          ? othersItems
+          : menuType === "student"
+          ? studentNavItems
+          : instructorNavItems;
       items.forEach((nav, index) => {
         if (nav.subItems) {
           nav.subItems.forEach((subItem) => {
             if (isActive(subItem.path)) {
               setOpenSubmenu({
-                type: menuType as "main" | "others",
+                type: menuType as "main" | "others" | "student" | "instructor",
                 index,
               });
               submenuMatched = true;
@@ -147,7 +214,10 @@ const AppSidebar: React.FC = () => {
     }
   }, [openSubmenu]);
 
-  const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
+  const handleSubmenuToggle = (
+    index: number,
+    menuType: "main" | "others" | "student" | "instructor"
+  ) => {
     setOpenSubmenu((prevOpenSubmenu) => {
       if (
         prevOpenSubmenu &&
@@ -160,7 +230,10 @@ const AppSidebar: React.FC = () => {
     });
   };
 
-  const renderMenuItems = (items: NavItem[], menuType: "main" | "others") => (
+  const renderMenuItems = (
+    items: NavItem[],
+    menuType: "main" | "others" | "student" | "instructor"
+  ) => (
     <ul className="flex flex-col gap-4">
       {items.map((nav, index) => (
         <li key={nav.name}>
@@ -350,6 +423,41 @@ const AppSidebar: React.FC = () => {
               </h2>
               {renderMenuItems(navItems, "main")}
             </div>
+
+            <div>
+              <h2
+                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                  !isExpanded && !isHovered
+                    ? "lg:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Student"
+                ) : (
+                  <HorizontaLDots className="size-6" />
+                )}
+              </h2>
+              {renderMenuItems(studentNavItems, "student")}
+            </div>
+
+            <div>
+              <h2
+                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                  !isExpanded && !isHovered
+                    ? "lg:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Instructor"
+                ) : (
+                  <HorizontaLDots className="size-6" />
+                )}
+              </h2>
+              {renderMenuItems(instructorNavItems, "instructor")}
+            </div>
+
             <div className="">
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
