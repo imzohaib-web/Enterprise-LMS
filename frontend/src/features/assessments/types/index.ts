@@ -1,26 +1,28 @@
+export type QuestionDifficulty = 'easy' | 'medium' | 'hard';
+
 export interface Option {
   id: string;
   text: string;
 }
 
-export type QuestionDifficulty = 'easy' | 'medium' | 'hard';
-
 export interface Question {
   id?: string;
-  questionText: string;
-  options: Option[];
-  correctAnswer: string;
+  _id?: string;
+  question: string;
+  options: (Option | string)[];
+  correctAnswer?: string;
   marks: number;
   explanation?: string;
   difficulty: QuestionDifficulty;
 }
 
 export interface Quiz {
-  id: string;
+  id?: string;
+  _id?: string;
   title: string;
+  description: string;
   courseId: string;
   lessonId?: string;
-  description: string;
   timeLimitMinutes: number;
   passingScore: number;
   questions: Question[];
@@ -30,34 +32,27 @@ export interface Quiz {
 
 export interface SubmittedAnswer {
   questionId: string;
-  selectedOptionId: string;
+  selectedOption: string;
 }
 
-export interface QuizSubmission {
-  quizId: string;
-  userId: string;
+export interface QuizSubmissionInput {
+  studentId?: string;
   answers: SubmittedAnswer[];
+  timeTakenSeconds?: number;
 }
 
-export interface AttemptAnswerResult {
-  questionId: string;
-  selectedOptionId: string;
-  isCorrect: boolean;
-  marksAwarded: number;
-}
-
-export type QuizAttemptStatus = 'in-progress' | 'completed' | 'timed-out';
-
-export interface QuizAttempt {
-  id: string;
-  quizId: string;
-  userId: string;
-  answers: AttemptAnswerResult[];
+export interface QuizEvaluationResult {
   score: number;
-  totalMarks: number;
   percentage: number;
+  correctAnswers: number;
+  wrongAnswers: number;
   passed: boolean;
-  startedAt: string;
-  completedAt?: string;
-  status: QuizAttemptStatus;
+  timeTaken: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data: T;
+  errors?: any;
 }
