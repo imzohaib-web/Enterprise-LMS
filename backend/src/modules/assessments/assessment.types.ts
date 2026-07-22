@@ -31,6 +31,50 @@ export interface IQuiz {
 
 export interface IQuizDocument extends IQuiz, Document {}
 
+export interface ISubmittedAnswer {
+  questionId: string;
+  selectedOption: string;
+}
+
+export interface ISubmitQuizInput {
+  studentId?: string;
+  answers: ISubmittedAnswer[];
+  timeTakenSeconds?: number;
+}
+
+export interface IEvaluatedAnswer {
+  questionId: string;
+  selectedOption: string;
+  isCorrect: boolean;
+  marksAwarded: number;
+}
+
+export interface IQuizAttempt {
+  quizId: Types.ObjectId | string;
+  studentId: Types.ObjectId | string;
+  answers: IEvaluatedAnswer[];
+  score: number;
+  totalMarks: number;
+  percentage: number;
+  passed: boolean;
+  correctAnswersCount: number;
+  wrongAnswersCount: number;
+  timeTakenSeconds: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface IQuizAttemptDocument extends IQuizAttempt, Document {}
+
+export interface IQuizEvaluationResponse {
+  score: number;
+  percentage: number;
+  correctAnswers: number;
+  wrongAnswers: number;
+  passed: boolean;
+  timeTaken: string;
+}
+
 export type UserRole = 'student' | 'instructor' | 'admin';
 
 export interface AuthUser {

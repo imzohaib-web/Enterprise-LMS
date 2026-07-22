@@ -8,11 +8,14 @@ const controller = new AssessmentController();
 // Create Quiz - Instructor & Admin only
 router.post('/', requireRole('instructor', 'admin'), controller.createQuiz);
 
-// Get All Quizzes - Accessible to all roles (Students & Instructors)
+// Get All Quizzes - Accessible to all roles
 router.get('/', controller.getAllQuizzes);
 
-// Get Quiz by ID - Accessible to all roles (Students & Instructors)
+// Get Quiz by ID - Accessible to all roles
 router.get('/:id', controller.getQuizById);
+
+// Submit Quiz Attempt - Students & All Roles
+router.post('/:quizId/submit', requireRole('student', 'instructor', 'admin'), controller.submitQuiz);
 
 // Update Quiz - Instructor & Admin only
 router.put('/:id', requireRole('instructor', 'admin'), controller.updateQuiz);

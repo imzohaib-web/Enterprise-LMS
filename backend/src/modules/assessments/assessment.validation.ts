@@ -29,5 +29,17 @@ export const createQuizSchema = z.object({
 
 export const updateQuizSchema = createQuizSchema.partial();
 
+export const submittedAnswerSchema = z.object({
+  questionId: z.string().min(1, 'questionId is required'),
+  selectedOption: z.string().min(1, 'selectedOption is required'),
+});
+
+export const submitQuizSchema = z.object({
+  studentId: z.string().optional(),
+  answers: z.array(submittedAnswerSchema).min(1, 'At least one answer must be submitted'),
+  timeTakenSeconds: z.number().min(0).optional().default(0),
+});
+
 export type CreateQuizInput = z.infer<typeof createQuizSchema>;
 export type UpdateQuizInput = z.infer<typeof updateQuizSchema>;
+export type SubmitQuizInput = z.infer<typeof submitQuizSchema>;

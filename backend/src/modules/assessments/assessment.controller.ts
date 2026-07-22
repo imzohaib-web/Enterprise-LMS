@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AssessmentService } from './assessment.service';
-import { createQuizSchema, updateQuizSchema } from './assessment.validation';
+import { createQuizSchema, updateQuizSchema, submitQuizSchema } from './assessment.validation';
 
 export class AssessmentController {
   private assessmentService: AssessmentService;
@@ -120,6 +120,44 @@ export class AssessmentController {
         data: { id },
       });
     } catch (error) {
+      next(error);
+    }
+  };
+
+  public submitQuiz = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { quizId } = req.params;
+      const validationResult = submitQuizSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: validationResult.error.format(),
+        });
+        return;
+      }
+
+      const studentId = validationResult.data.studentId || req.user?.id || '60d0fe4f5311236168a109ca';
+
+      const evaluationResult = await this.assessmentService.submitQuizAttempt(
+        quizId,
+        studentId,
+        validationResult.data
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Quiz submitted and evaluated successfully',
+        data: evaluationResult,
+      });
+    } catch (error: any) {
+      if (error.message && error.message.includes('Quiz not found')) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
       next(error);
     }
   };

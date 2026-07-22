@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose';
-import { IQuizDocument } from './assessment.types';
+import { IQuizDocument, IQuizAttemptDocument } from './assessment.types';
 
 const QuestionSchema = new Schema(
   {
@@ -30,4 +30,31 @@ const QuizSchema = new Schema<IQuizDocument>(
   { timestamps: true }
 );
 
+const EvaluatedAnswerSchema = new Schema(
+  {
+    questionId: { type: String, required: true },
+    selectedOption: { type: String, required: true },
+    isCorrect: { type: Boolean, required: true },
+    marksAwarded: { type: Number, required: true, default: 0 },
+  },
+  { _id: false }
+);
+
+const QuizAttemptSchema = new Schema<IQuizAttemptDocument>(
+  {
+    quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true, index: true },
+    studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    answers: { type: [EvaluatedAnswerSchema], required: true },
+    score: { type: Number, required: true, default: 0 },
+    totalMarks: { type: Number, required: true, default: 0 },
+    percentage: { type: Number, required: true, default: 0 },
+    passed: { type: Boolean, required: true, default: false },
+    correctAnswersCount: { type: Number, required: true, default: 0 },
+    wrongAnswersCount: { type: Number, required: true, default: 0 },
+    timeTakenSeconds: { type: Number, required: true, default: 0 },
+  },
+  { timestamps: true }
+);
+
 export const QuizModel = model<IQuizDocument>('Quiz', QuizSchema);
+export const QuizAttemptModel = model<IQuizAttemptDocument>('QuizAttempt', QuizAttemptSchema);
