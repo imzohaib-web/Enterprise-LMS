@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 interface QuestionNavigatorProps {
   totalQuestions: number;
@@ -7,7 +7,11 @@ interface QuestionNavigatorProps {
   onSelectQuestion: (index: number) => void;
 }
 
-export const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
+/**
+ * Question Navigator component rendering a quick-access grid of question pills.
+ * Color-coded for current, answered, and unanswered states.
+ */
+export const QuestionNavigator: React.FC<QuestionNavigatorProps> = memo(({
   totalQuestions,
   currentIndex,
   answersMap,
@@ -59,18 +63,20 @@ export const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
       {/* Legend */}
       <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-brand-500 inline-block"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-brand-500 inline-block" />
           <span>Answered</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-gray-200 dark:bg-gray-800 inline-block"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-gray-200 dark:bg-gray-800 inline-block" />
           <span>Unanswered</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full ring-2 ring-brand-500 inline-block"></span>
+          <span className="w-2.5 h-2.5 rounded-full ring-2 ring-brand-500 inline-block" />
           <span>Current</span>
         </div>
       </div>
     </div>
   );
-};
+});
+
+QuestionNavigator.displayName = 'QuestionNavigator';

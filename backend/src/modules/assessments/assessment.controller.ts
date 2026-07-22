@@ -2,6 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { AssessmentService } from './assessment.service';
 import { createQuizSchema, updateQuizSchema, submitQuizSchema } from './assessment.validation';
 
+/**
+ * HTTP Controller handlers for Assessment endpoints.
+ * Enforces Zod validation and standardized API response formats.
+ */
 export class AssessmentController {
   private assessmentService: AssessmentService;
 
@@ -9,13 +13,17 @@ export class AssessmentController {
     this.assessmentService = new AssessmentService();
   }
 
+  /**
+   * POST /api/v1/assessments
+   * Create a new Quiz document (Instructors/Admins).
+   */
   public createQuiz = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const validationResult = createQuizSchema.safeParse(req.body);
       if (!validationResult.success) {
         res.status(400).json({
           success: false,
-          message: 'Validation failed',
+          message: 'Validation failed for quiz creation input',
           errors: validationResult.error.format(),
         });
         return;
@@ -32,6 +40,10 @@ export class AssessmentController {
     }
   };
 
+  /**
+   * GET /api/v1/assessments
+   * Get all quizzes, with optional query filters (courseId, lessonId).
+   */
   public getAllQuizzes = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { courseId, lessonId } = req.query;
@@ -49,6 +61,10 @@ export class AssessmentController {
     }
   };
 
+  /**
+   * GET /api/v1/assessments/:id
+   * Fetch a single quiz by ID.
+   */
   public getQuizById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
@@ -70,6 +86,10 @@ export class AssessmentController {
     }
   };
 
+  /**
+   * PUT /api/v1/assessments/:id
+   * Update an existing quiz by ID (Instructors/Admins).
+   */
   public updateQuiz = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
@@ -77,7 +97,7 @@ export class AssessmentController {
       if (!validationResult.success) {
         res.status(400).json({
           success: false,
-          message: 'Validation failed',
+          message: 'Validation failed for quiz update input',
           errors: validationResult.error.format(),
         });
         return;
@@ -102,6 +122,10 @@ export class AssessmentController {
     }
   };
 
+  /**
+   * DELETE /api/v1/assessments/:id
+   * Delete a quiz by ID (Instructors/Admins).
+   */
   public deleteQuiz = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
@@ -124,6 +148,10 @@ export class AssessmentController {
     }
   };
 
+  /**
+   * POST /api/v1/assessments/:quizId/submit
+   * Process and evaluate student quiz submission.
+   */
   public submitQuiz = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { quizId } = req.params;
@@ -131,7 +159,7 @@ export class AssessmentController {
       if (!validationResult.success) {
         res.status(400).json({
           success: false,
-          message: 'Validation failed',
+          message: 'Validation failed for quiz submission',
           errors: validationResult.error.format(),
         });
         return;

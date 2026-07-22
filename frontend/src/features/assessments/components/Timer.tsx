@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, memo } from 'react';
 
 interface TimerProps {
   initialMinutes: number;
@@ -6,7 +6,11 @@ interface TimerProps {
   onTick?: (elapsedSeconds: number) => void;
 }
 
-export const Timer: React.FC<TimerProps> = ({ initialMinutes, onTimeUp, onTick }) => {
+/**
+ * Ticking countdown timer component for timed quiz attempts.
+ * Triggers `onTimeUp` callback upon reaching 0:00.
+ */
+export const Timer: React.FC<TimerProps> = memo(({ initialMinutes, onTimeUp, onTick }) => {
   const totalSeconds = initialMinutes * 60;
   const [secondsLeft, setSecondsLeft] = useState<number>(totalSeconds);
   const onTimeUpRef = useRef(onTimeUp);
@@ -37,7 +41,7 @@ export const Timer: React.FC<TimerProps> = ({ initialMinutes, onTimeUp, onTick }
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = secondsLeft % 60;
   const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  const isWarning = secondsLeft < 120; // less than 2 minutes
+  const isWarning = secondsLeft < 120; // less than 2 minutes warning
 
   return (
     <div
@@ -65,4 +69,6 @@ export const Timer: React.FC<TimerProps> = ({ initialMinutes, onTimeUp, onTick }
       <span>{formattedTime}</span>
     </div>
   );
-};
+});
+
+Timer.displayName = 'Timer';

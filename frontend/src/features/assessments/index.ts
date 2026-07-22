@@ -7,6 +7,7 @@ export * from './components/Timer';
 export * from './components/QuestionCard';
 export * from './components/QuestionNavigator';
 export * from './components/QuizCard';
+export * from './components/QuizSkeleton';
 export * from './components/ResultCard';
 export * from './components/ReviewModal';
 export * from './components/ConfirmationModal';

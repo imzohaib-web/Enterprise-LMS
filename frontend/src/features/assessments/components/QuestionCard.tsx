@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Question } from '../types';
 import { Option } from './Option';
 
@@ -10,7 +10,11 @@ interface QuestionCardProps {
   onSelectOption: (option: string) => void;
 }
 
-export const QuestionCard: React.FC<QuestionCardProps> = ({
+/**
+ * Question Card component displaying question text, difficulty badge, marks, and options.
+ * Optimized with React.memo for re-rendering performance.
+ */
+export const QuestionCard: React.FC<QuestionCardProps> = memo(({
   question,
   questionIndex,
   totalQuestions,
@@ -71,4 +75,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       </div>
     </div>
   );
-};
+});
+
+QuestionCard.displayName = 'QuestionCard';

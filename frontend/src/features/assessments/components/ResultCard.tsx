@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { QuizEvaluationResult } from '../types';
 
 interface ResultCardProps {
@@ -6,7 +6,10 @@ interface ResultCardProps {
   onBackToList: () => void;
 }
 
-export const ResultCard: React.FC<ResultCardProps> = ({ result, onBackToList }) => {
+/**
+ * Result Summary Card component displaying evaluation score, percentage, correct/wrong counts, and Pass/Fail badge.
+ */
+export const ResultCard: React.FC<ResultCardProps> = memo(({ result, onBackToList }) => {
   return (
     <div className="max-w-2xl mx-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-8 md:p-10 shadow-lg text-center">
       {/* Pass/Fail Status Badge */}
@@ -72,4 +75,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, onBackToList }) 
       </button>
     </div>
   );
-};
+});
+
+ResultCard.displayName = 'ResultCard';

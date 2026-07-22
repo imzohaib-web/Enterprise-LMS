@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Option as OptionType } from '../types';
 
 interface OptionProps {
@@ -9,7 +9,11 @@ interface OptionProps {
   disabled?: boolean;
 }
 
-export const Option: React.FC<OptionProps> = ({
+/**
+ * Accessible Radio Option component for MCQ questions.
+ * Optimized with React.memo to prevent redundant re-renders.
+ */
+export const Option: React.FC<OptionProps> = memo(({
   option,
   index,
   isSelected,
@@ -42,4 +46,6 @@ export const Option: React.FC<OptionProps> = ({
       <span className="ml-3 text-base flex-1">{optionLabel}</span>
     </label>
   );
-};
+});
+
+Option.displayName = 'Option';

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Quiz } from '../types';
 
 interface QuizCardProps {
@@ -6,7 +6,10 @@ interface QuizCardProps {
   onSelect: (quizId: string) => void;
 }
 
-export const QuizCard: React.FC<QuizCardProps> = ({ quiz, onSelect }) => {
+/**
+ * TailAdmin styled card displaying quiz details and CTA for starting an assessment.
+ */
+export const QuizCard: React.FC<QuizCardProps> = memo(({ quiz, onSelect }) => {
   const quizId = quiz.id || quiz._id || '';
 
   return (
@@ -55,4 +58,6 @@ export const QuizCard: React.FC<QuizCardProps> = ({ quiz, onSelect }) => {
       </button>
     </div>
   );
-};
+});
+
+QuizCard.displayName = 'QuizCard';
