@@ -2,8 +2,15 @@ import mongoose from 'mongoose';
 import { QuizModel, QuizAttemptModel } from './assessment.model';
 import { IQuizDocument, IQuizEvaluationResponse } from './assessment.types';
 import { CreateQuizInput, UpdateQuizInput, SubmitQuizInput } from './assessment.validation';
+import { ProgressService } from '../progress/progress.service';
 
 export class AssessmentService {
+  private progressService: ProgressService;
+
+  constructor() {
+    this.progressService = new ProgressService();
+  }
+
   public async createQuiz(quizData: CreateQuizInput): Promise<IQuizDocument> {
     const quiz = new QuizModel(quizData);
     return await quiz.save();
@@ -122,6 +129,21 @@ export class AssessmentService {
     } finally {
       if (session) {
         session.endSession();
+      }
+    }
+
+    // Automatically notify Progress Service to update student course progress
+    if (quiz.courseId) {
+      try {
+        await this.progressService.recordQuizSubmission(
+          studentId,
+          quiz.courseId.toString(),
+          quizId,
+          totalScore,
+          percentage
+        );
+      } catch (err) {
+        console.error('Failed to trigger ProgressService on quiz submission:', err);
       }
     }
 
