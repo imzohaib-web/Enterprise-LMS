@@ -1,0 +1,3 @@
+mongodb+srv://arhamarifali722_db_user:nCmYpULVnEK1U0as@cluster0.chvipco.mongodb.net/?appName=Cluster0
+
+nCmYpULVnEK1U0as
