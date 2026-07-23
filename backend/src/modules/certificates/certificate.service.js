@@ -351,8 +351,49 @@ const getCertificateById = async (certificateId, studentId) => {
   return certificate;
 };
 
+/**
+ * Service function: Public certificate verification lookup by verification code.
+ */
+const verifyCertificateByCode = async (verificationCode) => {
+  if (!verificationCode) {
+    throw new AppError('Verification code is required', 400);
+  }
+
+  const certificate = await Certificate.findOne({ verificationCode })
+    .populate('studentId', 'name email')
+    .populate({
+      path: 'courseId',
+      select: 'title instructorName instructor',
+      populate: { path: 'instructor', select: 'name' },
+    });
+
+  if (!certificate) {
+    throw new AppError('Certificate not found or invalid verification code', 404);
+  }
+
+  // Format return payload as required: Student Name, Course Name, Issue Date, Certificate Status, Instructor
+  const studentName = certificate.studentId?.name || 'Jane Doe';
+  const courseName = certificate.courseId?.title || 'Enterprise LMS Course';
+  const instructorName =
+    certificate.courseId?.instructorName ||
+    certificate.courseId?.instructor?.name ||
+    'Ezitech Instructor';
+
+  return {
+    studentName,
+    courseName,
+    issueDate: certificate.issuedAt,
+    certificateStatus: 'Valid',
+    instructor: instructorName,
+    verificationCode: certificate.verificationCode,
+    certificateUrl: certificate.certificateUrl,
+  };
+};
+
 module.exports = {
   generateCertificate,
   getStudentCertificates,
   getCertificateById,
+  verifyCertificateByCode,
 };
+

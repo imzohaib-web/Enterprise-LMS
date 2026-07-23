@@ -4,10 +4,17 @@ const { protect, restrictTo } = require('../../middlewares/auth.middleware');
 
 const router = express.Router();
 
-// Apply JWT protection to all certificate routes
+/**
+ * @route   GET /api/v1/certificates/verify/:verificationCode
+ * @desc    Public endpoint to verify a certificate by verification code
+ * @access  Public (No Auth required)
+ */
+router.get('/verify/:verificationCode', certificateController.verifyCertificate);
+
+// Apply JWT protection to subsequent private certificate routes
 router.use(protect);
 
-// Restrict all certificate actions to students only
+// Restrict private certificate actions to students only
 router.use(restrictTo('student'));
 
 /**

@@ -70,8 +70,30 @@ const getCertificateById = async (req, res, next) => {
   }
 };
 
+/**
+ * Public Controller to verify a certificate by verification code.
+ * GET /api/v1/certificates/verify/:verificationCode
+ */
+const verifyCertificate = async (req, res, next) => {
+  try {
+    const { verificationCode } = req.params;
+    const certificateData = await certificateService.verifyCertificateByCode(verificationCode);
+
+    return sendSuccess(
+      res,
+      200,
+      'Certificate verified successfully',
+      certificateData
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   generateCertificate,
   getMyCertificates,
   getCertificateById,
+  verifyCertificate,
 };
+
