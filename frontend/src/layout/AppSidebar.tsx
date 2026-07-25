@@ -106,19 +106,29 @@ const instructorNavItems: NavItem[] = [
     path: INSTRUCTOR.DASHBOARD,
   },
   {
+    name: "Courses",
+    icon: <ListIcon />,
+    path: INSTRUCTOR.COURSES,
+  },
+  {
     name: "Assessments",
     icon: <TaskIcon />,
     path: INSTRUCTOR.ASSESSMENTS,
   },
   {
-    name: "Discussions",
-    icon: <ChatIcon />,
-    path: INSTRUCTOR.DISCUSSIONS,
+    name: "Certificates",
+    icon: <ShootingStarIcon />,
+    path: INSTRUCTOR.CERTIFICATES,
   },
   {
-    name: "Notifications",
-    icon: <MailIcon />,
-    path: INSTRUCTOR.NOTIFICATIONS,
+    name: "Students",
+    icon: <UserCircleIcon />,
+    path: INSTRUCTOR.STUDENTS,
+  },
+  {
+    name: "Settings",
+    icon: <PlugInIcon />,
+    path: INSTRUCTOR.SETTINGS,
   },
 ];
 
@@ -257,7 +267,11 @@ const AppSidebar: React.FC = () => {
                     : "menu-item-icon-inactive"
                 }`}
               >
-                {nav.icon}
+                {typeof nav.icon === "string" ? (
+                  <img src={nav.icon} className="w-5 h-5 object-contain" alt="" />
+                ) : (
+                  nav.icon
+                )}
               </span>
               {(isExpanded || isHovered || isMobileOpen) && (
                 <span className="menu-item-text">{nav.name}</span>
@@ -288,7 +302,11 @@ const AppSidebar: React.FC = () => {
                       : "menu-item-icon-inactive"
                   }`}
                 >
-                  {nav.icon}
+                  {typeof nav.icon === "string" ? (
+                    <img src={nav.icon} className="w-5 h-5 object-contain" alt="" />
+                  ) : (
+                    nav.icon
+                  )}
                 </span>
                 {(isExpanded || isHovered || isMobileOpen) && (
                   <span className="menu-item-text">{nav.name}</span>
