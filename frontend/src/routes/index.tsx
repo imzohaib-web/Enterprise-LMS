@@ -17,6 +17,7 @@ import {
   InstructorSettings,
 } from '../features/instructor-dashboard';
 import { QuizList, QuizDetails, TakeQuiz, QuizResult } from '../features/assessments';
+import StudentProgress from '../features/progress/pages/StudentProgress';
 import Discussions from '../features/discussions/pages/Discussions';
 import Notifications from '../features/notifications/pages/Notifications';
 
@@ -41,7 +42,7 @@ import {
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Public Certificate Verification Routes */}
+      {/* Public Routes */}
       <Route path="/pages/certificate-verification" element={<CertificateVerification />} />
       <Route path="/verify/:verificationCode" element={<CertificateVerification />} />
 
@@ -69,17 +70,17 @@ const AppRoutes: React.FC = () => {
           <Route path={`${STUDENT.ASSESSMENTS}/:id`} element={<QuizDetails />} />
           <Route path={`${STUDENT.ASSESSMENTS}/:id/take`} element={<TakeQuiz />} />
           <Route path={`${STUDENT.ASSESSMENTS}/:id/result`} element={<QuizResult />} />
-          <Route path={STUDENT.PROGRESS} element={<StudentProgressPage />} />
+          <Route path={STUDENT.PROGRESS} element={<StudentProgress />} />
           <Route path={STUDENT.CERTIFICATES} element={<CertificateVerification />} />
           <Route path={STUDENT.DISCUSSIONS} element={<Discussions />} />
           <Route path={STUDENT.NOTIFICATIONS} element={<Notifications />} />
 
-          {/* Generic LMS Application Routes */}
+          {/* LMS Generic Application Routes */}
           <Route path={ASSESSMENTS} element={<QuizList />} />
           <Route path={`${ASSESSMENTS}/:id`} element={<QuizDetails />} />
           <Route path={`${ASSESSMENTS}/:id/take`} element={<TakeQuiz />} />
           <Route path={`${ASSESSMENTS}/:id/result`} element={<QuizResult />} />
-          <Route path={PROGRESS} element={<StudentProgressPage />} />
+          <Route path={PROGRESS} element={<StudentProgress />} />
           <Route path={CERTIFICATES} element={<CertificateVerification />} />
           <Route path="/certificates/verify" element={<CertificateVerification />} />
           <Route path={DISCUSSIONS} element={<Discussions />} />

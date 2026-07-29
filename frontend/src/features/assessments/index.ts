@@ -2,7 +2,7 @@ export * from './types';
 export * from './api/assessmentApi';
 export * from './hooks/useAssessments';
 
-export * from './components/Option';
+export { Option as OptionComponent } from './components/Option';
 export * from './components/Timer';
 export * from './components/QuestionCard';
 export * from './components/QuestionNavigator';

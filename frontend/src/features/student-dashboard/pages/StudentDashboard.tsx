@@ -27,6 +27,18 @@ export const StudentDashboard: React.FC = () => {
               Your active enrolled courses will appear here.
             </p>
           </ComponentCard>
+
+          <ComponentCard title="Upcoming Quizzes" desc="Pending assessments">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              No pending quizzes for this week.
+            </p>
+          </ComponentCard>
+
+          <ComponentCard title="Recent Certificates" desc="Achieved credentials">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              View your earned certificates in the Certificates tab.
+            </p>
+          </ComponentCard>
         </div>
       </div>
     </>
