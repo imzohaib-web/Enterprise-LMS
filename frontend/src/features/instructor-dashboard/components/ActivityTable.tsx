@@ -5,8 +5,8 @@ import Badge from '../../../components/ui/badge/Badge';
 export const ActivityTable: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'quizzes' | 'enrollments'>('all');
   const { data: activities, isLoading: isActLoading } = useInstructorActivities();
-  const { data: quizResults, isLoading: isQuizLoading } = useQuizResultsList();
-  const { data: studentProgress, isLoading: isProgLoading } = useStudentProgressList();
+  useQuizResultsList();
+  useStudentProgressList();
 
   const filteredActivities = activities?.filter((act) => {
     if (activeTab === 'quizzes') return act.type === 'quiz_attempt';

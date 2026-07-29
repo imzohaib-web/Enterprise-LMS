@@ -6,7 +6,7 @@ import ComponentCard from '../../../components/common/ComponentCard';
 import { useInstructorStats } from '../hooks/useInstructorDashboard';
 
 export const StatisticsPage: React.FC = () => {
-  const { data: stats } = useInstructorStats();
+  useInstructorStats();
 
   return (
     <>
