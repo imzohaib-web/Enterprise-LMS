@@ -95,12 +95,23 @@ export const useNotificationSocket = (userId: string = 'user-1') => {
       queryClient.setQueryData(['notifications', 'unread-count'], data.unreadCount);
     };
 
+    const handleDashboardRefresh = () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor'] });
+      queryClient.invalidateQueries({ queryKey: ['progress'] });
+      queryClient.invalidateQueries({ queryKey: ['student-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['certificates'] });
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    };
+
     socket.on('notification', handleNotification);
     socket.on('unread-count', handleUnreadCount);
+    socket.on('dashboard-refresh', handleDashboardRefresh);
 
     return () => {
       socket.off('notification', handleNotification);
       socket.off('unread-count', handleUnreadCount);
+      socket.off('dashboard-refresh', handleDashboardRefresh);
     };
   }, [userId, queryClient]);
 };

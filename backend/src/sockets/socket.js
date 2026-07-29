@@ -62,9 +62,19 @@ const emitUnreadCountToUser = (userId, count) => {
   }
 };
 
+/**
+ * Emit real-time dashboard refresh signal to all clients
+ */
+const emitDashboardRefresh = () => {
+  if (io) {
+    io.emit('dashboard-refresh', { timestamp: new Date().toISOString() });
+  }
+};
+
 module.exports = {
   initSocket,
   getIO,
   emitNotificationToUser,
   emitUnreadCountToUser,
+  emitDashboardRefresh,
 };
