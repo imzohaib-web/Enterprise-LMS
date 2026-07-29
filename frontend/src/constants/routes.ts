@@ -1,7 +1,7 @@
 /**
  * Route constants for LMS frontend features.
- * Placeholders for Engineer 2 routes.
- * Do NOT include authentication, admin, or course routes.
+ * Engineer 2 routes.
+ * Do NOT include authentication or admin routes.
  */
 
 export const STUDENT = {
@@ -15,7 +15,13 @@ export const STUDENT = {
 
 export const INSTRUCTOR = {
   DASHBOARD: '/instructor/dashboard',
+  COURSES: '/instructor/courses',
   ASSESSMENTS: '/instructor/assessments',
+  CERTIFICATES: '/instructor/certificates',
+  STUDENTS: '/instructor/students',
+  SETTINGS: '/instructor/settings',
+  QUIZ_RESULTS: '/instructor/quiz-results',
+  STATISTICS: '/instructor/statistics',
   DISCUSSIONS: '/instructor/discussions',
   NOTIFICATIONS: '/instructor/notifications',
 } as const;

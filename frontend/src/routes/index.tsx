@@ -8,7 +8,14 @@ import CertificateVerification from '../pages/CertificateVerification';
 import { STUDENT, INSTRUCTOR, ASSESSMENTS, PROGRESS, CERTIFICATES, DISCUSSIONS, NOTIFICATIONS } from '../constants/routes';
 
 import StudentDashboard from '../features/student-dashboard/pages/StudentDashboard';
-import InstructorDashboard from '../features/instructor-dashboard/pages/InstructorDashboard';
+import {
+  InstructorDashboard,
+  CourseList,
+  StudentProgressPage,
+  QuizResultsPage,
+  StatisticsPage,
+  InstructorSettings,
+} from '../features/instructor-dashboard';
 import {
   QuizList,
   QuizDetailsRouteWrapper,
@@ -50,7 +57,19 @@ const AppRoutes: React.FC = () => {
           {/* Main / Home Route */}
           <Route path="/" element={<Home />} />
 
-          {/* Engineer 2 - Student Routes */}
+          {/* Instructor Dashboard Feature Routes */}
+          <Route path={INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
+          <Route path={INSTRUCTOR.COURSES} element={<CourseList />} />
+          <Route path={INSTRUCTOR.ASSESSMENTS} element={<QuizList />} />
+          <Route path={INSTRUCTOR.CERTIFICATES} element={<CertificateVerification />} />
+          <Route path={INSTRUCTOR.STUDENTS} element={<StudentProgressPage />} />
+          <Route path={INSTRUCTOR.QUIZ_RESULTS} element={<QuizResultsPage />} />
+          <Route path={INSTRUCTOR.STATISTICS} element={<StatisticsPage />} />
+          <Route path={INSTRUCTOR.SETTINGS} element={<InstructorSettings />} />
+          <Route path={INSTRUCTOR.DISCUSSIONS} element={<Discussions />} />
+          <Route path={INSTRUCTOR.NOTIFICATIONS} element={<Notifications />} />
+
+          {/* Student Routes */}
           <Route path={STUDENT.DASHBOARD} element={<StudentDashboard />} />
           <Route path={STUDENT.ASSESSMENTS} element={<QuizList />} />
           <Route path={`${STUDENT.ASSESSMENTS}/:id`} element={<QuizDetailsRouteWrapper />} />
@@ -60,12 +79,6 @@ const AppRoutes: React.FC = () => {
           <Route path={STUDENT.CERTIFICATES} element={<CertificateVerification />} />
           <Route path={STUDENT.DISCUSSIONS} element={<Discussions />} />
           <Route path={STUDENT.NOTIFICATIONS} element={<Notifications />} />
-
-          {/* Engineer 2 - Instructor Routes */}
-          <Route path={INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
-          <Route path={INSTRUCTOR.ASSESSMENTS} element={<QuizList />} />
-          <Route path={INSTRUCTOR.DISCUSSIONS} element={<Discussions />} />
-          <Route path={INSTRUCTOR.NOTIFICATIONS} element={<Notifications />} />
 
           {/* LMS Generic Application Routes */}
           <Route path={ASSESSMENTS} element={<QuizList />} />
