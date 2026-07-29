@@ -1,4 +1,4 @@
-import { useQuery, useMutation, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
 import { assessmentApi } from '../api/assessmentApi';
 import { Quiz, QuizSubmissionInput, QuizEvaluationResult } from '../types';
 
@@ -22,7 +22,17 @@ export const useSubmitQuiz = (): UseMutationResult<
   Error,
   { quizId: string; submission: QuizSubmissionInput }
 > => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({ quizId, submission }) => assessmentApi.submitQuiz(quizId, submission),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor'] });
+      queryClient.invalidateQueries({ queryKey: ['progress'] });
+      queryClient.invalidateQueries({ queryKey: ['student-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['certificates'] });
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
   });
 };

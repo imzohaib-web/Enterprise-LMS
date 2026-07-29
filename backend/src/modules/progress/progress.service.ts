@@ -77,6 +77,27 @@ export class ProgressService {
     this.recalculateMetrics(progress);
 
     await progress.save();
+
+    // If 100% completed, auto-generate certificate and emit notification
+    if (progress.completed) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const certificateService = require('../certificates/certificate.service');
+        await certificateService.generateCertificate(studentId, courseId);
+      } catch (certErr) {
+        console.warn('Auto certificate generation skipped/error:', certErr);
+      }
+    }
+
+    // Trigger real-time refresh signal to Dashboards
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { emitDashboardRefresh } = require('../../sockets/socket');
+      emitDashboardRefresh();
+    } catch (socketErr) {
+      console.warn('Dashboard refresh trigger error:', socketErr);
+    }
+
     return this.toResponseDTO(progress);
   }
 

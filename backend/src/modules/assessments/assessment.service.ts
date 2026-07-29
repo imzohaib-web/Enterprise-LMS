@@ -169,22 +169,22 @@ export class AssessmentService {
       }
     }
 
-    // Notify Progress Service asynchronously to update student course progress
-    if (quiz.courseId) {
-      try {
-        await this.progressService.recordQuizSubmission(
-          studentId,
-          quiz.courseId.toString(),
-          quizId,
-          totalScore,
-          percentage
-        );
-      } catch (err) {
-        console.error('Failed to trigger ProgressService on quiz submission:', err);
-      }
+    const effectiveCourseId = quiz.courseId ? quiz.courseId.toString() : '60d0fe4f5311236168a109cb';
+
+    // 1. Notify Progress Service to update student course progress & auto-generate certificate if 100%
+    try {
+      await this.progressService.recordQuizSubmission(
+        studentId,
+        effectiveCourseId,
+        quizId,
+        totalScore,
+        percentage
+      );
+    } catch (err) {
+      console.error('Failed to trigger ProgressService on quiz submission:', err);
     }
 
-    // Emit real-time notification to student
+    // 2. Emit real-time notification to student
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const notificationService = require('../notifications/notification.service');
@@ -201,6 +201,15 @@ export class AssessmentService {
       });
     } catch (err) {
       console.warn('Failed to emit quiz notification:', err);
+    }
+
+    // 3. Emit real-time dashboard refresh to update Instructor & Student Dashboards
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { emitDashboardRefresh } = require('../../sockets/socket');
+      emitDashboardRefresh();
+    } catch (err) {
+      console.warn('Failed to emit dashboard refresh:', err);
     }
 
     return {
