@@ -16,3 +16,4 @@ export * from './pages/QuizList';
 export * from './pages/QuizDetails';
 export * from './pages/TakeQuiz';
 export * from './pages/QuizResult';
+export * from './pages/AssessmentRouteWrappers';
