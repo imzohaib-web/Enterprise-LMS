@@ -323,6 +323,22 @@ const generateCertificate = async (studentId, courseId, studentUser = {}) => {
     qrCode: qrCodeDataUrl,
   });
 
+  // 8. Emit Real-time Notification to Student
+  try {
+    const notificationService = require('../notifications/notification.service');
+    await notificationService.createAndEmitNotification({
+      userId: studentId,
+      title: 'Certificate Issued!',
+      message: `Congratulations! Your certificate for ${courseName} has been generated.`,
+      type: 'success',
+      category: 'certificate',
+      actionUrl: '/student/certificates',
+      metadata: { certificateId: certificate._id, verificationCode },
+    });
+  } catch (err) {
+    console.warn('Failed to emit certificate notification:', err.message);
+  }
+
   return certificate;
 };
 

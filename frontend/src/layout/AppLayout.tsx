@@ -3,9 +3,13 @@ import { Outlet } from "react-router-dom";
 import AppHeader from "./AppHeader";
 import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
+import { useNotificationSocket } from "../features/notifications";
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+
+  // Connect global real-time Socket.IO listener for live notification toasts and unread count
+  useNotificationSocket('user-1');
 
   return (
     <div className="min-h-screen xl:flex">

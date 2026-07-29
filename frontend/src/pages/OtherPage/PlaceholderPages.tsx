@@ -130,7 +130,7 @@ export const ImagesPage: React.FC = () => (
   <>
     <PageMeta title="Images | Enterprise LMS" description="Image components" />
     <ComponentCard title="Responsive Image" desc="Optimized media loading">
-      <ResponsiveImage src="/images/cover/cover-01.jpg" alt="Cover Image" />
+      <ResponsiveImage />
     </ComponentCard>
   </>
 );
@@ -139,7 +139,7 @@ export const VideosPage: React.FC = () => (
   <>
     <PageMeta title="Videos | Enterprise LMS" description="Video player components" />
     <ComponentCard title="Aspect Ratio Video" desc="Video player preview">
-      <AspectRatioVideo />
+      <AspectRatioVideo videoUrl="https://www.youtube.com/embed/dQw4w9WgXcQ" />
     </ComponentCard>
   </>
 );

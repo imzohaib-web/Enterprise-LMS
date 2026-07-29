@@ -184,6 +184,25 @@ export class AssessmentService {
       }
     }
 
+    // Emit real-time notification to student
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const notificationService = require('../notifications/notification.service');
+      await notificationService.createAndEmitNotification({
+        userId: studentId,
+        title: passed ? 'Quiz Passed! 🎉' : 'Quiz Attempt Completed',
+        message: passed
+          ? `You scored ${percentage}% on "${quiz.title}". Great work!`
+          : `You scored ${percentage}% on "${quiz.title}". Review and try again.`,
+        type: passed ? 'success' : 'warning',
+        category: 'assessment',
+        actionUrl: `/student/assessments/${quizId}/result`,
+        metadata: { quizId, percentage, passed },
+      });
+    } catch (err) {
+      console.warn('Failed to emit quiz notification:', err);
+    }
+
     return {
       score: totalScore,
       percentage,

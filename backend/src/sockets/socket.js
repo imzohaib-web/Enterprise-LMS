@@ -1,0 +1,70 @@
+const { Server } = require('socket.io');
+
+let io = null;
+
+/**
+ * Initialize Socket.IO with HTTP Server instance
+ */
+const initSocket = (server) => {
+  io = new Server(server, {
+    cors: {
+      origin: '*',
+      methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    },
+  });
+
+  io.on('connection', (socket) => {
+    console.log(`[Socket.IO] Client connected: ${socket.id}`);
+
+    // Join personal user room for targeted notifications
+    socket.on('join-room', (userId) => {
+      if (userId) {
+        const roomName = `user:${userId}`;
+        socket.join(roomName);
+        console.log(`[Socket.IO] Socket ${socket.id} joined room ${roomName}`);
+      }
+    });
+
+    // Leave room on disconnect
+    socket.on('disconnect', () => {
+      console.log(`[Socket.IO] Client disconnected: ${socket.id}`);
+    });
+  });
+
+  return io;
+};
+
+/**
+ * Get active Socket.IO server instance
+ */
+const getIO = () => {
+  if (!io) {
+    console.warn('[Socket.IO] io instance accessed before initialization.');
+  }
+  return io;
+};
+
+/**
+ * Emit real-time notification event to a specific user
+ */
+const emitNotificationToUser = (userId, notificationData) => {
+  if (io && userId) {
+    io.to(`user:${userId}`).emit('notification', notificationData);
+  }
+};
+
+/**
+ * Emit updated unread count to a specific user
+ */
+const emitUnreadCountToUser = (userId, count) => {
+  if (io && userId) {
+    io.to(`user:${userId}`).emit('unread-count', { unreadCount: count });
+  }
+};
+
+module.exports = {
+  initSocket,
+  getIO,
+  emitNotificationToUser,
+  emitUnreadCountToUser,
+};

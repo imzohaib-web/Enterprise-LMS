@@ -9,7 +9,12 @@ import { STUDENT, INSTRUCTOR, ASSESSMENTS, PROGRESS, CERTIFICATES, DISCUSSIONS, 
 
 import StudentDashboard from '../features/student-dashboard/pages/StudentDashboard';
 import InstructorDashboard from '../features/instructor-dashboard/pages/InstructorDashboard';
-import { QuizList, QuizDetails, TakeQuiz, QuizResult } from '../features/assessments';
+import {
+  QuizList,
+  QuizDetailsRouteWrapper,
+  TakeQuizRouteWrapper,
+  QuizResultRouteWrapper,
+} from '../features/assessments';
 import StudentProgress from '../features/progress/pages/StudentProgress';
 import Discussions from '../features/discussions/pages/Discussions';
 import Notifications from '../features/notifications/pages/Notifications';
@@ -48,9 +53,9 @@ const AppRoutes: React.FC = () => {
           {/* Engineer 2 - Student Routes */}
           <Route path={STUDENT.DASHBOARD} element={<StudentDashboard />} />
           <Route path={STUDENT.ASSESSMENTS} element={<QuizList />} />
-          <Route path={`${STUDENT.ASSESSMENTS}/:id`} element={<QuizDetails />} />
-          <Route path={`${STUDENT.ASSESSMENTS}/:id/take`} element={<TakeQuiz />} />
-          <Route path={`${STUDENT.ASSESSMENTS}/:id/result`} element={<QuizResult />} />
+          <Route path={`${STUDENT.ASSESSMENTS}/:id`} element={<QuizDetailsRouteWrapper />} />
+          <Route path={`${STUDENT.ASSESSMENTS}/:id/take`} element={<TakeQuizRouteWrapper />} />
+          <Route path={`${STUDENT.ASSESSMENTS}/:id/result`} element={<QuizResultRouteWrapper />} />
           <Route path={STUDENT.PROGRESS} element={<StudentProgress />} />
           <Route path={STUDENT.CERTIFICATES} element={<CertificateVerification />} />
           <Route path={STUDENT.DISCUSSIONS} element={<Discussions />} />
@@ -64,9 +69,9 @@ const AppRoutes: React.FC = () => {
 
           {/* LMS Generic Application Routes */}
           <Route path={ASSESSMENTS} element={<QuizList />} />
-          <Route path={`${ASSESSMENTS}/:id`} element={<QuizDetails />} />
-          <Route path={`${ASSESSMENTS}/:id/take`} element={<TakeQuiz />} />
-          <Route path={`${ASSESSMENTS}/:id/result`} element={<QuizResult />} />
+          <Route path={`${ASSESSMENTS}/:id`} element={<QuizDetailsRouteWrapper />} />
+          <Route path={`${ASSESSMENTS}/:id/take`} element={<TakeQuizRouteWrapper />} />
+          <Route path={`${ASSESSMENTS}/:id/result`} element={<QuizResultRouteWrapper />} />
           <Route path={PROGRESS} element={<StudentProgress />} />
           <Route path={CERTIFICATES} element={<CertificateVerification />} />
           <Route path="/certificates/verify" element={<CertificateVerification />} />

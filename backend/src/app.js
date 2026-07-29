@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const certificateRoutes = require('./modules/certificates/certificate.routes');
+const notificationRoutes = require('./modules/notifications/notification.routes');
 const errorHandler = require('./middlewares/error.middleware');
 const AppError = require('./utils/appError');
 
@@ -26,6 +27,7 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/v1/certificates', certificateRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 
 // Handle 404 routes
 app.use((req, res, next) => {
