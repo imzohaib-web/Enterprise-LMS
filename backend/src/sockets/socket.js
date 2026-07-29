@@ -25,6 +25,24 @@ const initSocket = (server) => {
       }
     });
 
+    // Join course room for discussion updates
+    socket.on('join-course', (courseId) => {
+      if (courseId) {
+        const roomName = `course:${courseId}`;
+        socket.join(roomName);
+        console.log(`[Socket.IO] Socket ${socket.id} joined course room ${roomName}`);
+      }
+    });
+
+    // Join specific discussion room for live replies
+    socket.on('join-discussion', (discussionId) => {
+      if (discussionId) {
+        const roomName = `discussion:${discussionId}`;
+        socket.join(roomName);
+        console.log(`[Socket.IO] Socket ${socket.id} joined discussion room ${roomName}`);
+      }
+    });
+
     // Leave room on disconnect
     socket.on('disconnect', () => {
       console.log(`[Socket.IO] Client disconnected: ${socket.id}`);
