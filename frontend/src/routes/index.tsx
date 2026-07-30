@@ -5,7 +5,17 @@ import Home from '../pages/Dashboard/Home';
 import NotFound from '../pages/OtherPage/NotFound';
 import ProtectedRoute from './ProtectedRoute';
 import CertificateVerification from '../pages/CertificateVerification';
-import { STUDENT, INSTRUCTOR, ASSESSMENTS, PROGRESS, CERTIFICATES, DISCUSSIONS, NOTIFICATIONS } from '../constants/routes';
+import LMSPlaceholderPage from '../components/common/LMSPlaceholderPage';
+import {
+  STUDENT,
+  INSTRUCTOR,
+  ADMIN,
+  ASSESSMENTS,
+  PROGRESS,
+  CERTIFICATES,
+  DISCUSSIONS,
+  NOTIFICATIONS,
+} from '../constants/routes';
 
 import StudentDashboard from '../features/student-dashboard/pages/StudentDashboard';
 import {
@@ -26,24 +36,6 @@ import StudentProgress from '../features/progress/pages/StudentProgress';
 import Discussions from '../features/discussions/pages/Discussions';
 import Notifications from '../features/notifications/pages/Notifications';
 
-import {
-  CalendarPage,
-  ProfilePage,
-  FormElementsPage,
-  BasicTablesPage,
-  BlankPage,
-  LineChartPage,
-  BarChartPage,
-  AlertsPage,
-  AvatarsPage,
-  BadgePage,
-  ButtonsPage,
-  ImagesPage,
-  VideosPage,
-  SignInPage,
-  SignUpPage,
-} from '../pages/OtherPage/PlaceholderPages';
-
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
@@ -57,20 +49,28 @@ const AppRoutes: React.FC = () => {
           {/* Main / Home Route */}
           <Route path="/" element={<Home />} />
 
-          {/* Instructor Dashboard Feature Routes */}
-          <Route path={INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
-          <Route path={INSTRUCTOR.COURSES} element={<CourseList />} />
-          <Route path={INSTRUCTOR.ASSESSMENTS} element={<QuizList />} />
-          <Route path={INSTRUCTOR.CERTIFICATES} element={<CertificateVerification />} />
-          <Route path={INSTRUCTOR.STUDENTS} element={<StudentProgressPage />} />
-          <Route path={INSTRUCTOR.QUIZ_RESULTS} element={<QuizResultsPage />} />
-          <Route path={INSTRUCTOR.STATISTICS} element={<StatisticsPage />} />
-          <Route path={INSTRUCTOR.SETTINGS} element={<InstructorSettings />} />
-          <Route path={INSTRUCTOR.DISCUSSIONS} element={<Discussions />} />
-          <Route path={INSTRUCTOR.NOTIFICATIONS} element={<Notifications />} />
-
-          {/* Student Routes */}
+          {/* Student Feature Routes */}
           <Route path={STUDENT.DASHBOARD} element={<StudentDashboard />} />
+          <Route
+            path={STUDENT.COURSES}
+            element={
+              <LMSPlaceholderPage
+                title="My Courses"
+                description="View your active enrolled courses, syllabus progress, and course materials."
+                category="Student Module"
+              />
+            }
+          />
+          <Route
+            path={STUDENT.LEARNING_PATHS}
+            element={
+              <LMSPlaceholderPage
+                title="Learning Paths"
+                description="Explore structured skill tracks, career roadmaps, and competency certifications."
+                category="Student Module"
+              />
+            }
+          />
           <Route path={STUDENT.ASSESSMENTS} element={<QuizList />} />
           <Route path={`${STUDENT.ASSESSMENTS}/:id`} element={<QuizDetailsRouteWrapper />} />
           <Route path={`${STUDENT.ASSESSMENTS}/:id/take`} element={<TakeQuizRouteWrapper />} />
@@ -79,8 +79,113 @@ const AppRoutes: React.FC = () => {
           <Route path={STUDENT.CERTIFICATES} element={<CertificateVerification />} />
           <Route path={STUDENT.DISCUSSIONS} element={<Discussions />} />
           <Route path={STUDENT.NOTIFICATIONS} element={<Notifications />} />
+          <Route
+            path={STUDENT.PROFILE}
+            element={
+              <LMSPlaceholderPage
+                title="Student Profile"
+                description="Manage your profile information, academic records, and avatar."
+                category="Student Module"
+              />
+            }
+          />
+          <Route
+            path={STUDENT.SETTINGS}
+            element={
+              <LMSPlaceholderPage
+                title="Student Settings"
+                description="Manage account security, email notifications, and UI preferences."
+                category="Student Module"
+              />
+            }
+          />
 
-          {/* LMS Generic Application Routes */}
+          {/* Instructor Feature Routes */}
+          <Route path={INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
+          <Route path={INSTRUCTOR.COURSES} element={<CourseList />} />
+          <Route path={INSTRUCTOR.STUDENTS} element={<StudentProgressPage />} />
+          <Route path={INSTRUCTOR.ASSESSMENTS} element={<QuizList />} />
+          <Route path={INSTRUCTOR.CERTIFICATES} element={<CertificateVerification />} />
+          <Route path={INSTRUCTOR.DISCUSSIONS} element={<Discussions />} />
+          <Route path={INSTRUCTOR.NOTIFICATIONS} element={<Notifications />} />
+          <Route
+            path={INSTRUCTOR.PROFILE}
+            element={
+              <LMSPlaceholderPage
+                title="Instructor Profile"
+                description="Manage your instructor biography, qualifications, and teaching schedule."
+                category="Instructor Module"
+              />
+            }
+          />
+          <Route path={INSTRUCTOR.QUIZ_RESULTS} element={<QuizResultsPage />} />
+          <Route path={INSTRUCTOR.STATISTICS} element={<StatisticsPage />} />
+          <Route path={INSTRUCTOR.SETTINGS} element={<InstructorSettings />} />
+
+          {/* Admin Feature Routes (Engineer 1 Scope Placeholders) */}
+          <Route
+            path={ADMIN.DASHBOARD}
+            element={
+              <LMSPlaceholderPage
+                title="Admin Dashboard"
+                description="Platform administration, system metrics, and governance control panel."
+                category="Admin Module"
+              />
+            }
+          />
+          <Route
+            path={ADMIN.USERS}
+            element={
+              <LMSPlaceholderPage
+                title="User Management"
+                description="Manage user accounts, roles, access permissions, and directory integration."
+                category="Admin Module"
+              />
+            }
+          />
+          <Route
+            path={ADMIN.COURSES}
+            element={
+              <LMSPlaceholderPage
+                title="Course Management"
+                description="Platform-wide course oversight, approval workflows, and catalog publishing."
+                category="Admin Module"
+              />
+            }
+          />
+          <Route
+            path={ADMIN.REPORTS}
+            element={
+              <LMSPlaceholderPage
+                title="System Reports"
+                description="Generate compliance audit reports, course completion statistics, and user metrics."
+                category="Admin Module"
+              />
+            }
+          />
+          <Route
+            path={ADMIN.ANALYTICS}
+            element={
+              <LMSPlaceholderPage
+                title="Platform Analytics"
+                description="System-wide usage analytics, storage monitoring, and engagement tracking."
+                category="Admin Module"
+              />
+            }
+          />
+          <Route path={ADMIN.NOTIFICATIONS} element={<Notifications />} />
+          <Route
+            path={ADMIN.PROFILE}
+            element={
+              <LMSPlaceholderPage
+                title="Admin Profile"
+                description="Manage administrator profile, security keys, and system audit logs."
+                category="Admin Module"
+              />
+            }
+          />
+
+          {/* Generic Top-Level Alias Routes */}
           <Route path={ASSESSMENTS} element={<QuizList />} />
           <Route path={`${ASSESSMENTS}/:id`} element={<QuizDetailsRouteWrapper />} />
           <Route path={`${ASSESSMENTS}/:id/take`} element={<TakeQuizRouteWrapper />} />
@@ -90,24 +195,6 @@ const AppRoutes: React.FC = () => {
           <Route path="/certificates/verify" element={<CertificateVerification />} />
           <Route path={DISCUSSIONS} element={<Discussions />} />
           <Route path={NOTIFICATIONS} element={<Notifications />} />
-
-          {/* Sidebar Demo & Utility Routes */}
-          <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/form-elements" element={<FormElementsPage />} />
-          <Route path="/basic-tables" element={<BasicTablesPage />} />
-          <Route path="/blank" element={<BlankPage />} />
-          <Route path="/error-404" element={<NotFound />} />
-          <Route path="/line-chart" element={<LineChartPage />} />
-          <Route path="/bar-chart" element={<BarChartPage />} />
-          <Route path="/alerts" element={<AlertsPage />} />
-          <Route path="/avatars" element={<AvatarsPage />} />
-          <Route path="/badge" element={<BadgePage />} />
-          <Route path="/buttons" element={<ButtonsPage />} />
-          <Route path="/images" element={<ImagesPage />} />
-          <Route path="/videos" element={<VideosPage />} />
-          <Route path="/signin" element={<SignInPage />} />
-          <Route path="/signup" element={<SignUpPage />} />
         </Route>
       </Route>
 
