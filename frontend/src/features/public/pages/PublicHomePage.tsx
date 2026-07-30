@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import PageMeta from '../../../components/common/PageMeta';
 import HeroSection from '../../../components/public/HeroSection';
 import FeatureCard from '../../../components/public/FeatureCard';
@@ -171,6 +172,16 @@ const samplePaths: LearningPathData[] = [
 ];
 
 export const PublicHomePage: React.FC = () => {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
   return (
     <>
       <PageMeta
@@ -186,7 +197,13 @@ export const PublicHomePage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           {/* Section Header */}
-          <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="text-center max-w-3xl mx-auto mb-20 space-y-4"
+          >
             <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-brand-400 bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 rounded-full">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Enterprise Ecosystem
             </span>
@@ -196,10 +213,16 @@ export const PublicHomePage: React.FC = () => {
             <p className="text-base text-gray-400 font-normal max-w-xl mx-auto">
               Built for individual developers, engineering cohorts, and incubator programs inspired by Coursera & Ezitech.
             </p>
-          </div>
+          </motion.div>
 
           {/* Bento Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
             <FeatureCard
               icon={<BookOpen className="w-7 h-7" />}
               title="Interactive Courses"
@@ -257,14 +280,20 @@ export const PublicHomePage: React.FC = () => {
               description="Governance and reporting insights for organizational administrators tracking overall program metrics."
               color="from-orange-500/20 to-amber-500/20 text-orange-400 border-orange-500/30"
             />
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Featured Courses Section (Ambient Gradient Background) */}
       <section className="py-24 lg:py-36 relative z-10 bg-gradient-to-b from-[#0C101A] via-[#090D16] to-[#0D1220]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6"
+          >
             <div className="space-y-3">
               <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-brand-400 bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 rounded-full">
                 Curriculum Catalog
@@ -276,11 +305,11 @@ export const PublicHomePage: React.FC = () => {
             <p className="text-sm text-gray-400 max-w-md">
               Handcrafted modules taught by senior software architects and industry incubator mentors.
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {sampleCourses.map((course) => (
-              <CourseCard key={course.id} course={course} />
+            {sampleCourses.map((course, idx) => (
+              <CourseCard key={course.id} course={course} index={idx} />
             ))}
           </div>
         </div>
@@ -289,7 +318,13 @@ export const PublicHomePage: React.FC = () => {
       {/* Learning Paths Section (Glass Rounded Section Block) */}
       <section className="py-24 lg:py-36 relative z-10 border-t border-white/10 bg-[#0D1220] backdrop-blur-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="text-center max-w-3xl mx-auto mb-20 space-y-4"
+          >
             <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-brand-400 bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 rounded-full">
               Career Roadmaps
             </span>
@@ -299,11 +334,11 @@ export const PublicHomePage: React.FC = () => {
             <p className="text-base text-gray-400 font-normal">
               Follow curated course sequences to achieve industry specialization in record time.
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {samplePaths.map((path) => (
-              <LearningPathCard key={path.id} path={path} />
+            {samplePaths.map((path, idx) => (
+              <LearningPathCard key={path.id} path={path} index={idx} />
             ))}
           </div>
         </div>
@@ -312,7 +347,13 @@ export const PublicHomePage: React.FC = () => {
       {/* Testimonials Section */}
       <section className="py-24 lg:py-36 relative z-10 bg-gradient-to-b from-[#0D1220] via-[#090D16] to-[#0C101A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="text-center max-w-3xl mx-auto mb-20 space-y-4"
+          >
             <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-brand-400 bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 rounded-full">
               Student Success Stories
             </span>
@@ -322,7 +363,7 @@ export const PublicHomePage: React.FC = () => {
             <p className="text-base text-gray-400">
               Read how Enterprise LMS helped developers land promotions and launch tech startups.
             </p>
-          </div>
+          </motion.div>
 
           <Testimonials />
         </div>
@@ -331,14 +372,20 @@ export const PublicHomePage: React.FC = () => {
       {/* FAQ Section */}
       <section className="py-24 lg:py-36 relative z-10 border-t border-white/10 bg-[#0C101A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="text-center max-w-3xl mx-auto mb-20 space-y-4"
+          >
             <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-brand-400 bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 rounded-full">
               Got Questions?
             </span>
             <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
               Frequently Asked Questions
             </h2>
-          </div>
+          </motion.div>
 
           <FAQAccordion />
         </div>

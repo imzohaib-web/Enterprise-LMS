@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Clock, Layers, Compass } from 'lucide-react';
 import { PUBLIC } from '../../constants/routes';
 
@@ -17,11 +18,21 @@ export interface LearningPathData {
 
 interface LearningPathCardProps {
   path: LearningPathData;
+  index?: number;
 }
 
-export const LearningPathCard: React.FC<LearningPathCardProps> = ({ path }) => {
+export const LearningPathCard: React.FC<LearningPathCardProps> = ({ path, index = 0 }) => {
+  const xOffset = index % 2 === 0 ? -30 : 30;
+
   return (
-    <div className="group flex flex-col h-full p-8 rounded-3xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-brand-500/40 backdrop-blur-xl shadow-xl transition-all duration-300 transform hover:-translate-y-2 justify-between space-y-6">
+    <motion.div
+      initial={{ opacity: 0, x: xOffset }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6, ease: 'easeOut', delay: (index % 3) * 0.1 }}
+      whileHover={{ y: -6, scale: 1.01 }}
+      className="group flex flex-col h-full p-8 rounded-3xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-brand-500/40 backdrop-blur-xl shadow-xl transition-colors duration-300 justify-between space-y-6"
+    >
       <div>
         <div className="flex items-center justify-between mb-4">
           <span className="px-3.5 py-1 text-2xs font-extrabold uppercase tracking-wider text-brand-300 bg-brand-500/20 border border-brand-500/30 rounded-full">
@@ -63,9 +74,12 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({ path }) => {
             <span className="text-brand-400">{path.progress || 60}%</span>
           </div>
           <div className="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
-            <div
+            <motion.div
+              initial={{ width: '0%' }}
+              whileInView={{ width: `${path.progress || 60}%` }}
+              viewport={{ once: true }}
+              transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
               className="bg-gradient-to-r from-brand-500 via-indigo-500 to-purple-500 h-1.5 rounded-full"
-              style={{ width: `${path.progress || 60}%` }}
             />
           </div>
         </div>
@@ -75,15 +89,17 @@ export const LearningPathCard: React.FC<LearningPathCardProps> = ({ path }) => {
             <Layers className="w-4 h-4 text-purple-400" />
             {path.coursesCount} Courses
           </span>
-          <Link
-            to={PUBLIC.COURSES}
-            className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-brand-600 to-indigo-600 rounded-xl shadow-xs transition-all active:scale-95"
-          >
-            View Roadmap
-          </Link>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Link
+              to={PUBLIC.COURSES}
+              className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-brand-600 to-indigo-600 rounded-xl shadow-xs transition-all block"
+            >
+              View Roadmap
+            </Link>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

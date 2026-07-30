@@ -1,14 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { GraduationCap, Menu, X, ArrowRight, Sparkles } from 'lucide-react';
 import { ThemeToggleButton } from '../common/ThemeToggleButton';
 import { PUBLIC } from '../../constants/routes';
 
 export const PublicHeader: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navLinks = [
     { name: 'Home', path: PUBLIC.HOME },
@@ -19,16 +34,29 @@ export const PublicHeader: React.FC = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-[#090D16]/85 backdrop-blur-xl border-b border-white/10 transition-colors">
+    <motion.header
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? 'bg-[#090D16]/85 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/40 py-0'
+          : 'bg-transparent border-b border-transparent py-1'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
           {/* Brand Logo */}
           <Link to="/" className="flex items-center gap-3.5 group">
-            <div className="relative flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 via-brand-500 to-indigo-500 text-white shadow-[0_0_20px_rgba(70,95,255,0.4)] group-hover:scale-105 transition-transform">
+            <motion.div
+              whileHover={{ scale: 1.08, rotate: 3 }}
+              whileTap={{ scale: 0.95 }}
+              className="relative flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 via-brand-500 to-indigo-500 text-white shadow-[0_0_20px_rgba(70,95,255,0.4)]"
+            >
               <GraduationCap className="w-6 h-6 text-white group-hover:rotate-12 transition-transform" />
               <div className="absolute inset-0 rounded-2xl bg-brand-400 blur-md opacity-40 group-hover:opacity-80 transition-opacity" />
-            </div>
+            </motion.div>
             <div className="flex flex-col">
               <span className="font-extrabold text-white text-xl tracking-tight leading-none group-hover:text-brand-300 transition-colors">
                 Enterprise LMS
@@ -55,7 +83,11 @@ export const PublicHeader: React.FC = () => {
                 >
                   {link.name}
                   {active && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-500 via-indigo-400 to-purple-400 rounded-full shadow-[0_0_10px_rgba(70,95,255,0.8)]" />
+                    <motion.span
+                      layoutId="activeNavIndicator"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-500 via-indigo-400 to-purple-400 rounded-full shadow-[0_0_10px_rgba(70,95,255,0.8)]"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
                   )}
                 </Link>
               );
@@ -71,14 +103,16 @@ export const PublicHeader: React.FC = () => {
             >
               Sign In
             </Link>
-            <Link
-              to={PUBLIC.REGISTER}
-              className="group relative inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-xl overflow-hidden transition-all shadow-[0_0_20px_rgba(70,95,255,0.35)] hover:shadow-[0_0_35px_rgba(70,95,255,0.7)] active:scale-95"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 group-hover:scale-105 transition-transform" />
-              <span className="relative z-10">Get Started</span>
-              <ArrowRight className="relative z-10 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
+            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+              <Link
+                to={PUBLIC.REGISTER}
+                className="group relative inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-xl overflow-hidden transition-all shadow-[0_0_20px_rgba(70,95,255,0.35)] hover:shadow-[0_0_35px_rgba(70,95,255,0.7)]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 group-hover:scale-105 transition-transform" />
+                <span className="relative z-10">Get Started</span>
+                <ArrowRight className="relative z-10 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </motion.div>
           </div>
 
           {/* Mobile Hamburger Button */}
@@ -90,11 +124,7 @@ export const PublicHeader: React.FC = () => {
               className="p-2 text-gray-300 hover:text-white focus:outline-none"
               aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
@@ -102,7 +132,13 @@ export const PublicHeader: React.FC = () => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-white/10 bg-[#090D16]/95 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-4 shadow-2xl animate-fadeIn">
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+          className="md:hidden border-b border-white/10 bg-[#090D16]/95 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-4 shadow-2xl"
+        >
           <div className="flex flex-col space-y-2">
             {navLinks.map((link) => (
               <Link
@@ -135,9 +171,9 @@ export const PublicHeader: React.FC = () => {
               Get Started
             </Link>
           </div>
-        </div>
+        </motion.div>
       )}
-    </header>
+    </motion.header>
   );
 };
 

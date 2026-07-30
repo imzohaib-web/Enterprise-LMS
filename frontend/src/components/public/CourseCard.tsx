@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Bookmark, Clock, Users, Star } from 'lucide-react';
 import { PUBLIC } from '../../constants/routes';
 
@@ -19,12 +20,12 @@ export interface CourseData {
 
 interface CourseCardProps {
   course: CourseData;
+  index?: number;
 }
 
-export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
+export const CourseCard: React.FC<CourseCardProps> = ({ course, index = 0 }) => {
   const [bookmarked, setBookmarked] = useState(false);
 
-  // Generate instructor initials
   const initials = course.instructor
     .split(' ')
     .map((n) => n[0])
@@ -32,11 +33,21 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
     .slice(0, 2);
 
   return (
-    <div className="group flex flex-col h-full overflow-hidden rounded-3xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-brand-500/40 backdrop-blur-xl shadow-xl transition-all duration-300 transform hover:-translate-y-1.5">
-      
+    <motion.div
+      initial={{ opacity: 0, y: 25 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, ease: 'easeOut', delay: (index % 3) * 0.1 }}
+      whileHover={{ y: -6 }}
+      className="group flex flex-col h-full overflow-hidden rounded-3xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-brand-500/40 backdrop-blur-xl shadow-xl transition-colors duration-300"
+    >
       {/* Thumbnail Container */}
       <div className={`relative h-56 w-full ${course.imageBg} flex items-center justify-center p-6 text-white overflow-hidden`}>
-        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300" />
+        <motion.div
+          whileHover={{ scale: 1.06 }}
+          transition={{ duration: 0.5 }}
+          className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300"
+        />
         
         {/* Category & Difficulty Badges */}
         <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
@@ -49,18 +60,20 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
         </div>
 
         {/* Interactive Bookmark Button */}
-        <button
+        <motion.button
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.9 }}
           type="button"
           onClick={() => setBookmarked(!bookmarked)}
           aria-label="Bookmark course"
           className={`absolute top-4 right-4 z-10 p-2 rounded-full backdrop-blur-md border transition-all duration-200 ${
             bookmarked
-              ? 'bg-amber-500/80 text-white border-amber-400 scale-110 shadow-lg'
+              ? 'bg-amber-500/80 text-white border-amber-400 shadow-lg'
               : 'bg-black/50 text-gray-300 border-white/20 hover:text-white hover:bg-black/70'
           }`}
         >
           <Bookmark className={`w-4 h-4 ${bookmarked ? 'fill-white' : ''}`} />
-        </button>
+        </motion.button>
 
         {/* Rating Badge */}
         <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1 text-xs font-bold px-3 py-1 bg-black/70 backdrop-blur-md rounded-xl text-amber-300 border border-white/10">
@@ -110,9 +123,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
             <span className="text-brand-400">{course.progress || 75}%</span>
           </div>
           <div className="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
-            <div
+            <motion.div
+              initial={{ width: '0%' }}
+              whileInView={{ width: `${course.progress || 75}%` }}
+              viewport={{ once: true }}
+              transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
               className="bg-gradient-to-r from-brand-500 to-indigo-500 h-1.5 rounded-full"
-              style={{ width: `${course.progress || 75}%` }}
             />
           </div>
         </div>
@@ -122,15 +138,17 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
           <span className="text-xs font-semibold text-gray-400">
             Certified Path
           </span>
-          <Link
-            to={PUBLIC.REGISTER}
-            className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 rounded-xl shadow-[0_0_15px_rgba(70,95,255,0.3)] transition-all active:scale-95"
-          >
-            Enroll Now
-          </Link>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Link
+              to={PUBLIC.REGISTER}
+              className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 rounded-xl shadow-[0_0_15px_rgba(70,95,255,0.3)] transition-all block text-center"
+            >
+              Enroll Now
+            </Link>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

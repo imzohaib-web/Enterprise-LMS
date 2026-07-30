@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Star, Quote } from 'lucide-react';
 
 export interface TestimonialItem {
@@ -51,10 +52,15 @@ const testimonials: TestimonialItem[] = [
 export const Testimonials: React.FC = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {testimonials.map((item) => (
-        <div
+      {testimonials.map((item, idx) => (
+        <motion.div
           key={item.id}
-          className="flex flex-col justify-between p-8 rounded-3xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-brand-500/40 backdrop-blur-xl shadow-xl transition-all duration-300 transform hover:-translate-y-2 space-y-6 group"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, ease: 'easeOut', delay: idx * 0.15 }}
+          whileHover={{ y: -8, scale: 1.02 }}
+          className="flex flex-col justify-between p-8 rounded-3xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-brand-500/40 backdrop-blur-xl shadow-xl transition-colors duration-300 space-y-6 group"
         >
           {/* Header & Rating Stars */}
           <div className="flex items-center justify-between">
@@ -85,7 +91,7 @@ export const Testimonials: React.FC = () => {
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
       ))}
     </div>
   );

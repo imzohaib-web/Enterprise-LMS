@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, HelpCircle } from 'lucide-react';
 
 export interface FAQItem {
@@ -49,12 +50,16 @@ export const FAQAccordion: React.FC = () => {
 
   return (
     <div className="space-y-4 max-w-3xl mx-auto">
-      {defaultFAQs.map((faq) => {
+      {defaultFAQs.map((faq, idx) => {
         const isOpen = openId === faq.id;
         return (
-          <div
+          <motion.div
             key={faq.id}
-            className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4, delay: idx * 0.1 }}
+            className={`rounded-2xl border transition-colors duration-300 overflow-hidden ${
               isOpen
                 ? 'bg-white/[0.04] border-brand-500/50 shadow-[0_0_25px_rgba(70,95,255,0.15)]'
                 : 'bg-white/[0.02] border-white/10 hover:border-white/20'
@@ -69,23 +74,34 @@ export const FAQAccordion: React.FC = () => {
                 <HelpCircle className="w-5 h-5 text-brand-400 shrink-0" />
                 {faq.question}
               </span>
-              <span
-                className={`ml-4 flex items-center justify-center w-8 h-8 rounded-full border transition-transform duration-300 text-sm font-black ${
+              <motion.span
+                animate={{ rotate: isOpen ? 180 : 0 }}
+                transition={{ duration: 0.3 }}
+                className={`ml-4 flex items-center justify-center w-8 h-8 rounded-full border text-sm font-black ${
                   isOpen
-                    ? 'bg-brand-500 text-white border-brand-400 rotate-180'
+                    ? 'bg-brand-500 text-white border-brand-400'
                     : 'bg-white/5 text-gray-300 border-white/10'
                 }`}
               >
                 <ChevronDown className="w-4 h-4" />
-              </span>
+              </motion.span>
             </button>
 
-            {isOpen && (
-              <div className="px-6 pb-6 pt-2 text-sm text-gray-300 leading-relaxed border-t border-white/5 animate-fadeIn">
-                {faq.answer}
-              </div>
-            )}
-          </div>
+            <AnimatePresence>
+              {isOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                >
+                  <div className="px-6 pb-6 pt-2 text-sm text-gray-300 leading-relaxed border-t border-white/5">
+                    {faq.answer}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         );
       })}
     </div>
