@@ -1,12 +1,12 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import AppLayout from '../layout/AppLayout';
-import Home from '../pages/Dashboard/Home';
+import PublicLayout from '../layout/PublicLayout';
 import NotFound from '../pages/OtherPage/NotFound';
 import ProtectedRoute from './ProtectedRoute';
-import CertificateVerification from '../pages/CertificateVerification';
 import LMSPlaceholderPage from '../components/common/LMSPlaceholderPage';
 import {
+  PUBLIC,
   STUDENT,
   INSTRUCTOR,
   ADMIN,
@@ -16,6 +16,18 @@ import {
   DISCUSSIONS,
   NOTIFICATIONS,
 } from '../constants/routes';
+
+import {
+  PublicHomePage,
+  PublicCoursesPage,
+  PublicAboutPage,
+  PublicLoginPage,
+  PublicRegisterPage,
+  PublicVerifyCertificatePage,
+  PublicContactPage,
+  PublicPrivacyPage,
+  PublicTermsPage,
+} from '../features/public';
 
 import StudentDashboard from '../features/student-dashboard/pages/StudentDashboard';
 import {
@@ -35,20 +47,28 @@ import {
 import StudentProgress from '../features/progress/pages/StudentProgress';
 import Discussions from '../features/discussions/pages/Discussions';
 import Notifications from '../features/notifications/pages/Notifications';
+import CertificateVerification from '../pages/CertificateVerification';
 
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Public Routes */}
-      <Route path="/pages/certificate-verification" element={<CertificateVerification />} />
-      <Route path="/verify/:verificationCode" element={<CertificateVerification />} />
+      {/* Public Website Routes */}
+      <Route element={<PublicLayout />}>
+        <Route path={PUBLIC.HOME} element={<PublicHomePage />} />
+        <Route path={PUBLIC.COURSES} element={<PublicCoursesPage />} />
+        <Route path={PUBLIC.ABOUT} element={<PublicAboutPage />} />
+        <Route path={PUBLIC.LOGIN} element={<PublicLoginPage />} />
+        <Route path={PUBLIC.REGISTER} element={<PublicRegisterPage />} />
+        <Route path={PUBLIC.VERIFY} element={<PublicVerifyCertificatePage />} />
+        <Route path={PUBLIC.VERIFY_CODE} element={<PublicVerifyCertificatePage />} />
+        <Route path={PUBLIC.CONTACT} element={<PublicContactPage />} />
+        <Route path={PUBLIC.PRIVACY} element={<PublicPrivacyPage />} />
+        <Route path={PUBLIC.TERMS} element={<PublicTermsPage />} />
+      </Route>
 
-      {/* Protected Routes */}
+      {/* Protected Dashboard Routes */}
       <Route element={<ProtectedRoute isAllowed={true} />}>
         <Route element={<AppLayout />}>
-          {/* Main / Home Route */}
-          <Route path="/" element={<Home />} />
-
           {/* Student Feature Routes */}
           <Route path={STUDENT.DASHBOARD} element={<StudentDashboard />} />
           <Route
@@ -122,7 +142,7 @@ const AppRoutes: React.FC = () => {
           <Route path={INSTRUCTOR.STATISTICS} element={<StatisticsPage />} />
           <Route path={INSTRUCTOR.SETTINGS} element={<InstructorSettings />} />
 
-          {/* Admin Feature Routes (Engineer 1 Scope Placeholders) */}
+          {/* Admin Feature Routes */}
           <Route
             path={ADMIN.DASHBOARD}
             element={
