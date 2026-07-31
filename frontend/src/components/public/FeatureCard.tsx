@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-interface FeatureCardProps {
+export interface FeatureCardProps {
   icon: React.ReactNode;
   title: string;
   description: string;
@@ -18,13 +18,9 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
 }) => {
   return (
     <motion.div
-      variants={{
-        hidden: { opacity: 0, scale: 0.95, y: 20 },
-        show: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' as const } },
-      }}
       whileHover={{ y: -8, scale: 1.02 }}
       transition={{ duration: 0.2 }}
-      className="group relative p-8 rounded-3xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-brand-500/40 backdrop-blur-xl shadow-xl flex flex-col justify-between space-y-6"
+      className="group relative w-[300px] sm:w-[350px] lg:w-[380px] flex-shrink-0 p-8 rounded-3xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-brand-500/40 backdrop-blur-xl shadow-xl flex flex-col justify-between space-y-6 h-full select-none"
     >
       <div>
         <div className="flex items-center justify-between mb-6">

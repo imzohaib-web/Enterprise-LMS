@@ -171,38 +171,99 @@ const samplePaths: LearningPathData[] = [
   },
 ];
 
+const featureList = [
+  {
+    id: 'f1',
+    icon: <BookOpen className="w-7 h-7" />,
+    title: 'Interactive Courses',
+    description: 'Rich modular lessons with embedded coding challenges, video walkthroughs, and downloadable assets.',
+    badge: 'Self-Paced',
+    color: 'from-blue-500/20 to-indigo-500/20 text-blue-400 border-blue-500/30',
+  },
+  {
+    id: 'f2',
+    icon: <Layers className="w-7 h-7" />,
+    title: 'Learning Paths',
+    description: 'Structured career roadmaps designed by senior software architects to guide learners from novice to principal.',
+    badge: 'Structured',
+    color: 'from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-500/30',
+  },
+  {
+    id: 'f3',
+    icon: <Award className="w-7 h-7" />,
+    title: 'Interactive Assessments',
+    description: 'Timed quizzes, automated submission grading, and instant feedback to validate core technical competencies.',
+    color: 'from-amber-500/20 to-orange-500/20 text-amber-400 border-amber-500/30',
+  },
+  {
+    id: 'f4',
+    icon: <ShieldCheck className="w-7 h-7" />,
+    title: 'Verified Credentials',
+    description: 'Tamper-proof digital credentials featuring unique verification codes for employer validation.',
+    badge: 'Verifiable',
+    color: 'from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30',
+  },
+  {
+    id: 'f5',
+    icon: <BarChart3 className="w-7 h-7" />,
+    title: 'Progress Analytics',
+    description: 'Real-time performance dashboards tracking study hours, lesson completion, and quiz accuracy.',
+    color: 'from-brand-500/20 to-cyan-500/20 text-brand-400 border-brand-500/30',
+  },
+  {
+    id: 'f6',
+    icon: <MessageSquare className="w-7 h-7" />,
+    title: 'Discussion Forums',
+    description: 'Collaborative student-instructor forums to discuss code problems, project ideas, and peer review.',
+    color: 'from-rose-500/20 to-red-500/20 text-rose-400 border-rose-500/30',
+  },
+  {
+    id: 'f7',
+    icon: <Bell className="w-7 h-7" />,
+    title: 'Smart Notifications',
+    description: 'Automated email and in-app alerts for quiz deadlines, grade releases, and announcement updates.',
+    color: 'from-indigo-500/20 to-blue-500/20 text-indigo-400 border-indigo-500/30',
+  },
+  {
+    id: 'f8',
+    icon: <Users className="w-7 h-7" />,
+    title: 'Instructor Dashboard',
+    description: 'Authoring control panel for instructors to publish courses, review submissions, and manage student cohorts.',
+    color: 'from-teal-500/20 to-emerald-500/20 text-teal-400 border-teal-500/30',
+  },
+  {
+    id: 'f9',
+    icon: <SlidersHorizontal className="w-7 h-7" />,
+    title: 'Admin Analytics',
+    description: 'Governance and reporting insights for organizational administrators tracking overall program metrics.',
+    color: 'from-orange-500/20 to-amber-500/20 text-orange-400 border-orange-500/30',
+  },
+];
+
 export const PublicHomePage: React.FC = () => {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
+  // Duplicate features array for seamless infinite marquee scrolling
+  const marqueeFeatures = [...featureList, ...featureList];
 
   return (
     <>
       <PageMeta
-        title="Enterprise LMS | Production-Grade EdTech SaaS Platform"
+        title="SkillForge LMS | Production-Grade EdTech SaaS Platform"
         description="Learn industry-leading software development, cloud architecture, and AI skills with verified enterprise credentials."
       />
 
       {/* Hero Section */}
       <HeroSection />
 
-      {/* Features Bento Section (Soft Dark Slate Background) */}
-      <section className="py-24 lg:py-36 relative z-10 border-y border-white/10 bg-[#0C101A] backdrop-blur-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+      {/* Features Infinite Horizontal Marquee Section */}
+      <section className="py-24 lg:py-36 relative z-10 border-y border-white/10 bg-[#0C101A] backdrop-blur-2xl overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 25 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="text-center max-w-3xl mx-auto mb-20 space-y-4"
+            className="text-center max-w-3xl mx-auto space-y-4"
           >
             <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-brand-400 bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 rounded-full">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Enterprise Ecosystem
@@ -211,76 +272,36 @@ export const PublicHomePage: React.FC = () => {
               Everything You Need to Scale Tech Education
             </h2>
             <p className="text-base text-gray-400 font-normal max-w-xl mx-auto">
-              Built for individual developers, engineering cohorts, and incubator programs inspired by Coursera & Ezitech.
+              Built for individual developers, engineering cohorts, and incubator programs inspired by Sheryians & Coursera.
             </p>
           </motion.div>
+        </div>
 
-          {/* Bento Grid */}
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-          >
-            <FeatureCard
-              icon={<BookOpen className="w-7 h-7" />}
-              title="Interactive Courses"
-              description="Rich modular lessons with embedded coding challenges, video walkthroughs, and downloadable assets."
-              badge="Self-Paced"
-              color="from-blue-500/20 to-indigo-500/20 text-blue-400 border-blue-500/30"
-            />
-            <FeatureCard
-              icon={<Layers className="w-7 h-7" />}
-              title="Learning Paths"
-              description="Structured career roadmaps designed by senior software architects to guide learners from novice to principal."
-              badge="Structured"
-              color="from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-500/30"
-            />
-            <FeatureCard
-              icon={<Award className="w-7 h-7" />}
-              title="Interactive Assessments"
-              description="Timed quizzes, automated submission grading, and instant feedback to validate core technical competencies."
-              color="from-amber-500/20 to-orange-500/20 text-amber-400 border-amber-500/30"
-            />
-            <FeatureCard
-              icon={<ShieldCheck className="w-7 h-7" />}
-              title="Verified Credentials"
-              description="Tamper-proof digital credentials featuring unique verification codes for employer validation."
-              badge="Verifiable"
-              color="from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30"
-            />
-            <FeatureCard
-              icon={<BarChart3 className="w-7 h-7" />}
-              title="Progress Analytics"
-              description="Real-time performance dashboards tracking study hours, lesson completion, and quiz accuracy."
-              color="from-brand-500/20 to-cyan-500/20 text-brand-400 border-brand-500/30"
-            />
-            <FeatureCard
-              icon={<MessageSquare className="w-7 h-7" />}
-              title="Discussion Forums"
-              description="Collaborative student-instructor forums to discuss code problems, project ideas, and peer review."
-              color="from-rose-500/20 to-red-500/20 text-rose-400 border-rose-500/30"
-            />
-            <FeatureCard
-              icon={<Bell className="w-7 h-7" />}
-              title="Smart Notifications"
-              description="Automated email and in-app alerts for quiz deadlines, grade releases, and announcement updates."
-              color="from-indigo-500/20 to-blue-500/20 text-indigo-400 border-indigo-500/30"
-            />
-            <FeatureCard
-              icon={<Users className="w-7 h-7" />}
-              title="Instructor Dashboard"
-              description="Authoring control panel for instructors to publish courses, review submissions, and manage student cohorts."
-              color="from-teal-500/20 to-emerald-500/20 text-teal-400 border-teal-500/30"
-            />
-            <FeatureCard
-              icon={<SlidersHorizontal className="w-7 h-7" />}
-              title="Admin Analytics"
-              description="Governance and reporting insights for organizational administrators tracking overall program metrics."
-              color="from-orange-500/20 to-amber-500/20 text-orange-400 border-orange-500/30"
-            />
-          </motion.div>
+        {/* Custom Sheryians-Style Infinite Horizontal Marquee Track */}
+        <div className="relative w-full overflow-hidden py-4">
+          
+          {/* Left Side Ambient Edge Gradient Mask Fade */}
+          <div className="absolute top-0 bottom-0 left-0 w-24 sm:w-40 bg-gradient-to-r from-[#0C101A] via-[#0C101A]/80 to-transparent z-20 pointer-events-none" />
+          
+          {/* Right Side Ambient Edge Gradient Mask Fade */}
+          <div className="absolute top-0 bottom-0 right-0 w-24 sm:w-40 bg-gradient-to-l from-[#0C101A] via-[#0C101A]/80 to-transparent z-20 pointer-events-none" />
+
+          {/* Continuous Auto-Scrolling Track */}
+          <div className="overflow-x-auto hide-scrollbar flex w-full">
+            <div className="animate-marquee flex items-center gap-6 sm:gap-8 px-4">
+              {marqueeFeatures.map((item, idx) => (
+                <FeatureCard
+                  key={`${item.id}-${idx}`}
+                  icon={item.icon}
+                  title={item.title}
+                  description={item.description}
+                  badge={item.badge}
+                  color={item.color}
+                />
+              ))}
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -316,7 +337,7 @@ export const PublicHomePage: React.FC = () => {
       </section>
 
       {/* Learning Paths Section (Glass Rounded Section Block) */}
-      <section className="py-24 lg:py-36 relative z-10 border-t border-white/10 bg-[#0D1220] backdrop-blur-2xl">
+      <section id="paths" className="py-24 lg:py-36 relative z-10 border-t border-white/10 bg-[#0D1220] backdrop-blur-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 25 }}
@@ -361,7 +382,7 @@ export const PublicHomePage: React.FC = () => {
               Trusted by Engineers Worldwide
             </h2>
             <p className="text-base text-gray-400">
-              Read how Enterprise LMS helped developers land promotions and launch tech startups.
+              Read how SkillForge LMS helped developers land promotions and launch tech startups.
             </p>
           </motion.div>
 
