@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import PublicHeader from '../components/public/PublicHeader';
 import PublicFooter from '../components/public/PublicFooter';
+import WhatsAppWidget from '../components/public/WhatsAppWidget';
 
 export const PublicLayout: React.FC = () => {
   return (
@@ -21,6 +22,9 @@ export const PublicLayout: React.FC = () => {
       <main className="flex-1 relative z-10">
         <Outlet />
       </main>
+
+      {/* Fixed WhatsApp Support Button */}
+      <WhatsAppWidget />
 
       {/* Footer */}
       <PublicFooter />
