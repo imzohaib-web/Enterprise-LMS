@@ -1,0 +1,132 @@
+import React from 'react';
+
+import RawPlusIcon from "./plus.svg?react";
+import RawCloseIcon from "./close.svg?react";
+import RawBoxIcon from "./box.svg?react";
+import RawCheckCircleIcon from "./check-circle.svg?react";
+import RawAlertIcon from "./alert.svg?react";
+import RawInfoIcon from "./info.svg?react";
+import RawErrorIcon from "./info-error.svg?react";
+import RawBoltIcon from "./bolt.svg?react";
+import RawArrowUpIcon from "./arrow-up.svg?react";
+import RawArrowDownIcon from "./arrow-down.svg?react";
+import RawFolderIcon from "./folder.svg?react";
+import RawVideoIcon from "./videos.svg?react";
+import RawAudioIcon from "./audio.svg?react";
+import RawGridIcon from "./grid.svg?react";
+import RawFileIcon from "./file.svg?react";
+import RawDownloadIcon from "./download.svg?react";
+import RawArrowRightIcon from "./arrow-right.svg?react";
+import RawGroupIcon from "./group.svg?react";
+import RawBoxIconLine from "./box-line.svg?react";
+import RawShootingStarIcon from "./shooting-star.svg?react";
+import RawDollarLineIcon from "./dollar-line.svg?react";
+import RawTrashBinIcon from "./trash.svg?react";
+import RawAngleUpIcon from "./angle-up.svg?react";
+import RawAngleDownIcon from "./angle-down.svg?react";
+import RawAngleLeftIcon from "./angle-left.svg?react";
+import RawAngleRightIcon from "./angle-right.svg?react";
+import RawPencilIcon from "./pencil.svg?react";
+import RawCheckLineIcon from "./check-line.svg?react";
+import RawCloseLineIcon from "./close-line.svg?react";
+import RawChevronDownIcon from "./chevron-down.svg?react";
+import RawChevronUpIcon from "./chevron-up.svg?react";
+import RawPaperPlaneIcon from "./paper-plane.svg?react";
+import RawLockIcon from "./lock.svg?react";
+import RawEnvelopeIcon from "./envelope.svg?react";
+import RawUserIcon from "./user-line.svg?react";
+import RawCalenderIcon from "./calender-line.svg?react";
+import RawEyeIcon from "./eye.svg?react";
+import RawEyeCloseIcon from "./eye-close.svg?react";
+import RawTimeIcon from "./time.svg?react";
+import RawCopyIcon from "./copy.svg?react";
+import RawChevronLeftIcon from "./chevron-left.svg?react";
+import RawUserCircleIcon from "./user-circle.svg?react";
+import RawTaskIcon from "./task-icon.svg?react";
+import RawListIcon from "./list.svg?react";
+import RawTableIcon from "./table.svg?react";
+import RawPageIcon from "./page.svg?react";
+import RawPieChartIcon from "./pie-chart.svg?react";
+import RawBoxCubeIcon from "./box-cube.svg?react";
+import RawPlugInIcon from "./plug-in.svg?react";
+import RawDocsIcon from "./docs.svg?react";
+import RawMailIcon from "./mail-line.svg?react";
+import RawHorizontaLDots from "./horizontal-dots.svg?react";
+import RawChatIcon from "./chat.svg?react";
+import RawMoreDotIcon from "./moredot.svg?react";
+import RawAlertHexaIcon from "./alert-hexa.svg?react";
+import RawErrorHexaIcon from "./info-hexa.svg?react";
+
+function wrapIcon(RawModule: any): React.FC<React.SVGProps<SVGSVGElement> & { className?: string }> {
+  const Component: React.FC<any> = (props) => {
+    if (typeof RawModule === 'function') {
+      return React.createElement(RawModule, props);
+    }
+    if (RawModule && typeof RawModule.default === 'function') {
+      return React.createElement(RawModule.default, props);
+    }
+    const src = typeof RawModule === 'string' ? RawModule : (RawModule && typeof RawModule.default === 'string' ? RawModule.default : null);
+    if (src) {
+      return React.createElement('img', { src, className: props.className || 'w-5 h-5', alt: '' });
+    }
+    return null;
+  };
+  return Component;
+}
+
+export const PlusIcon = wrapIcon(RawPlusIcon);
+export const CloseIcon = wrapIcon(RawCloseIcon);
+export const BoxIcon = wrapIcon(RawBoxIcon);
+export const CheckCircleIcon = wrapIcon(RawCheckCircleIcon);
+export const AlertIcon = wrapIcon(RawAlertIcon);
+export const InfoIcon = wrapIcon(RawInfoIcon);
+export const ErrorIcon = wrapIcon(RawErrorIcon);
+export const BoltIcon = wrapIcon(RawBoltIcon);
+export const ArrowUpIcon = wrapIcon(RawArrowUpIcon);
+export const ArrowDownIcon = wrapIcon(RawArrowDownIcon);
+export const FolderIcon = wrapIcon(RawFolderIcon);
+export const VideoIcon = wrapIcon(RawVideoIcon);
+export const AudioIcon = wrapIcon(RawAudioIcon);
+export const GridIcon = wrapIcon(RawGridIcon);
+export const FileIcon = wrapIcon(RawFileIcon);
+export const DownloadIcon = wrapIcon(RawDownloadIcon);
+export const ArrowRightIcon = wrapIcon(RawArrowRightIcon);
+export const GroupIcon = wrapIcon(RawGroupIcon);
+export const BoxIconLine = wrapIcon(RawBoxIconLine);
+export const ShootingStarIcon = wrapIcon(RawShootingStarIcon);
+export const DollarLineIcon = wrapIcon(RawDollarLineIcon);
+export const TrashBinIcon = wrapIcon(RawTrashBinIcon);
+export const AngleUpIcon = wrapIcon(RawAngleUpIcon);
+export const AngleDownIcon = wrapIcon(RawAngleDownIcon);
+export const AngleLeftIcon = wrapIcon(RawAngleLeftIcon);
+export const AngleRightIcon = wrapIcon(RawAngleRightIcon);
+export const PencilIcon = wrapIcon(RawPencilIcon);
+export const CheckLineIcon = wrapIcon(RawCheckLineIcon);
+export const CloseLineIcon = wrapIcon(RawCloseLineIcon);
+export const ChevronDownIcon = wrapIcon(RawChevronDownIcon);
+export const ChevronUpIcon = wrapIcon(RawChevronUpIcon);
+export const PaperPlaneIcon = wrapIcon(RawPaperPlaneIcon);
+export const LockIcon = wrapIcon(RawLockIcon);
+export const EnvelopeIcon = wrapIcon(RawEnvelopeIcon);
+export const UserIcon = wrapIcon(RawUserIcon);
+export const CalenderIcon = wrapIcon(RawCalenderIcon);
+export const EyeIcon = wrapIcon(RawEyeIcon);
+export const EyeCloseIcon = wrapIcon(RawEyeCloseIcon);
+export const TimeIcon = wrapIcon(RawTimeIcon);
+export const CopyIcon = wrapIcon(RawCopyIcon);
+export const ChevronLeftIcon = wrapIcon(RawChevronLeftIcon);
+export const UserCircleIcon = wrapIcon(RawUserCircleIcon);
+export const TaskIcon = wrapIcon(RawTaskIcon);
+export const ListIcon = wrapIcon(RawListIcon);
+export const TableIcon = wrapIcon(RawTableIcon);
+export const PageIcon = wrapIcon(RawPageIcon);
+export const PieChartIcon = wrapIcon(RawPieChartIcon);
+export const BoxCubeIcon = wrapIcon(RawBoxCubeIcon);
+export const PlugInIcon = wrapIcon(RawPlugInIcon);
+export const DocsIcon = wrapIcon(RawDocsIcon);
+export const MailIcon = wrapIcon(RawMailIcon);
+export const HorizontaLDots = wrapIcon(RawHorizontaLDots);
+export const ChatIcon = wrapIcon(RawChatIcon);
+export const MoreDotIcon = wrapIcon(RawMoreDotIcon);
+export const AlertHexaIcon = wrapIcon(RawAlertHexaIcon);
+export const ErrorHexaIcon = wrapIcon(RawErrorHexaIcon);
