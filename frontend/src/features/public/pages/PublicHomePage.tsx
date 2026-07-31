@@ -254,31 +254,31 @@ export const PublicHomePage: React.FC = () => {
       {/* Hero Section */}
       <HeroSection />
 
-      {/* Features Infinite Horizontal Marquee Section */}
-      <section className="py-24 lg:py-36 relative z-10 border-y border-white/10 bg-[#0C101A] backdrop-blur-2xl overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+      {/* Features Infinite Horizontal Marquee Section (Compact Spacing) */}
+      <section className="py-12 lg:py-16 relative z-10 border-y border-white/10 bg-[#0C101A] backdrop-blur-2xl overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 25 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="text-center max-w-3xl mx-auto space-y-4"
+            className="text-center max-w-3xl mx-auto space-y-3"
           >
             <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-brand-400 bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 rounded-full">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Enterprise Ecosystem
             </span>
             <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
-              Everything You Need to Scale Tech Education
+              Empowering Future IT Talent Through a Seamless Process
             </h2>
-            <p className="text-base text-gray-400 font-normal max-w-xl mx-auto">
-              Built for individual developers, engineering cohorts, and incubator programs inspired by Sheryians & Coursera.
+            <p className="text-base text-gray-400 font-normal max-w-2xl mx-auto">
+              From foundational coding to enterprise cloud architecture, master real-world skills through interactive labs, cohort mentorship, and verifiable credentials.
             </p>
           </motion.div>
         </div>
 
         {/* Custom Sheryians-Style Infinite Horizontal Marquee Track */}
-        <div className="relative w-full overflow-hidden py-4">
+        <div className="relative w-full overflow-hidden py-2">
           
           {/* Left Side Ambient Edge Gradient Mask Fade */}
           <div className="absolute top-0 bottom-0 left-0 w-24 sm:w-40 bg-gradient-to-r from-[#0C101A] via-[#0C101A]/80 to-transparent z-20 pointer-events-none" />
@@ -305,15 +305,15 @@ export const PublicHomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Featured Courses Section (Ambient Gradient Background) */}
-      <section className="py-24 lg:py-36 relative z-10 bg-gradient-to-b from-[#0C101A] via-[#090D16] to-[#0D1220]">
+      {/* Featured Courses Section (Compact Spacing) */}
+      <section className="py-12 lg:py-16 relative z-10 bg-gradient-to-b from-[#0C101A] via-[#090D16] to-[#0D1220]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 25 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6"
+            className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6"
           >
             <div className="space-y-3">
               <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-brand-400 bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 rounded-full">
@@ -336,15 +336,15 @@ export const PublicHomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Learning Paths Section (Glass Rounded Section Block) */}
-      <section id="paths" className="py-24 lg:py-36 relative z-10 border-t border-white/10 bg-[#0D1220] backdrop-blur-2xl">
+      {/* Learning Paths Section (Compact Spacing) */}
+      <section id="paths" className="py-12 lg:py-16 relative z-10 border-t border-white/10 bg-[#0D1220] backdrop-blur-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 25 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="text-center max-w-3xl mx-auto mb-20 space-y-4"
+            className="text-center max-w-3xl mx-auto mb-10 space-y-3"
           >
             <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-brand-400 bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 rounded-full">
               Career Roadmaps
@@ -365,15 +365,15 @@ export const PublicHomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-24 lg:py-36 relative z-10 bg-gradient-to-b from-[#0D1220] via-[#090D16] to-[#0C101A]">
+      {/* Testimonials Section (Compact Spacing) */}
+      <section className="py-12 lg:py-16 relative z-10 bg-gradient-to-b from-[#0D1220] via-[#090D16] to-[#0C101A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 25 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="text-center max-w-3xl mx-auto mb-20 space-y-4"
+            className="text-center max-w-3xl mx-auto mb-10 space-y-3"
           >
             <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-brand-400 bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 rounded-full">
               Student Success Stories
@@ -390,15 +390,15 @@ export const PublicHomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-24 lg:py-36 relative z-10 border-t border-white/10 bg-[#0C101A]">
+      {/* FAQ Section (Compact Spacing) */}
+      <section className="py-12 lg:py-16 relative z-10 border-t border-white/10 bg-[#0C101A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 25 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="text-center max-w-3xl mx-auto mb-20 space-y-4"
+            className="text-center max-w-3xl mx-auto mb-10 space-y-3"
           >
             <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-brand-400 bg-brand-500/10 border border-brand-500/20 px-4 py-1.5 rounded-full">
               Got Questions?
@@ -412,8 +412,8 @@ export const PublicHomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-24 lg:py-36 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      {/* CTA Section (Compact Spacing) */}
+      <section className="py-12 lg:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <CTASection />
       </section>
     </>
