@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap")
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap");
 layer(base);
 
 @import "tailwindcss";
@@ -7,7 +7,7 @@ layer(base);
 
 @theme {
   --font-*: initial;
-  --font-outfit: Outfit, sans-serif;
+  --font-outfit: Outfit, "Plus Jakarta Sans", sans-serif;
 
   --breakpoint-*: initial;
   --breakpoint-2xsm: 375px;
@@ -134,7 +134,6 @@ layer(base);
   --color-warning-950: #4e1d09;
 
   --color-theme-pink-500: #ee46bc;
-
   --color-theme-purple-500: #7a5af8;
 
   --shadow-theme-md: 0px 4px 8px -2px rgba(16, 24, 40, 0.1),
@@ -165,14 +164,121 @@ layer(base);
   --z-index-999999: 999999;
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
+/* Custom Keyframe Animations for Portfolio-Worthy EdTech SaaS UI */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(1deg);
+  }
+}
 
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+@keyframes floatDelay {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(16px) rotate(-1deg);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes borderRotate {
+  0% {
+    border-color: rgba(70, 95, 255, 0.4);
+  }
+  50% {
+    border-color: rgba(168, 85, 247, 0.5);
+  }
+  100% {
+    border-color: rgba(70, 95, 255, 0.4);
+  }
+}
+
+/* Custom Seamless Infinite Horizontal Marquee */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Scrollbar Hiding Utility */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.animate-float-slow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: floatDelay 7.5s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 8s ease-in-out infinite;
+}
+
+.animate-border-rotate {
+  animation: borderRotate 4s ease-in-out infinite;
+}
+
+/* Subtle Grid Pattern Overlay */
+.bg-grid-pattern {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+}
+
+/* Glassmorphism Panel Primitives */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card:hover {
+  border-color: rgba(70, 95, 255, 0.4);
+  box-shadow: 0 0 30px rgba(70, 95, 255, 0.15);
+}
+
 @layer base {
   *,
   ::after,
@@ -256,12 +362,11 @@ layer(base);
   @apply bg-brand-50 group-hover:bg-brand-100 dark:bg-brand-500/15 dark:group-hover:bg-brand-500/20;
 }
 @utility no-scrollbar {
-  /* Chrome, Safari and Opera */
   &::-webkit-scrollbar {
     display: none;
   }
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 @utility custom-scrollbar {
   &::-webkit-scrollbar {
@@ -281,7 +386,6 @@ layer(base);
 }
 
 @layer utilities {
-  /* For Remove Date Icon */
   input[type="date"]::-webkit-inner-spin-button,
   input[type="time"]::-webkit-inner-spin-button,
   input[type="date"]::-webkit-calendar-picker-indicator,
@@ -298,7 +402,6 @@ layer(base);
   @apply border-brand-500 bg-brand-500;
 }
 
-/* third-party libraries CSS */
 .apexcharts-legend-text {
   @apply !text-gray-700 dark:!text-gray-400;
 }
@@ -759,15 +862,12 @@ span.flatpickr-weekday,
 }
 
 .task {
-  transition: all 0.2s ease; /* Smooth transition for visual effects */
-}
-
-.task {
+  transition: all 0.2s ease;
   border-radius: 0.75rem;
   box-shadow: 0px 1px 3px 0px rgba(16, 24, 40, 0.1),
     0px 1px 2px 0px rgba(16, 24, 40, 0.06);
   opacity: 0.8;
-  cursor: grabbing; /* Changes the cursor to indicate dragging */
+  cursor: grabbing;
 }
 
 .custom-calendar .fc-h-event {
