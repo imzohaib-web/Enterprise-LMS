@@ -28,7 +28,7 @@ const CourseList: React.FC = () => {
     placeholderData: (prev) => prev,
   });
 
-  const { data: categoriesRes } = useQuery({
+  const { data: _categoriesRes } = useQuery({
     queryKey: ['categories'],
     queryFn: () => courseService.listCategories().then((r) => r.data),
   });

@@ -1,5 +1,5 @@
 import api from './api';
-import type { ApiResponse, PaginationMeta } from '../types/api';
+import type { ApiResponse } from '../types/api';
 import type { User, UpdateUserPayload } from '../types/user';
 
 export interface ListUsersParams {

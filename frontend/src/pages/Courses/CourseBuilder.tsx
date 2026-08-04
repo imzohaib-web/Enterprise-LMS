@@ -25,7 +25,7 @@ const CourseBuilder: React.FC = () => {
     enabled: !!id,
   });
 
-  const { data: categoriesData } = useQuery({
+  const { data: _categoriesData } = useQuery({
     queryKey: ['categories'],
     queryFn: () => courseService.listCategories().then((r) => r.data.data!.categories),
   });

@@ -4,7 +4,6 @@ import AppLayout from '../layout/AppLayout';
 import PublicLayout from '../layout/PublicLayout';
 import NotFound from '../pages/OtherPage/NotFound';
 import ProtectedRoute from './ProtectedRoute';
-import AuthGuard from '../components/auth/AuthGuard';
 import LMSPlaceholderPage from '../components/common/LMSPlaceholderPage';
 import {
   PUBLIC,

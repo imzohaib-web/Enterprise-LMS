@@ -11,6 +11,9 @@ const swaggerJsdoc = require('swagger-jsdoc');
 
 dotenv.config();
 
+// Pre-load all Mongoose models
+require('./models');
+
 const config = require('./config/env');
 const errorMiddleware = require('./middleware/error.middleware');
 const { apiLimiter } = require('./middleware/rateLimiter.middleware');

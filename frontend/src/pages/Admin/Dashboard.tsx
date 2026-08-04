@@ -78,7 +78,7 @@ const AdminDashboard: React.FC = () => {
     queryFn: () => adminService.getCoursePerformance(8).then((r) => r.data.data),
   });
 
-  const { data: instructors } = useQuery({
+  const { data: _instructors } = useQuery({
     queryKey: ['admin', 'instructors'],
     queryFn: () => adminService.getInstructorPerformance(5).then((r) => r.data.data),
   });
