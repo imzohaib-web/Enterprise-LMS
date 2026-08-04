@@ -1,0 +1,9 @@
+export { default as PublicHomePage } from './pages/PublicHomePage';
+export { default as PublicCoursesPage } from './pages/PublicCoursesPage';
+export { default as PublicAboutPage } from './pages/PublicAboutPage';
+export { default as PublicLoginPage } from './pages/PublicLoginPage';
+export { default as PublicRegisterPage } from './pages/PublicRegisterPage';
+export { default as PublicVerifyCertificatePage } from './pages/PublicVerifyCertificatePage';
+export { default as PublicContactPage } from './pages/PublicContactPage';
+export { default as PublicPrivacyPage } from './pages/PublicPrivacyPage';
+export { default as PublicTermsPage } from './pages/PublicTermsPage';

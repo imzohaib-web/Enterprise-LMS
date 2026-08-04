@@ -1,7 +1,20 @@
 /**
  * Route constants for LMS frontend features.
- * Structured by role (Student, Instructor, Admin).
+ * Public web portal routes & Role-based app routes.
  */
+
+export const PUBLIC = {
+  HOME: '/',
+  COURSES: '/courses',
+  ABOUT: '/about',
+  LOGIN: '/login',
+  REGISTER: '/register',
+  VERIFY: '/verify',
+  VERIFY_CODE: '/verify/:code',
+  CONTACT: '/contact',
+  PRIVACY: '/privacy',
+  TERMS: '/terms',
+} as const;
 
 export const STUDENT = {
   DASHBOARD: '/student/dashboard',
