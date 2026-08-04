@@ -7,7 +7,6 @@ import ProtectedRoute from './ProtectedRoute';
 import LMSPlaceholderPage from '../components/common/LMSPlaceholderPage';
 import {
   PUBLIC,
-  AUTH,
   STUDENT,
   INSTRUCTOR,
   ADMIN,
@@ -29,8 +28,6 @@ import {
   PublicHomePage,
   PublicCoursesPage,
   PublicAboutPage,
-  PublicLoginPage,
-  PublicRegisterPage,
   PublicVerifyCertificatePage,
   PublicContactPage,
   PublicPrivacyPage,
@@ -75,17 +72,15 @@ const Loader = () => (
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* ── Public Auth Routes ─────────────────────────────────────────── */}
-      <Route path={AUTH.SIGN_IN} element={<SignIn />} />
-      <Route path={AUTH.SIGN_UP} element={<SignUp />} />
+      {/* ── Authentication Routes ─────────────────────────────────────── */}
+      <Route path={PUBLIC.LOGIN} element={<SignIn />} />
+      <Route path={PUBLIC.REGISTER} element={<SignUp />} />
 
       {/* ── Public Web Portal Routes ─────────────────────────────────────── */}
       <Route element={<PublicLayout />}>
         <Route path={PUBLIC.HOME} element={<PublicHomePage />} />
         <Route path={PUBLIC.COURSES} element={<PublicCoursesPage />} />
         <Route path={PUBLIC.ABOUT} element={<PublicAboutPage />} />
-        <Route path={PUBLIC.LOGIN} element={<PublicLoginPage />} />
-        <Route path={PUBLIC.REGISTER} element={<PublicRegisterPage />} />
         <Route path={PUBLIC.VERIFY} element={<PublicVerifyCertificatePage />} />
         <Route path={PUBLIC.VERIFY_CODE} element={<PublicVerifyCertificatePage />} />
         <Route path={PUBLIC.CONTACT} element={<PublicContactPage />} />

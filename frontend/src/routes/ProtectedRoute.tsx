@@ -1,5 +1,8 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { selectIsAuthenticated } from '../features/auth/authSlice';
+import { PUBLIC } from '../constants/routes';
 
 interface ProtectedRouteProps {
   children?: React.ReactNode;
@@ -7,12 +10,11 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, isAllowed = true }) => {
-  // TODO: Implement authentication check (e.g., check if user is logged in, verify JWT validity, or retrieve auth state from Redux)
-  // TODO: Implement Role-Based Access Control (RBAC) (e.g., check if the user's role is allowed to access this route)
-  // TODO: Implement redirects (e.g., redirect to '/signin' if unauthenticated, or to '/unauthorized' if unauthorized or isAllowed is false)
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const location = useLocation();
 
-  if (!isAllowed) {
-    // Return redirect or fallback when not allowed (placeholder logic)
+  if (!isAuthenticated || !isAllowed) {
+    return <Navigate to={PUBLIC.LOGIN} state={{ from: location }} replace />;
   }
 
   return children ? <>{children}</> : <Outlet />;
