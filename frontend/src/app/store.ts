@@ -1,10 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit';
+import authReducer from '../features/auth/authSlice';
 
 export const store = configureStore({
   reducer: {
-    // Redux Toolkit requires at least one reducer on initialization
-    _dummy: (state = {}) => state,
+    auth: authReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
 });
 
 export type RootState = ReturnType<typeof store.getState>;
