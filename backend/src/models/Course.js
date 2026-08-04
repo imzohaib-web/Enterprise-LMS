@@ -72,7 +72,7 @@ courseSchema.index({ tags: 1 });
 courseSchema.index({ title: 'text', description: 'text', tags: 'text' });
 
 // Auto-slug
-courseSchema.pre('validate', function (next) {
+courseSchema.pre('validate', function () {
   if (!this.slug && this.title) {
     this.slug = this.title
       .toLowerCase()
@@ -80,7 +80,6 @@ courseSchema.pre('validate', function (next) {
       .replace(/[^a-z0-9-]/g, '')
       .slice(0, 80);
   }
-  next();
 });
 
 // Virtual: total lesson count

@@ -26,7 +26,6 @@ import SignUp from '../pages/Auth/SignUp';
 // ── Public portal pages ───────────────────────────────────────────────────
 import {
   PublicHomePage,
-  PublicCoursesPage,
   PublicAboutPage,
   PublicVerifyCertificatePage,
   PublicContactPage,
@@ -79,7 +78,6 @@ const AppRoutes: React.FC = () => {
       {/* ── Public Web Portal Routes ─────────────────────────────────────── */}
       <Route element={<PublicLayout />}>
         <Route path={PUBLIC.HOME} element={<PublicHomePage />} />
-        <Route path={PUBLIC.COURSES} element={<PublicCoursesPage />} />
         <Route path={PUBLIC.ABOUT} element={<PublicAboutPage />} />
         <Route path={PUBLIC.VERIFY} element={<PublicVerifyCertificatePage />} />
         <Route path={PUBLIC.VERIFY_CODE} element={<PublicVerifyCertificatePage />} />

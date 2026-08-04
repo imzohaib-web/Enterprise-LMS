@@ -160,6 +160,20 @@ const enrollInCourse = async (courseId, studentId) => {
   const enrollment = await Enrollment.create({ student: studentId, course: courseId });
   await Course.findByIdAndUpdate(courseId, { $inc: { enrollmentCount: 1 } });
 
+  // Create initial StudentProgress record
+  try {
+    const { StudentProgressModel } = require('../progress/progress.model');
+    if (StudentProgressModel) {
+      await StudentProgressModel.updateOne(
+        { studentId, courseId },
+        { $setOnInsert: { studentId, courseId, completedLessons: [], completedQuizzes: [], quizScores: [], progressPercentage: 0 } },
+        { upsert: true }
+      );
+    }
+  } catch (err) {
+    // Non-blocking progress creation fallback
+  }
+
   // Send confirmation email
   const student = await User.findById(studentId);
   if (student) {
