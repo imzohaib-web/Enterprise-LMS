@@ -1,5 +1,5 @@
 import api from './api';
-import type { ApiResponse, PaginationMeta } from '../types/api';
+import type { ApiResponse } from '../types/api';
 import type { User, UpdateUserPayload } from '../types/user';
 
 export interface ListUsersParams {
@@ -35,4 +35,13 @@ export const userService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  getProfile: () =>
+    api.get<ApiResponse<{ user: User }>>('/users/profile'),
+
+  updateProfile: (payload: Partial<User>) =>
+    api.put<ApiResponse<{ user: User }>>('/users/profile', payload),
+
+  updateSettings: (payload: any) =>
+    api.put<ApiResponse<{ user: User }>>('/users/settings', payload),
 };

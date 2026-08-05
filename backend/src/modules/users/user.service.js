@@ -78,4 +78,16 @@ const updateAvatar = async (id, avatarUrl) => {
   return user;
 };
 
-module.exports = { listUsers, getUserById, updateUser, deleteUser, updateUserStatus, updateAvatar };
+const updateSettings = async (id, settingsData) => {
+  const user = await User.findById(id);
+  if (!user) throw AppError.notFound('User');
+  user.settings = {
+    ...user.settings?.toObject?.() || user.settings || {},
+    ...settingsData,
+  };
+  await user.save();
+  await cacheDel(`user:${id}`);
+  return user;
+};
+
+module.exports = { listUsers, getUserById, updateUser, deleteUser, updateUserStatus, updateAvatar, updateSettings };

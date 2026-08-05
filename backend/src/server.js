@@ -1,14 +1,15 @@
+'use strict';
 const http = require('http');
-const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
 const app = require('./app');
+const connectDB = require('./config/db');
 const { initSocket } = require('./sockets/socket');
+const config = require('./config/env');
 
-const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/enterprise_lms';
+const PORT = config.port || 5000;
 
 // Create HTTP server wrapping Express app
 const server = http.createServer(app);
@@ -16,18 +17,15 @@ const server = http.createServer(app);
 // Initialize Socket.IO with server
 initSocket(server);
 
-// Connect to MongoDB
-mongoose
-  .connect(MONGO_URI)
-  .then(() => {
-    console.log('MongoDB Connected successfully');
+// Connect to MongoDB and start server
+(async () => {
+  try {
+    await connectDB();
     server.listen(PORT, () => {
-      console.log(`Enterprise LMS Server listening on port ${PORT}`);
+      console.log(`🚀 Enterprise LMS Server listening on port ${PORT}`);
     });
-  })
-  .catch((err) => {
-    console.warn('Database Connection Error (starting server without Mongo connection):', err.message);
-    server.listen(PORT, () => {
-      console.log(`Enterprise LMS Server listening on port ${PORT}`);
-    });
-  });
+  } catch (err) {
+    console.error('❌ Server startup failed:', err.message);
+    process.exit(1);
+  }
+})();

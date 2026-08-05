@@ -13,7 +13,7 @@ interface AuthGuardProps {
 const AuthGuard: React.FC<AuthGuardProps> = ({
   children,
   allowedRoles,
-  redirectTo = '/signin',
+  redirectTo = '/login',
 }) => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const userRole = useSelector(selectUserRole);

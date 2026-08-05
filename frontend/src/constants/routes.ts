@@ -19,8 +19,8 @@ export const PUBLIC = {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export const AUTH = {
-  SIGN_IN: '/signin',
-  SIGN_UP: '/signup',
+  SIGN_IN: '/login',
+  SIGN_UP: '/register',
 } as const;
 
 // ── Admin ──────────────────────────────────────────────────────────────────────

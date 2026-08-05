@@ -11,6 +11,9 @@ const swaggerJsdoc = require('swagger-jsdoc');
 
 dotenv.config();
 
+// Pre-load all Mongoose models
+require('./models');
+
 const config = require('./config/env');
 const errorMiddleware = require('./middleware/error.middleware');
 const { apiLimiter } = require('./middleware/rateLimiter.middleware');
@@ -25,6 +28,8 @@ const reportRoutes       = require('./modules/reports/report.routes');
 const certificateRoutes  = require('./modules/certificates/certificate.routes');
 const notificationRoutes = require('./modules/notifications/notification.routes');
 const discussionRoutes   = require('./modules/discussions/discussion.routes');
+const assessmentRoutes   = require('./modules/assessments/assessment.routes');
+const progressRoutes     = require('./modules/progress/progress.routes');
 
 const app = express();
 
@@ -94,6 +99,8 @@ app.use('/api/v1/reports',        reportRoutes);
 app.use('/api/v1/certificates',  certificateRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/discussions',   discussionRoutes);
+app.use('/api/v1/assessments',   assessmentRoutes);
+app.use('/api/v1/progress',      progressRoutes);
 if (discussionRoutes.replyRouter) {
   app.use('/api/v1/replies', discussionRoutes.replyRouter);
 }

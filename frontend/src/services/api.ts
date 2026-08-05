@@ -64,7 +64,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         store.dispatch(clearCredentials());
-        window.location.href = '/signin';
+        window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

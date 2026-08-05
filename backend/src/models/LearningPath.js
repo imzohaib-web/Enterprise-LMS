@@ -28,11 +28,10 @@ const learningPathSchema = new mongoose.Schema(
 
 learningPathSchema.index({ level: 1, isPublished: 1 });
 
-learningPathSchema.pre('validate', function (next) {
+learningPathSchema.pre('validate', function () {
   if (!this.slug && this.title) {
     this.slug = this.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   }
-  next();
 });
 
 module.exports = mongoose.model('LearningPath', learningPathSchema);

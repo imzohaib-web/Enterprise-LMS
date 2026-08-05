@@ -9,6 +9,7 @@ const connectDB = async () => {
 
   try {
     const conn = await mongoose.connect(config.mongoUri, {
+      dbName: 'enterprise_lms',
       maxPoolSize: 10,
     });
     isConnected = true;

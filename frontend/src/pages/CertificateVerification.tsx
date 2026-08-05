@@ -209,7 +209,7 @@ export const CertificateVerification: React.FC = () => {
                       Issue Date
                     </span>
                     <p className="text-base font-semibold text-slate-800 dark:text-slate-200 mt-1">
-                      {new Date(certificateData.issueDate).toLocaleDateString('en-US', {
+                      {new Date(certificateData.issueDate || certificateData.issuedAt || Date.now()).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',

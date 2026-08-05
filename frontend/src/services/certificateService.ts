@@ -1,15 +1,20 @@
 import axios from 'axios';
+import axiosInstance from '../api/axiosInstance';
 
 const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 export interface VerifiedCertificateData {
-  studentName: string;
-  courseName: string;
-  issueDate: string;
-  certificateStatus: 'Valid' | 'ACTIVE' | string;
-  instructor: string;
+  _id?: string;
+  studentName?: string;
+  courseName?: string;
+  courseId?: any;
+  issuedAt?: string;
+  issueDate?: string;
+  certificateStatus?: 'Valid' | 'ACTIVE' | string;
+  instructor?: string;
   verificationCode: string;
   certificateUrl?: string;
+  qrCode?: string;
 }
 
 export interface VerificationResponse {
@@ -29,4 +34,12 @@ export const verifyCertificate = async (
     `${API_BASE_URL}/certificates/verify/${encodeURIComponent(cleanCode)}`
   );
   return response.data.data;
+};
+
+/**
+ * Private API call to get all certificates belonging to the logged-in student.
+ */
+export const getMyCertificates = async (): Promise<VerifiedCertificateData[]> => {
+  const response = await axiosInstance.get('/certificates/my');
+  return response.data?.data || [];
 };
