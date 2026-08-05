@@ -9,6 +9,7 @@ import {
   Award,
   TrendingUp,
   CheckCircle2,
+  Lock,
 } from 'lucide-react';
 import { PUBLIC } from '../../constants/routes';
 
@@ -46,48 +47,64 @@ export const HeroSection: React.FC = () => {
   };
 
   return (
-    <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden py-16 lg:py-0">
-      {/* Background Ambient Radial Lights */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[850px] h-[550px] bg-brand-500/15 rounded-full blur-[170px] pointer-events-none" />
-      <div className="absolute top-1/4 left-1/5 w-[450px] h-[450px] bg-indigo-500/12 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-10 right-1/4 w-[550px] h-[500px] bg-purple-500/15 rounded-full blur-[160px] pointer-events-none" />
+    <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden py-16 lg:py-20">
+      {/* 1. Ambient Background Layer: SVG Dot Grid + Mesh PNG (Top-Right Depth) */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-40 pointer-events-none z-0" />
+      
+      <div className="absolute -top-16 -right-20 w-[600px] sm:w-[750px] h-[600px] pointer-events-none z-0 opacity-20 blur-[50px] select-none">
+        <img
+          src="/images/hero_ambient_mesh.png"
+          alt=""
+          className="w-full h-full object-contain"
+        />
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
+        {/* 3. Asymmetric 2-Column Split Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-14 items-center">
           
-          {/* Left Hero Text Content */}
+          {/* Left Column: Eyebrow, Headline, Paragraph, Search, CTAs */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="show"
-            className="lg:col-span-7 space-y-8 text-center lg:text-left"
+            className="lg:col-span-7 space-y-6 text-center lg:text-left"
           >
-            {/* Main Headline */}
+            {/* Eyebrow Badge */}
+            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-brand-500/10 border border-brand-500/20 text-brand-300 text-xs font-semibold tracking-wide uppercase">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
+              Trusted by 10,000+ Engineers & Enterprise Teams
+            </motion.div>
+
+            {/* Main Headline (Tightened line-height & confident type scale) */}
             <motion.h1
               variants={itemVariants}
-              className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.08]"
+              className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.15]"
             >
               Learn Industry Skills.{' '}
-              <span className="block mt-2 bg-gradient-to-r from-brand-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
-                Build Your Career.
+              <span className="block mt-1.5 text-white">
+                Build Your{' '}
+                <span className="bg-gradient-to-r from-brand-300 to-indigo-300 bg-clip-text text-transparent">
+                  Career.
+                </span>
               </span>
             </motion.h1>
 
             {/* Paragraph Description */}
             <motion.p
               variants={itemVariants}
-              className="text-base sm:text-lg lg:text-xl text-gray-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal"
+              className="text-base sm:text-lg text-gray-300 max-w-xl mx-auto lg:mx-0 leading-relaxed font-normal"
             >
               Master full-stack engineering, cloud architecture, and AI with production-grade curricula, interactive assessments, and cryptographically verified enterprise credentials.
             </motion.p>
 
-            {/* Large Hero Search Bar */}
-            <motion.div variants={itemVariants} className="max-w-2xl mx-auto lg:mx-0">
+            {/* Restyled Real Product Hero Search Bar */}
+            <motion.div variants={itemVariants} className="max-w-xl mx-auto lg:mx-0">
               <form
                 onSubmit={handleSearchSubmit}
-                className="relative flex items-center p-2 rounded-2xl bg-white/[0.04] hover:bg-white/[0.06] border border-white/15 focus-within:border-brand-500/80 backdrop-blur-xl shadow-[0_10px_35px_rgba(0,0,0,0.5)] transition-all"
+                className="ds-public-search-container relative flex items-center p-1.5 rounded-lg bg-[#10141F]"
               >
-                <div className="pl-4 pr-2 text-gray-400">
+                <div className="pl-3 pr-2 text-gray-400">
                   <Search className="w-5 h-5 text-brand-400" />
                 </div>
                 <input
@@ -99,7 +116,7 @@ export const HeroSection: React.FC = () => {
                 />
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg transition-all whitespace-nowrap active:scale-95 flex items-center gap-1.5"
+                  className="ds-public-btn-primary px-5 py-2.5 text-white font-semibold text-xs sm:text-sm rounded-md transition-all whitespace-nowrap active:scale-95 flex items-center gap-2"
                 >
                   <span>Search</span>
                   <ArrowRight className="w-4 h-4" />
@@ -108,139 +125,185 @@ export const HeroSection: React.FC = () => {
             </motion.div>
 
             {/* CTA Action Buttons */}
-            <motion.div variants={itemVariants} className="pt-1 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-5">
-              <motion.div whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.96 }} className="w-full sm:w-auto">
+            <motion.div variants={itemVariants} className="pt-1 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5">
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
                 <Link
                   to={PUBLIC.COURSES}
-                  className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 text-base font-extrabold text-white rounded-2xl overflow-hidden transition-all shadow-[0_0_30px_rgba(70,95,255,0.4)] hover:shadow-[0_0_45px_rgba(70,95,255,0.75)]"
+                  className="ds-public-btn-primary group relative w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white rounded-lg transition-all"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 group-hover:scale-105 transition-transform" />
-                  <span className="relative z-10">Explore Courses</span>
-                  <ArrowRight className="relative z-10 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <span>Explore Courses</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </motion.div>
 
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full sm:w-auto">
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
                 <Link
                   to={PUBLIC.REGISTER}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 text-base font-semibold text-gray-200 bg-white/[0.04] hover:bg-white/[0.08] border border-white/15 rounded-2xl backdrop-blur-xl transition-all hover:border-white/30"
+                  className="ds-public-btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-gray-200 hover:text-white rounded-lg transition-all"
                 >
                   Start Learning Free
                 </Link>
               </motion.div>
             </motion.div>
-
-            {/* Live Trust Badges */}
-            <motion.div variants={itemVariants} className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs font-semibold text-gray-400">
-              <span className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.02] border border-white/5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" /> Self-Paced & Cohort Modules
-              </span>
-              <span className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.02] border border-white/5">
-                <span className="w-2 h-2 rounded-full bg-brand-400 shadow-[0_0_8px_rgba(96,165,250,0.8)]" /> Verifiable Credentials
-              </span>
-              <span className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.02] border border-white/5">
-                <span className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.8)]" /> Industry Mentorship
-              </span>
-            </motion.div>
           </motion.div>
 
-          {/* Right Hero Graphic: Clean, Spacious Central Card (Clutter-Free) */}
+          {/* 2. Right Column: Realistic Embedded Product Window Treatment */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
             className="lg:col-span-5 relative mt-6 lg:mt-0"
           >
-            <div className="relative mx-auto max-w-lg lg:max-w-none">
-
-              {/* Central Main Glass Card */}
-              <div className="relative p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-white/10 to-white/[0.02] border border-white/15 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.6)] space-y-6">
+            <div className="relative mx-auto max-w-lg lg:max-w-none lg:[transform:perspective(1200px)_rotateY(-3deg)_rotateX(2deg)] lg:hover:[transform:perspective(1200px)_rotateY(-1deg)_rotateX(1deg)] transition-transform duration-500">
+              
+              {/* Product Window Frame (Stripe / Linear Browser Treatment) */}
+              <div className="rounded-xl border border-white/15 bg-[#0D111C] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] overflow-hidden">
                 
-                {/* Header inside central card */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-500 to-indigo-600 text-white flex items-center justify-center font-black text-xl shadow-[0_0_20px_rgba(70,95,255,0.5)]">
-                      SF
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-white text-base leading-tight">
-                        SkillForge Incubator
-                      </h3>
-                      <p className="text-xs text-gray-400 font-medium">Production Tech Track</p>
-                    </div>
+                {/* Browser App Top Bar */}
+                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900/90 border-b border-white/[0.08]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
                   </div>
-                  <span className="px-3 py-1 text-2xs font-extrabold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 rounded-full uppercase tracking-wider flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Live Cohort
-                  </span>
+                  
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-950/60 border border-white/[0.06] text-[11px] text-gray-400 font-mono">
+                    <Lock className="w-3 h-3 text-emerald-400" />
+                    <span>skillforge.academy/incubator</span>
+                  </div>
+
+                  <div className="w-10" />
                 </div>
 
-                {/* 4 Statistics Cards inside Central Card */}
-                <div className="grid grid-cols-2 gap-3.5">
-                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-brand-500/30 transition-colors flex items-center gap-3">
-                    <div className="p-2 bg-brand-500/20 text-brand-400 rounded-xl">
-                      <Users className="w-5 h-5" />
+                {/* Embedded Dashboard View */}
+                <div className="p-5 sm:p-6 space-y-4 bg-[#10141F]">
+                  
+                  {/* Header inside central card */}
+                  <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-brand-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                        SF
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-white text-sm leading-tight">
+                          SkillForge Incubator
+                        </h3>
+                        <p className="text-[11px] text-gray-400 font-medium">Production Tech Track</p>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-xl font-black text-white block leading-none">10K+</span>
-                      <span className="text-[10px] font-semibold text-gray-400">Students</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-blue-500/30 transition-colors flex items-center gap-3">
-                    <div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl">
-                      <BookOpen className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span className="text-xl font-black text-white block leading-none">250+</span>
-                      <span className="text-[10px] font-semibold text-gray-400">Courses</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-purple-500/30 transition-colors flex items-center gap-3">
-                    <div className="p-2 bg-purple-500/20 text-purple-400 rounded-xl">
-                      <Award className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span className="text-xl font-black text-white block leading-none">50+</span>
-                      <span className="text-[10px] font-semibold text-gray-400">Instructors</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/30 transition-colors flex items-center gap-3">
-                    <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
-                      <TrendingUp className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span className="text-xl font-black text-white block leading-none">95%</span>
-                      <span className="text-[10px] font-semibold text-gray-400">Completion</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Active Module Progress Bar Widget */}
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-gray-200 flex items-center gap-1.5">
-                      <BookOpen className="w-3.5 h-3.5 text-brand-400" />
-                      React 19 Architecture Track
+                    <span className="px-2.5 py-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-md uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Live Cohort
                     </span>
-                    <span className="text-brand-400 font-bold">88%</span>
                   </div>
-                  <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: '0%' }}
-                      animate={{ width: '88%' }}
-                      transition={{ duration: 1.2, ease: 'easeOut', delay: 0.5 }}
-                      className="bg-gradient-to-r from-brand-500 via-indigo-500 to-purple-500 h-2 rounded-full"
-                    />
+
+                  {/* 4 Statistics Cards inside Central Card */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="ds-public-subcard p-3 rounded-lg flex items-center gap-2.5">
+                      <div className="p-1.5 bg-slate-800 text-brand-400 rounded-md">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-base font-bold text-white block leading-none">10K+</span>
+                        <span className="text-[11px] font-medium text-gray-400">Students</span>
+                      </div>
+                    </div>
+
+                    <div className="ds-public-subcard p-3 rounded-lg flex items-center gap-2.5">
+                      <div className="p-1.5 bg-slate-800 text-blue-400 rounded-md">
+                        <BookOpen className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-base font-bold text-white block leading-none">250+</span>
+                        <span className="text-[11px] font-medium text-gray-400">Courses</span>
+                      </div>
+                    </div>
+
+                    <div className="ds-public-subcard p-3 rounded-lg flex items-center gap-2.5">
+                      <div className="p-1.5 bg-slate-800 text-purple-400 rounded-md">
+                        <Award className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-base font-bold text-white block leading-none">50+</span>
+                        <span className="text-[11px] font-medium text-gray-400">Instructors</span>
+                      </div>
+                    </div>
+
+                    <div className="ds-public-subcard p-3 rounded-lg flex items-center gap-2.5">
+                      <div className="p-1.5 bg-slate-800 text-emerald-400 rounded-md">
+                        <TrendingUp className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-base font-bold text-white block leading-none">95%</span>
+                        <span className="text-[11px] font-medium text-gray-400">Completion</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Active Module Progress Bar Widget */}
+                  <div className="ds-public-subcard p-3.5 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between text-xs font-medium">
+                      <span className="text-gray-200 flex items-center gap-1.5">
+                        <BookOpen className="w-3.5 h-3.5 text-brand-400" />
+                        React 19 Architecture Track
+                      </span>
+                      <span className="text-brand-400 font-semibold">88%</span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: '0%' }}
+                        animate={{ width: '88%' }}
+                        transition={{ duration: 1.2, ease: 'easeOut', delay: 0.5 }}
+                        className="bg-brand-500 h-1.5 rounded-full"
+                      />
+                    </div>
                   </div>
                 </div>
+
               </div>
 
             </div>
           </motion.div>
 
         </div>
+
+        {/* 4. Horizontal Trust / Capability Strip Below Hero Grid */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="mt-14 pt-8 border-t border-white/[0.08] grid grid-cols-1 sm:grid-cols-3 gap-6 text-center sm:text-left"
+        >
+          <motion.div variants={itemVariants} className="flex items-center gap-3 justify-center sm:justify-start">
+            <div className="w-8 h-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold text-white">Self-Paced & Cohort Modules</h4>
+              <p className="text-[11px] text-gray-400">Flexible learning schedules</p>
+            </div>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="flex items-center gap-3 justify-center sm:justify-start">
+            <div className="w-8 h-8 rounded-md bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 shrink-0">
+              <Award className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold text-white">Verifiable Credentials</h4>
+              <p className="text-[11px] text-gray-400">Cryptographically signed certificates</p>
+            </div>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="flex items-center gap-3 justify-center sm:justify-start">
+            <div className="w-8 h-8 rounded-md bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+              <Users className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold text-white">Industry Mentorship</h4>
+              <p className="text-[11px] text-gray-400">Direct feedback from senior engineers</p>
+            </div>
+          </motion.div>
+        </motion.div>
+
       </div>
     </section>
   );

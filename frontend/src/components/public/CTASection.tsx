@@ -7,42 +7,44 @@ import { PUBLIC } from '../../constants/routes';
 export const CTASection: React.FC = () => {
   return (
     <motion.section
-      initial={{ opacity: 0, scale: 0.95 }}
-      whileInView={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-brand-700 via-brand-600 to-indigo-700 p-10 sm:p-14 lg:p-20 text-white shadow-[0_0_50px_rgba(70,95,255,0.3)] border border-white/20"
+      className="relative overflow-hidden rounded-2xl bg-[#10141F] p-10 sm:p-14 lg:p-16 text-white border border-white/[0.08] shadow-xl"
     >
-      {/* Background ambient lighting */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-brand-400/20 rounded-full blur-3xl pointer-events-none" />
+      {/* Subtle Grid Overlay for depth */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none z-0" />
 
-      <div className="relative z-10 max-w-3xl mx-auto text-center space-y-8">
-        <span className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-black uppercase tracking-widest bg-white/15 backdrop-blur-md rounded-full border border-white/25">
-          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+      <div className="relative z-10 max-w-3xl mx-auto text-center space-y-6">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-300 bg-brand-500/10 rounded-md border border-brand-500/20">
+          <Sparkles className="w-3.5 h-3.5 text-brand-400" />
           Accelerate Your Engineering Career
         </span>
-        <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
+        
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.15]">
           Ready to Master Production Software Development?
         </h2>
-        <p className="text-base sm:text-lg text-brand-100 max-w-2xl mx-auto leading-relaxed">
+        
+        <p className="text-base sm:text-lg text-gray-300 max-w-xl mx-auto leading-relaxed font-normal">
           Join thousands of software engineers, cloud architects, and tech incubators enrolled in Enterprise LMS today.
         </p>
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-5">
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
+
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
             <Link
               to={PUBLIC.REGISTER}
-              className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-9 py-4 text-base font-extrabold text-brand-950 bg-white hover:bg-brand-50 rounded-2xl shadow-xl transition-all"
+              className="ds-public-btn-primary group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 text-base font-semibold text-white rounded-lg transition-all"
             >
               <span>Create Free Account</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4.5 h-4.5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </motion.div>
           
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full sm:w-auto">
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
             <Link
               to={PUBLIC.COURSES}
-              className="w-full sm:w-auto px-9 py-4 text-base font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/30 rounded-2xl transition-all backdrop-blur-md block text-center"
+              className="ds-public-btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 text-base font-semibold text-gray-300 hover:text-white rounded-lg transition-all"
             >
               Browse All Courses
             </Link>
