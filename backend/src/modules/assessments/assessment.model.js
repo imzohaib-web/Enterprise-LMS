@@ -1,5 +1,7 @@
-import { Schema, model } from 'mongoose';
-import { IQuizDocument, IQuizAttemptDocument } from './assessment.types';
+'use strict';
+
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
 const QuestionSchema = new Schema(
   {
@@ -23,7 +25,7 @@ const QuestionSchema = new Schema(
   { _id: true }
 );
 
-const QuizSchema = new Schema<IQuizDocument>(
+const QuizSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
     description: { type: String, default: '' },
@@ -65,7 +67,7 @@ const EvaluatedAnswerSchema = new Schema(
   { _id: false }
 );
 
-const QuizAttemptSchema = new Schema<IQuizAttemptDocument>(
+const QuizAttemptSchema = new Schema(
   {
     quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true, index: true },
     studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -88,5 +90,10 @@ const QuizAttemptSchema = new Schema<IQuizAttemptDocument>(
   { timestamps: true }
 );
 
-export const QuizModel = model<IQuizDocument>('Quiz', QuizSchema);
-export const QuizAttemptModel = model<IQuizAttemptDocument>('QuizAttempt', QuizAttemptSchema);
+const QuizModel = mongoose.models.Quiz || mongoose.model('Quiz', QuizSchema);
+const QuizAttemptModel = mongoose.models.QuizAttempt || mongoose.model('QuizAttempt', QuizAttemptSchema);
+
+module.exports = {
+  QuizModel,
+  QuizAttemptModel,
+};

@@ -1,0 +1,56 @@
+'use strict';
+const mongoose = require('mongoose');
+
+const enrollmentSchema = new mongoose.Schema(
+  {
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
+    course: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Course',
+      required: true,
+      index: true,
+    },
+    instructor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
+    progressPercentage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    completed: {
+      type: Boolean,
+      default: false,
+    },
+    completedModules: {
+      type: Number,
+      default: 0,
+    },
+    totalModules: {
+      type: Number,
+      default: 10,
+    },
+    averageQuizScore: {
+      type: Number,
+      default: 0,
+    },
+    lastActive: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { timestamps: true }
+);
+
+enrollmentSchema.index({ student: 1, course: 1 }, { unique: true });
+
+module.exports = mongoose.model('Enrollment', enrollmentSchema);

@@ -14,12 +14,11 @@ const axiosInstance = axios.create({
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
-    // TODO: Add JWT token logic here (Engineer 1)
-    // Example: Read token from store/localStorage and append to Authorization header:
-    // const token = localStorage.getItem('token');
-    // if (token && config.headers) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    // Attach JWT token from localStorage if present
+    const token = localStorage.getItem('token') || localStorage.getItem('jwt') || localStorage.getItem('authToken');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -30,11 +29,13 @@ axiosInstance.interceptors.request.use(
 // Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
-    // TODO: Add response interceptor logic if needed in the future
     return response;
   },
   (error) => {
-    // TODO: Add response error/refresh token logic here (Engineer 1)
+    // Log network/auth errors for debugging
+    if (error.response && error.response.status === 401) {
+      console.warn('Unauthorized request - user token may be expired');
+    }
     return Promise.reject(error);
   }
 );
