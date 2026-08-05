@@ -28,6 +28,28 @@ const userSchema = new mongoose.Schema(
     isActive:    { type: Boolean, default: true, index: true },
     isVerified:  { type: Boolean, default: false },
 
+    phone:       { type: String, trim: true, default: '' },
+    studentId:   { type: String, trim: true, default: '' },
+    department:  { type: String, trim: true, default: 'Computer Science' },
+    settings:    {
+      notifications: {
+        email: { type: Boolean, default: true },
+        inApp: { type: Boolean, default: true },
+        discussion: { type: Boolean, default: true },
+        assessmentReminders: { type: Boolean, default: true },
+      },
+      appearance: {
+        theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
+        language: { type: String, default: 'English' },
+        timezone: { type: String, default: 'UTC' },
+      },
+      privacy: {
+        accountVisibility: { type: String, enum: ['public', 'enrolled_only', 'private'], default: 'enrolled_only' },
+        dataPreferences: { type: String, default: 'standard' },
+      },
+      twoFactorEnabled: { type: Boolean, default: false },
+    },
+
     // Instructor-specific
     expertise:   { type: [String], default: [] },
     socialLinks: {

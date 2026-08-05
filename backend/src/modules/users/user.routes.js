@@ -17,64 +17,16 @@ const { imageUpload } = require('../../utils/upload');
 // All routes require authentication
 router.use(authenticate);
 
-/**
- * @swagger
- * /users:
- *   get:
- *     summary: List all users (admin only)
- *     tags: [Users]
- *     security: [{ bearerAuth: [] }]
- */
-router.get('/', authorize('admin'), validate(schemas.listUsers, 'query'), userController.listUsers);
-
-/**
- * @swagger
- * /users/{id}:
- *   get:
- *     summary: Get user by ID
- *     tags: [Users]
- *     security: [{ bearerAuth: [] }]
- */
-router.get('/:id', userController.getUserById);
-
-/**
- * @swagger
- * /users/{id}:
- *   put:
- *     summary: Update user profile
- *     tags: [Users]
- *     security: [{ bearerAuth: [] }]
- */
-router.put('/:id', validate(schemas.updateUser), userController.updateUser);
-
-/**
- * @swagger
- * /users/{id}:
- *   delete:
- *     summary: Delete user (admin only)
- *     tags: [Users]
- *     security: [{ bearerAuth: [] }]
- */
-router.delete('/:id', authorize('admin'), userController.deleteUser);
-
-/**
- * @swagger
- * /users/{id}/status:
- *   patch:
- *     summary: Update user active status (admin only)
- *     tags: [Users]
- *     security: [{ bearerAuth: [] }]
- */
-router.patch('/:id/status', authorize('admin'), validate(schemas.updateStatus), userController.updateUserStatus);
-
-/**
- * @swagger
- * /users/avatar:
- *   post:
- *     summary: Upload user avatar
- *     tags: [Users]
- *     security: [{ bearerAuth: [] }]
- */
+// Current Logged-in User Profile & Settings
+router.get('/profile', userController.getProfile);
+router.put('/profile', userController.updateProfile);
+router.put('/settings', userController.updateSettings);
 router.post('/avatar', imageUpload.single('avatar'), userController.uploadAvatar);
+
+router.get('/', authorize('admin'), validate(schemas.listUsers, 'query'), userController.listUsers);
+router.get('/:id', userController.getUserById);
+router.put('/:id', validate(schemas.updateUser), userController.updateUser);
+router.delete('/:id', authorize('admin'), userController.deleteUser);
+router.patch('/:id/status', authorize('admin'), validate(schemas.updateStatus), userController.updateUserStatus);
 
 module.exports = router;
