@@ -67,10 +67,12 @@ const instructorNavItems: NavItem[] = [
   { name: "Courses", icon: <ListIcon />, path: INSTRUCTOR.COURSES },
   { name: "Students", icon: <GroupIcon />, path: INSTRUCTOR.STUDENTS },
   { name: "Assessments", icon: <TaskIcon />, path: INSTRUCTOR.ASSESSMENTS },
+  { name: "Analytics", icon: <PieChartIcon />, path: INSTRUCTOR.ANALYTICS },
   { name: "Certificates", icon: <ShootingStarIcon />, path: INSTRUCTOR.CERTIFICATES },
   { name: "Discussions", icon: <ChatIcon />, path: INSTRUCTOR.DISCUSSIONS },
   { name: "Notifications", icon: <MailIcon />, path: INSTRUCTOR.NOTIFICATIONS },
   { name: "Profile", icon: <UserCircleIcon />, path: INSTRUCTOR.PROFILE },
+  { name: "Settings", icon: <PlugInIcon />, path: INSTRUCTOR.SETTINGS },
 ];
 
 const AppSidebar: React.FC = () => {
@@ -200,10 +202,13 @@ const AppSidebar: React.FC = () => {
             <div className="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-gray-800/50">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                  {currentUser.firstName[0]}{currentUser.lastName[0]}
+                  {currentUser.firstName ? currentUser.firstName[0] : 'U'}
+                  {currentUser.lastName ? currentUser.lastName[0] : ''}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{currentUser.firstName} {currentUser.lastName}</p>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                    {currentUser.firstName} {currentUser.lastName}
+                  </p>
                   <p className="text-[10px] text-indigo-500 capitalize font-medium">{currentUser.role}</p>
                 </div>
               </div>

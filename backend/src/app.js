@@ -9,7 +9,7 @@ const dotenv = require('dotenv');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 // Pre-load all Mongoose models
 require('./models');
@@ -28,6 +28,7 @@ const reportRoutes       = require('./modules/reports/report.routes');
 const certificateRoutes  = require('./modules/certificates/certificate.routes');
 const notificationRoutes = require('./modules/notifications/notification.routes');
 const discussionRoutes   = require('./modules/discussions/discussion.routes');
+const instructorRoutes   = require('./modules/instructor/instructor.routes');
 
 const app = express();
 
@@ -97,6 +98,7 @@ app.use('/api/v1/reports',        reportRoutes);
 app.use('/api/v1/certificates',  certificateRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/discussions',   discussionRoutes);
+app.use('/api/v1/instructor',    instructorRoutes);
 if (discussionRoutes.replyRouter) {
   app.use('/api/v1/replies', discussionRoutes.replyRouter);
 }

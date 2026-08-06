@@ -1,6 +1,9 @@
 import { Document, Types } from 'mongoose';
 
 export type QuestionDifficulty = 'easy' | 'medium' | 'hard';
+export type QuestionType = 'mcq' | 'true_false' | 'short_answer' | 'long_answer' | 'code';
+export type AssessmentStatus = 'draft' | 'published' | 'scheduled' | 'archived';
+export type AssessmentType = 'quiz' | 'assignment' | 'exam';
 
 export interface IOption {
   id: string;
@@ -10,20 +13,33 @@ export interface IOption {
 export interface IQuestion {
   _id?: Types.ObjectId | string;
   question: string;
-  options: IOption[] | string[];
-  correctAnswer: string;
+  type?: QuestionType;
+  options?: IOption[] | string[];
+  correctAnswer?: string;
   marks: number;
   explanation?: string;
-  difficulty: QuestionDifficulty;
+  difficulty?: QuestionDifficulty;
+  imageUrl?: string;
 }
 
 export interface IQuiz {
   title: string;
-  description: string;
+  description?: string;
   courseId: Types.ObjectId | string;
   lessonId?: Types.ObjectId | string;
+  instructorId?: Types.ObjectId | string;
+  type?: AssessmentType;
+  status?: AssessmentStatus;
+  dueDate?: Date | string;
+  scheduledFor?: Date | string;
   timeLimitMinutes: number;
   passingScore: number;
+  totalMarks?: number;
+  attemptsAllowed?: number;
+  shuffleQuestions?: boolean;
+  negativeMarking?: boolean;
+  negativeMarksPerQuestion?: number;
+  visibility?: 'public' | 'enrolled' | 'private';
   questions: IQuestion[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -33,7 +49,9 @@ export interface IQuizDocument extends IQuiz, Document {}
 
 export interface ISubmittedAnswer {
   questionId: string;
-  selectedOption: string;
+  selectedOption?: string;
+  textAnswer?: string;
+  codeAnswer?: string;
 }
 
 export interface ISubmitQuizInput {
@@ -44,19 +62,25 @@ export interface ISubmitQuizInput {
 
 export interface IEvaluatedAnswer {
   questionId: string;
-  selectedOption: string;
+  selectedOption?: string;
+  textAnswer?: string;
+  codeAnswer?: string;
   isCorrect: boolean;
   marksAwarded: number;
+  feedback?: string;
 }
 
 export interface IQuizAttempt {
   quizId: Types.ObjectId | string;
   studentId: Types.ObjectId | string;
+  courseId?: Types.ObjectId | string;
+  instructorId?: Types.ObjectId | string;
   answers: IEvaluatedAnswer[];
   score: number;
   totalMarks: number;
   percentage: number;
   passed: boolean;
+  status?: 'submitted' | 'reviewed' | 'pending_review';
   correctAnswersCount: number;
   wrongAnswersCount: number;
   timeTakenSeconds: number;

@@ -1,15 +1,16 @@
 'use strict';
 const http = require('http');
 const dotenv = require('dotenv');
+const path = require('path');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = require('./app');
 const connectDB = require('./config/db');
 const { initSocket } = require('./sockets/socket');
 const config = require('./config/env');
 
-const PORT = config.port || 5000;
+const PORT = config.port || process.env.PORT || 5000;
 
 // Create HTTP server wrapping Express app
 const server = http.createServer(app);

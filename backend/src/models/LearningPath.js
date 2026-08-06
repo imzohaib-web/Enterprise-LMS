@@ -13,12 +13,12 @@ const pathCourseSchema = new mongoose.Schema(
 const learningPathSchema = new mongoose.Schema(
   {
     title:       { type: String, required: true, trim: true, maxlength: 200 },
-    slug:        { type: String, unique: true, lowercase: true },
+    slug:        { type: String, lowercase: true },
     description: { type: String, maxlength: 2000 },
     level:       { type: String, enum: ['beginner', 'intermediate', 'advanced'], required: true, index: true },
-    thumbnail:   { type: String },
+    thumbnail:   { type: String, default: '' },
     tags:        { type: [String], default: [] },
-    isPublished: { type: Boolean, default: false, index: true },
+    isPublished: { type: Boolean, default: true, index: true },
     createdBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     courses:     { type: [pathCourseSchema], default: [] },
     enrollmentCount: { type: Number, default: 0 },
@@ -28,8 +28,8 @@ const learningPathSchema = new mongoose.Schema(
 
 learningPathSchema.index({ level: 1, isPublished: 1 });
 
-learningPathSchema.pre('validate', function () {
-  if (!this.slug && this.title) {
+learningPathSchema.pre('save', function () {
+  if (this.isModified('title') && this.title && !this.slug) {
     this.slug = this.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   }
 });

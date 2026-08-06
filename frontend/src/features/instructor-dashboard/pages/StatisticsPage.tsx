@@ -3,11 +3,8 @@ import PageMeta from '../../../components/common/PageMeta';
 import EnrollmentChart from '../components/EnrollmentChart';
 import QuizPerformanceChart from '../components/QuizPerformanceChart';
 import ComponentCard from '../../../components/common/ComponentCard';
-import { useInstructorStats } from '../hooks/useInstructorDashboard';
 
 export const StatisticsPage: React.FC = () => {
-  useInstructorStats();
-
   return (
     <>
       <PageMeta title="Analytics & Statistics | Instructor Dashboard" description="In-depth instructor analytics and performance metrics" />

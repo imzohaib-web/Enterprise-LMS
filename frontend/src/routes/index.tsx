@@ -33,7 +33,7 @@ import {
   PublicTermsPage,
 } from '../features/public';
 
-// ── Feature Pages (Engineer 1 & Engineer 2) ───────────────────────────────
+// ── Feature Pages ─────────────────────────────────────────────────────────
 import StudentDashboard from '../features/student-dashboard/pages/StudentDashboard';
 import {
   InstructorDashboard,
@@ -89,6 +89,9 @@ const AppRoutes: React.FC = () => {
       {/* ── Protected Application Routes ───────────────────────────────── */}
       <Route element={<ProtectedRoute isAllowed={true} />}>
         <Route element={<AppLayout />}>
+          {/* Main Root Redirect to Instructor Dashboard */}
+          <Route path="/" element={<InstructorDashboard />} />
+
           {/* Admin Feature Routes */}
           <Route path={ADMIN.DASHBOARD} element={<Suspense fallback={<Loader />}><AdminDashboard /></Suspense>} />
           <Route path={ADMIN.USERS}     element={<Suspense fallback={<Loader />}><AdminUsers /></Suspense>} />
@@ -155,6 +158,7 @@ const AppRoutes: React.FC = () => {
           <Route path={INSTRUCTOR.NOTIFICATIONS} element={<Notifications />} />
           <Route path={INSTRUCTOR.QUIZ_RESULTS} element={<QuizResultsPage />} />
           <Route path={INSTRUCTOR.STATISTICS} element={<StatisticsPage />} />
+          <Route path={INSTRUCTOR.ANALYTICS} element={<StatisticsPage />} />
           <Route path={INSTRUCTOR.SETTINGS} element={<InstructorSettings />} />
 
           {/* Module Top-Level Aliases */}
