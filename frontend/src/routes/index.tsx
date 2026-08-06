@@ -53,14 +53,17 @@ import StudentProgress from '../features/progress/pages/StudentProgress';
 import Discussions from '../features/discussions/pages/Discussions';
 import Notifications from '../features/notifications/pages/Notifications';
 import CertificateVerification from '../pages/CertificateVerification';
+import StudentProfile from '../features/student-dashboard/pages/StudentProfile';
+import StudentSettings from '../features/student-dashboard/pages/StudentSettings';
 
 // Lazy-loaded Admin and Content Management Pages
-const AdminDashboard   = lazy(() => import('../pages/Admin/Dashboard'));
-const AdminUsers       = lazy(() => import('../pages/Admin/Users'));
-const AdminReports     = lazy(() => import('../pages/Admin/Reports'));
-const CourseList       = lazy(() => import('../pages/Courses/CourseList'));
-const CourseBuilder    = lazy(() => import('../pages/Courses/CourseBuilder'));
-const LearningPathList = lazy(() => import('../pages/LearningPaths/LearningPathList'));
+const AdminDashboard     = lazy(() => import('../pages/Admin/Dashboard'));
+const AdminUsers         = lazy(() => import('../pages/Admin/Users'));
+const AdminReports       = lazy(() => import('../pages/Admin/Reports'));
+const CourseList         = lazy(() => import('../pages/Courses/CourseList'));
+const CourseBuilder      = lazy(() => import('../pages/Courses/CourseBuilder'));
+const LearningPathList   = lazy(() => import('../pages/LearningPaths/LearningPathList'));
+const LearningPathDetail = lazy(() => import('../pages/LearningPaths/LearningPathDetail'));
 
 const Loader = () => (
   <div className="flex items-center justify-center h-64">
@@ -119,6 +122,7 @@ const AppRoutes: React.FC = () => {
           <Route path={STUDENT.DASHBOARD} element={<StudentDashboard />} />
           <Route path={STUDENT.COURSES} element={<Suspense fallback={<Loader />}><CourseList /></Suspense>} />
           <Route path={STUDENT.LEARNING_PATHS} element={<Suspense fallback={<Loader />}><LearningPathList /></Suspense>} />
+          <Route path="/learning-paths/:id" element={<Suspense fallback={<Loader />}><LearningPathDetail /></Suspense>} />
           <Route path={STUDENT.ASSESSMENTS} element={<QuizList />} />
           <Route path={`${STUDENT.ASSESSMENTS}/:id`} element={<QuizDetailsRouteWrapper />} />
           <Route path={`${STUDENT.ASSESSMENTS}/:id/take`} element={<TakeQuizRouteWrapper />} />
@@ -127,26 +131,8 @@ const AppRoutes: React.FC = () => {
           <Route path={STUDENT.CERTIFICATES} element={<CertificateVerification />} />
           <Route path={STUDENT.DISCUSSIONS} element={<Discussions />} />
           <Route path={STUDENT.NOTIFICATIONS} element={<Notifications />} />
-          <Route
-            path={STUDENT.PROFILE}
-            element={
-              <LMSPlaceholderPage
-                title="Student Profile"
-                description="Manage your profile information, academic records, and avatar."
-                category="Student Module"
-              />
-            }
-          />
-          <Route
-            path={STUDENT.SETTINGS}
-            element={
-              <LMSPlaceholderPage
-                title="Student Settings"
-                description="Manage account security, email notifications, and UI preferences."
-                category="Student Module"
-              />
-            }
-          />
+          <Route path={STUDENT.PROFILE} element={<StudentProfile />} />
+          <Route path={STUDENT.SETTINGS} element={<StudentSettings />} />
 
           {/* Instructor Feature Routes */}
           <Route path={INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />

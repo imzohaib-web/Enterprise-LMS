@@ -29,6 +29,8 @@ const certificateRoutes  = require('./modules/certificates/certificate.routes');
 const notificationRoutes = require('./modules/notifications/notification.routes');
 const discussionRoutes   = require('./modules/discussions/discussion.routes');
 const instructorRoutes   = require('./modules/instructor/instructor.routes');
+const assessmentRoutes   = require('./modules/assessments/assessment.routes');
+const progressRoutes     = require('./modules/progress/progress.routes');
 
 const app = express();
 
@@ -99,6 +101,8 @@ app.use('/api/v1/certificates',  certificateRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/discussions',   discussionRoutes);
 app.use('/api/v1/instructor',    instructorRoutes);
+app.use('/api/v1/assessments',   assessmentRoutes);
+app.use('/api/v1/progress',      progressRoutes);
 if (discussionRoutes.replyRouter) {
   app.use('/api/v1/replies', discussionRoutes.replyRouter);
 }

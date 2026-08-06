@@ -13,6 +13,25 @@ export interface Device {
   lastLogin: string;
 }
 
+export interface UserUserSettings {
+  notifications?: {
+    email?: boolean;
+    inApp?: boolean;
+    discussion?: boolean;
+    assessmentReminders?: boolean;
+  };
+  appearance?: {
+    theme?: string;
+    language?: string;
+    timezone?: string;
+  };
+  privacy?: {
+    accountVisibility?: string;
+    dataPreferences?: string;
+  };
+  twoFactorEnabled?: boolean;
+}
+
 export interface User {
   _id: string;
   firstName: string;
@@ -21,6 +40,10 @@ export interface User {
   role: UserRole;
   avatar?: string;
   bio?: string;
+  phone?: string;
+  studentId?: string;
+  department?: string;
+  settings?: UserUserSettings;
   isActive: boolean;
   isVerified: boolean;
   expertise?: string[];

@@ -5,12 +5,14 @@ const mongoose = require('mongoose');
 
 const User = require('./models/User');
 const Course = require('./models/Course');
+const Category = require('./models/Category');
 const Enrollment = require('./models/Enrollment');
 const Discussion = require('./models/Discussion');
 const Notification = require('./models/Notification');
 const LearningPath = require('./models/LearningPath');
 const { QuizModel, QuizAttemptModel } = require('./modules/assessments/assessment.model');
 const CertificateModel = require('./modules/certificates/certificate.model');
+const { StudentProgressModel } = require('./modules/progress/progress.model');
 
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 
@@ -23,6 +25,7 @@ async function seedDatabase() {
     // Clear existing data in collections
     await User.deleteMany({});
     await Course.deleteMany({});
+    await Category.deleteMany({});
     await Enrollment.deleteMany({});
     await Discussion.deleteMany({});
     await Notification.deleteMany({});
@@ -30,10 +33,19 @@ async function seedDatabase() {
     await QuizModel.deleteMany({});
     await QuizAttemptModel.deleteMany({});
     await CertificateModel.deleteMany({});
+    await StudentProgressModel.deleteMany({});
 
     console.log('Cleared previous database entries.');
 
-    // 1. Create Instructor Users
+    // 1. Seed Category
+    const category = await Category.create({
+      name: 'Software Engineering',
+      slug: 'software-engineering',
+      description: 'Full-stack engineering, cloud, and modern web development.',
+      icon: 'code',
+    });
+
+    // 2. Create Instructor Users
     const instructor = await User.create({
       _id: new mongoose.Types.ObjectId('661000000000000000000001'),
       firstName: 'Dr. Sarah',
@@ -65,7 +77,7 @@ async function seedDatabase() {
       isActive: true,
     });
 
-    // 2. Create Admin Users
+    // 3. Create Admin Users
     await User.create({
       firstName: 'System',
       lastName: 'Admin',
@@ -84,7 +96,7 @@ async function seedDatabase() {
       isActive: true,
     });
 
-    // 3. Create Students
+    // 4. Create Students
     const student1 = await User.create({
       _id: new mongoose.Types.ObjectId('661000000000000000000002'),
       firstName: 'Alexander',
@@ -93,6 +105,10 @@ async function seedDatabase() {
       password: 'password123',
       role: 'student',
       avatar: '/images/user/user-01.jpg',
+      phone: '+1-555-0192',
+      studentId: 'STU-2026-8841',
+      department: 'Computer Science',
+      bio: 'Aspiring Full Stack Engineer and Cloud Architect.',
     });
 
     const student2 = await User.create({
@@ -115,7 +131,7 @@ async function seedDatabase() {
       avatar: '/images/user/user-03.jpg',
     });
 
-    await User.create({
+    const studentDefault = await User.create({
       firstName: 'Student',
       lastName: 'User',
       email: 'student@lms.com',
@@ -135,11 +151,12 @@ async function seedDatabase() {
 
     console.log('Created Users (Instructor, Admin & Students).');
 
-    // 4. Create Courses
+    // 5. Create Courses
     const course1 = await Course.create({
       title: 'Advanced Full-Stack Engineering with Node.js & React',
+      slug: 'advanced-full-stack-engineering-with-nodejs-and-react',
       description: 'Master enterprise web application architecture using Node.js, Express, MongoDB, and React with TypeScript.',
-      category: 'Software Engineering',
+      category: category._id,
       status: 'published',
       instructor: instructor._id,
       thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
@@ -165,8 +182,9 @@ async function seedDatabase() {
 
     const course2 = await Course.create({
       title: 'Enterprise Architecture & Microservices',
+      slug: 'enterprise-architecture-and-microservices',
       description: 'Learn modern microservices design patterns, API gateways, event-driven systems, and distributed caching.',
-      category: 'Cloud & Architecture',
+      category: category._id,
       status: 'published',
       instructor: instructor._id,
       thumbnail: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80',
@@ -180,12 +198,13 @@ async function seedDatabase() {
 
     console.log('Created Courses.');
 
-    // 5. Create Enrollments
+    // 6. Create Enrollments
     await Enrollment.create([
       {
         student: student1._id,
         course: course1._id,
         instructor: instructor._id,
+        status: 'active',
         progressPercentage: 88,
         completedModules: 8,
         totalModules: 10,
@@ -195,16 +214,24 @@ async function seedDatabase() {
         student: student2._id,
         course: course1._id,
         instructor: instructor._id,
+        status: 'active',
         progressPercentage: 72,
         completedModules: 6,
         totalModules: 10,
         averageQuizScore: 88,
       },
+      {
+        student: studentDefault._id,
+        course: course1._id,
+        instructor: instructor._id,
+        status: 'active',
+        progressPercentage: 75,
+      },
     ]);
 
     console.log('Created Enrollments.');
 
-    // 6. Create Quizzes & Attempts
+    // 7. Create Quizzes & Attempts
     const quiz1 = await QuizModel.create({
       title: 'Node.js Event Loop & Async Architecture',
       description: 'Comprehensive quiz covering Node.js event queue, libuv, microtasks, and asynchronous non-blocking I/O.',
@@ -250,7 +277,38 @@ async function seedDatabase() {
 
     console.log('Created Quizzes & Attempts.');
 
-    // 7. Create Discussions & Notifications
+    // 8. Create Learning Paths & Student Progress
+    await LearningPath.create([
+      {
+        title: 'Full Stack JavaScript Architect',
+        slug: 'full-stack-javascript-architect',
+        description: 'Complete roadmap from React 19 frontend mastery to Node.js microservices backend architecture.',
+        level: 'advanced',
+        category: category._id,
+        createdBy: instructor._id,
+        isPublished: true,
+        courses: [
+          { course: course1._id, order: 0, isRequired: true },
+          { course: course2._id, order: 1, isRequired: true },
+        ],
+        enrollmentCount: 2,
+      },
+    ]);
+
+    await StudentProgressModel.create([
+      {
+        studentId: student1._id,
+        courseId: course1._id,
+        completedLessons: ['Node.js Event Loop Deep Dive'],
+        completedQuizzes: [quiz1._id.toString()],
+        quizScores: [{ quizId: quiz1._id.toString(), score: 95, percentage: 95 }],
+        overallScore: 95,
+        progressPercentage: 88,
+        completed: false,
+      },
+    ]);
+
+    // 9. Create Discussions & Notifications
     await Discussion.create([
       {
         course: course1._id,
@@ -275,6 +333,7 @@ async function seedDatabase() {
     await Notification.create([
       {
         recipient: instructor._id,
+        userId: instructor._id,
         title: 'New Quiz Submission Pending Review',
         message: 'Student Sophia Martinez completed "Microservices Communication Protocols" and requires manual short-answer review.',
         type: 'assessment',
@@ -283,7 +342,16 @@ async function seedDatabase() {
       },
     ]);
 
-    console.log('Created Discussions & Notifications.');
+    await CertificateModel.create({
+      verificationCode: 'EZT-CERT-880CEA-3ZTX',
+      studentId: student1._id,
+      courseId: course1._id,
+      issuedAt: new Date(),
+      certificateUrl: '/uploads/certificates/certificate_EZT-CERT-880CEA-3ZTX.pdf',
+      qrCode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA',
+    });
+
+    console.log('Created Discussions, Notifications & Certificates.');
     console.log('=== SEEDING COMPLETED SUCCESSFULLY ===');
     process.exit(0);
   } catch (error) {

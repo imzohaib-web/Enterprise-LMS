@@ -25,11 +25,12 @@ const userSchema = new mongoose.Schema(
     role:        { type: String, enum: ['student', 'instructor', 'admin'], default: 'student', index: true },
     avatar:      { type: String, default: null },
     phone:       { type: String, default: '' },
+    studentId:   { type: String, trim: true, default: '' },
     bio:         { type: String, maxlength: 500, default: '' },
     isActive:    { type: Boolean, default: true, index: true },
     isVerified:  { type: Boolean, default: false },
 
-    // Instructor-specific details
+    // Instructor & Student profile attributes
     department:     { type: String, default: 'Computer Science' },
     qualification:  { type: String, default: '' },
     specialization: { type: String, default: '' },
@@ -42,11 +43,14 @@ const userSchema = new mongoose.Schema(
       website:  { type: String, default: '' },
     },
     settings: {
-      notifications: { type: Boolean, default: true },
-      theme: { type: String, default: 'light' },
-      language: { type: String, default: 'en' },
-      timezone: { type: String, default: 'UTC' },
-      privacy: { type: String, default: 'public' },
+      type: mongoose.Schema.Types.Mixed,
+      default: {
+        notifications: { type: Boolean, default: true },
+        theme: 'light',
+        language: 'en',
+        timezone: 'UTC',
+        privacy: 'public',
+      },
     },
 
     // Device session tracking
@@ -95,4 +99,4 @@ userSchema.virtual('name').get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.models.User || mongoose.model('User', userSchema);

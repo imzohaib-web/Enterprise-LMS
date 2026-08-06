@@ -35,4 +35,13 @@ export const userService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  getProfile: () =>
+    api.get<ApiResponse<{ user: User }>>('/users/profile'),
+
+  updateProfile: (payload: Partial<User>) =>
+    api.put<ApiResponse<{ user: User }>>('/users/profile', payload),
+
+  updateSettings: (payload: any) =>
+    api.put<ApiResponse<{ user: User }>>('/users/settings', payload),
 };

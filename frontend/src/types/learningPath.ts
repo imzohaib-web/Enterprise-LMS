@@ -20,6 +20,7 @@ export interface LearningPath {
   createdBy?: { firstName: string; lastName: string };
   courses: PathCourse[];
   enrollmentCount: number;
+  estimatedHours?: number;
   createdAt: string;
   updatedAt: string;
 }
