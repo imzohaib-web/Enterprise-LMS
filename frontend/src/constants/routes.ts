@@ -78,6 +78,7 @@ export const INSTRUCTOR = {
   PROFILE:       '/instructor/profile',
   QUIZ_RESULTS:  '/instructor/quiz-results',
   STATISTICS:    '/instructor/statistics',
+  ANALYTICS:     '/instructor/statistics',
   SETTINGS:      '/instructor/settings',
 } as const;
 
