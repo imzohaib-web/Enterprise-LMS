@@ -192,6 +192,36 @@ class InstructorController {
     }
   }
 
+  static async createDiscussion(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const discussion = await InstructorService.createDiscussion(instructorId, req.body);
+      res.status(201).json({ success: true, message: 'Discussion started successfully', data: discussion });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateDiscussion(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const discussion = await InstructorService.updateDiscussion(instructorId, req.params.id, req.body);
+      res.status(200).json({ success: true, message: 'Discussion updated successfully', data: discussion });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteDiscussion(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      await InstructorService.deleteDiscussion(instructorId, req.params.id);
+      res.status(200).json({ success: true, message: 'Discussion deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async replyDiscussion(req, res, next) {
     try {
       const instructorId = getUserId(req);

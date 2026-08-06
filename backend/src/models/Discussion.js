@@ -44,6 +44,8 @@ const discussionSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    likes: [{ type: mongoose.Schema.Types.Mixed }],
+    likesCount: { type: Number, default: 0 },
     repliesCount: {
       type: Number,
       default: 0,

@@ -114,6 +114,26 @@ export const getInstructorDiscussions = async (): Promise<DiscussionItem[]> => {
   return res.data?.data || [];
 };
 
+export const createDiscussion = async (discussionData: any): Promise<DiscussionItem> => {
+  const res = await axiosInstance.post('/instructor/discussions', discussionData);
+  return res.data?.data;
+};
+
+export const updateDiscussion = async (id: string, discussionData: any): Promise<DiscussionItem> => {
+  const res = await axiosInstance.put(`/instructor/discussions/${id}`, discussionData);
+  return res.data?.data;
+};
+
+export const deleteDiscussion = async (id: string): Promise<boolean> => {
+  await axiosInstance.delete(`/instructor/discussions/${id}`);
+  return true;
+};
+
+export const toggleLikeDiscussion = async (id: string): Promise<DiscussionItem> => {
+  const res = await axiosInstance.patch(`/instructor/discussions/${id}/status`, { toggleLike: true });
+  return res.data?.data;
+};
+
 export const replyDiscussion = async (discussionId: string, content: string): Promise<DiscussionItem> => {
   const res = await axiosInstance.post(`/instructor/discussions/${discussionId}/reply`, { content });
   return res.data?.data;

@@ -105,6 +105,13 @@ export interface InstructorProfile {
   specialization?: string;
   experience?: string;
   bio?: string;
+  joinedDate?: string;
+  stats?: {
+    totalCourses?: number;
+    totalStudents?: number;
+    totalAssessments?: number;
+    avgRating?: number;
+  };
   socialLinks?: {
     linkedin?: string;
     github?: string;

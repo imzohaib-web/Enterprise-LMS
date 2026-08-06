@@ -38,6 +38,9 @@ router.get('/trends/quiz-performance', InstructorController.getQuizPerformanceTr
 
 // Discussions
 router.get('/discussions', InstructorController.getDiscussions);
+router.post('/discussions', InstructorController.createDiscussion);
+router.put('/discussions/:id', InstructorController.updateDiscussion);
+router.delete('/discussions/:id', InstructorController.deleteDiscussion);
 router.post('/discussions/:id/reply', InstructorController.replyDiscussion);
 router.patch('/discussions/:id/status', InstructorController.updateDiscussionStatus);
 

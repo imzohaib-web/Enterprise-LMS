@@ -633,40 +633,100 @@ class InstructorService {
     const instructorObjectId = new mongoose.Types.ObjectId(instructorId);
     const courses = await Course.find({ instructor: instructorObjectId }, '_id title').lean();
     const courseIds = courses.map((c) => c._id);
+    const courseMap = new Map(courses.map((c) => [c._id.toString(), c.title]));
 
     const discussions = await Discussion.find({
-      $or: [{ instructor: instructorObjectId }, { course: { $in: courseIds } }],
+      $or: [
+        { instructor: instructorObjectId },
+        { authorId: instructorObjectId },
+        { author: instructorObjectId },
+        { course: { $in: courseIds } },
+        { courseId: { $in: courseIds } },
+      ],
     })
       .sort({ isPinned: -1, createdAt: -1 })
       .populate('author', 'name avatar role')
       .populate('course', 'title')
       .lean();
 
-    return discussions.map((d) => ({
-      id: d._id.toString(),
-      title: d.title,
-      content: d.content,
-      courseName: d.course?.title || 'Assigned Course',
-      authorName: d.author?.name || 'Discussion User',
-      authorAvatar: d.author?.avatar || '',
-      isPinned: d.isPinned,
-      isLocked: d.isLocked,
-      tags: d.tags || [],
-      repliesCount: d.replies ? d.replies.length : 0,
-      replies: d.replies || [],
-      createdAt: d.createdAt ? new Date(d.createdAt).toISOString() : new Date().toISOString(),
-    }));
+    return discussions.map((d) => {
+      const dId = d._id.toString();
+      const authorIdStr = d.authorId ? d.authorId.toString() : d.author?._id ? d.author._id.toString() : '';
+      const cName = d.courseName || d.course?.title || (d.courseId ? courseMap.get(d.courseId.toString()) : null) || 'General Discussion';
+      const likesArr = d.likes ? d.likes.map((l) => l.toString()) : [];
+      const isLikedByMe = likesArr.includes(instructorId.toString());
+
+      return {
+        id: dId,
+        _id: dId,
+        title: d.title,
+        content: d.content,
+        courseId: d.courseId ? d.courseId.toString() : d.course?._id ? d.course._id.toString() : '',
+        courseName: cName,
+        authorId: authorIdStr,
+        authorName: d.authorName || d.author?.name || 'Discussion User',
+        authorAvatar: d.authorAvatar || d.author?.avatar || '/images/user/owner.jpg',
+        isPinned: Boolean(d.isPinned),
+        isLocked: Boolean(d.isLocked),
+        likesCount: d.likesCount || likesArr.length,
+        isLikedByMe,
+        tags: d.tags || [],
+        repliesCount: d.replies ? d.replies.length : d.repliesCount || 0,
+        replies: d.replies || [],
+        createdAt: d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Just now',
+      };
+    });
   }
 
   /**
-   * Reply to a discussion topic.
+   * Create a new discussion thread.
+   */
+  static async createDiscussion(instructorId, discussionData) {
+    const instructor = await User.findById(instructorId).lean();
+    let courseName = 'General Discussion';
+
+    if (discussionData.courseId) {
+      const course = await Course.findById(discussionData.courseId).lean();
+      if (course) courseName = course.title;
+    }
+
+    const newDiscussion = await Discussion.create({
+      title: discussionData.title,
+      content: discussionData.content,
+      courseId: discussionData.courseId || undefined,
+      course: discussionData.courseId || undefined,
+      instructor: new mongoose.Types.ObjectId(instructorId),
+      authorId: new mongoose.Types.ObjectId(instructorId),
+      author: new mongoose.Types.ObjectId(instructorId),
+      authorName: instructor?.name || 'Instructor',
+      authorAvatar: instructor?.avatar || '/images/user/owner.jpg',
+      courseName,
+      tags: discussionData.tags || [],
+      isPinned: Boolean(discussionData.isPinned),
+      isLocked: Boolean(discussionData.isLocked),
+    });
+
+    try {
+      const { emitDashboardRefresh } = require('../../sockets/socket');
+      emitDashboardRefresh();
+    } catch {
+      /* ignore socket errors */
+    }
+
+    return newDiscussion;
+  }
+
+  /**
+   * Reply to a discussion topic and trigger notifications.
    */
   static async replyDiscussion(instructorId, discussionId, replyContent) {
     const instructor = await User.findById(instructorId).lean();
     const reply = {
+      _id: new mongoose.Types.ObjectId(),
       author: new mongoose.Types.ObjectId(instructorId),
+      authorId: new mongoose.Types.ObjectId(instructorId),
       authorName: instructor?.name || 'Instructor',
-      authorAvatar: instructor?.avatar || '',
+      authorAvatar: instructor?.avatar || '/images/user/owner.jpg',
       content: replyContent,
       isInstructor: true,
       createdAt: new Date(),
@@ -674,21 +734,99 @@ class InstructorService {
 
     const discussion = await Discussion.findByIdAndUpdate(
       discussionId,
-      { $push: { replies: reply } },
+      {
+        $push: { replies: reply },
+        $inc: { repliesCount: 1 },
+      },
+      { new: true }
+    );
+
+    if (discussion && discussion.authorId && discussion.authorId.toString() !== instructorId.toString()) {
+      try {
+        const notificationService = require('../notifications/notification.service');
+        await notificationService.createAndEmitNotification({
+          userId: discussion.authorId,
+          title: 'New Reply from Instructor 💬',
+          message: `Instructor ${instructor?.name || ''} replied to your topic "${discussion.title}".`,
+          type: 'info',
+          category: 'discussion',
+          actionUrl: `/discussions`,
+        });
+      } catch (err) {
+        console.warn('Failed to send discussion reply notification:', err.message);
+      }
+    }
+
+    try {
+      const { emitDashboardRefresh } = require('../../sockets/socket');
+      emitDashboardRefresh();
+    } catch {
+      /* ignore socket errors */
+    }
+
+    return discussion;
+  }
+
+  /**
+   * Update discussion content/title/tags.
+   */
+  static async updateDiscussion(instructorId, discussionId, updateData) {
+    const discussion = await Discussion.findOneAndUpdate(
+      { _id: discussionId },
+      { $set: updateData },
       { new: true }
     );
     return discussion;
   }
 
   /**
-   * Update discussion status (pin, lock, delete).
+   * Delete discussion thread.
+   */
+  static async deleteDiscussion(instructorId, discussionId) {
+    await Discussion.findByIdAndDelete(discussionId);
+    try {
+      const { emitDashboardRefresh } = require('../../sockets/socket');
+      emitDashboardRefresh();
+    } catch {
+      /* ignore socket errors */
+    }
+    return true;
+  }
+
+  /**
+   * Toggle pin, lock or like status.
    */
   static async updateDiscussionStatus(instructorId, discussionId, statusData) {
-    const discussion = await Discussion.findByIdAndUpdate(
-      discussionId,
-      { $set: statusData },
-      { new: true }
-    );
+    const discussion = await Discussion.findById(discussionId);
+    if (!discussion) throw new Error('Discussion not found');
+
+    if (statusData.toggleLike) {
+      const instructorObjId = new mongoose.Types.ObjectId(instructorId);
+      const likes = discussion.likes || [];
+      const existsIndex = likes.findIndex((l) => l.toString() === instructorId.toString());
+
+      if (existsIndex > -1) {
+        likes.splice(existsIndex, 1);
+      } else {
+        likes.push(instructorObjId);
+      }
+
+      discussion.likes = likes;
+      discussion.likesCount = likes.length;
+    } else {
+      if (statusData.isPinned !== undefined) discussion.isPinned = statusData.isPinned;
+      if (statusData.isLocked !== undefined) discussion.isLocked = statusData.isLocked;
+    }
+
+    await discussion.save();
+
+    try {
+      const { emitDashboardRefresh } = require('../../sockets/socket');
+      emitDashboardRefresh();
+    } catch {
+      /* ignore socket errors */
+    }
+
     return discussion;
   }
 
@@ -739,21 +877,45 @@ class InstructorService {
    * Instructor profile fetch and update.
    */
   static async getInstructorProfile(instructorId) {
+    const instructorObjectId = new mongoose.Types.ObjectId(instructorId);
     const user = await User.findById(instructorId).lean();
     if (!user) {
       throw new Error('Instructor profile not found');
     }
+
+    const courses = await Course.find({ instructor: instructorObjectId }).lean();
+    const courseIds = courses.map((c) => c._id);
+
+    const totalCourses = courses.length;
+    const enrollments = await Enrollment.find({ instructor: instructorObjectId }).lean();
+    const totalStudents = new Set(enrollments.map((e) => (e.student ? e.student.toString() : ''))).size;
+
+    const totalAssessments = await QuizModel.countDocuments({
+      $or: [{ instructorId: instructorObjectId }, { courseId: { $in: courseIds } }],
+    });
+
+    const joinedDate = user.createdAt
+      ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      : 'January 2024';
+
     return {
       id: user._id.toString(),
       name: user.name,
       email: user.email,
-      avatar: user.avatar || '',
+      avatar: user.avatar || '/images/user/owner.jpg',
       phone: user.phone || '+1 (555) 234-5678',
-      department: user.department || 'Software Engineering',
+      department: user.department || 'Computer Science & Software Engineering',
       qualification: user.qualification || 'Ph.D. in Computer Science',
       specialization: user.specialization || 'Distributed Systems & Cloud Architecture',
-      experience: user.experience || '10+ Years Industry & Academic Experience',
-      bio: user.bio || 'Senior Architect and Educator specializing in Cloud Engineering and Enterprise Systems.',
+      experience: user.experience || '10+ Years Enterprise Experience',
+      bio: user.bio || 'Senior Architect and Enterprise LMS Instructor specializing in Enterprise Cloud Infrastructure and Full-Stack Engineering.',
+      joinedDate,
+      stats: {
+        totalCourses,
+        totalStudents,
+        totalAssessments,
+        avgRating: 4.9,
+      },
       socialLinks: user.socialLinks || { linkedin: '', github: '', twitter: '', website: '' },
       settings: user.settings || {},
     };

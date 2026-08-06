@@ -14,6 +14,10 @@ import {
   getEnrollmentTrends,
   getQuizPerformanceTrends,
   getInstructorDiscussions,
+  createDiscussion,
+  updateDiscussion,
+  deleteDiscussion,
+  toggleLikeDiscussion,
   replyDiscussion,
   updateDiscussionStatus,
   getInstructorNotifications,
@@ -159,7 +163,50 @@ export const useInstructorDiscussions = () => {
   return useQuery({
     queryKey: ['instructor', 'discussions'],
     queryFn: getInstructorDiscussions,
-    staleTime: 60 * 1000,
+    staleTime: 30 * 1000,
+  });
+};
+
+export const useCreateDiscussion = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (discussionData: any) => createDiscussion(discussionData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'discussions'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'analytics'] });
+    },
+  });
+};
+
+export const useUpdateDiscussion = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, discussionData }: { id: string; discussionData: any }) =>
+      updateDiscussion(id, discussionData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'discussions'] });
+    },
+  });
+};
+
+export const useDeleteDiscussion = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteDiscussion(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'discussions'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'analytics'] });
+    },
+  });
+};
+
+export const useToggleLikeDiscussion = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => toggleLikeDiscussion(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'discussions'] });
+    },
   });
 };
 
