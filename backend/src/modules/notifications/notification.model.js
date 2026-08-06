@@ -1,11 +1,14 @@
+'use strict';
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema(
   {
+    recipient: {
+      type: mongoose.Schema.Types.Mixed,
+      index: true,
+    },
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
+      type: mongoose.Schema.Types.Mixed,
       index: true,
     },
     title: {
@@ -20,18 +23,20 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['info', 'success', 'warning', 'error'],
-      default: 'info',
+      default: 'system',
     },
     category: {
       type: String,
-      enum: ['assessment', 'certificate', 'course', 'progress', 'discussion', 'system'],
       default: 'system',
     },
     isRead: {
       type: Boolean,
       default: false,
       index: true,
+    },
+    link: {
+      type: String,
+      default: '',
     },
     actionUrl: {
       type: String,
@@ -47,10 +52,8 @@ const notificationSchema = new mongoose.Schema(
   }
 );
 
-// Compound index for querying user notifications sorted by recency
-notificationSchema.index({ userId: 1, createdAt: -1 });
-notificationSchema.index({ userId: 1, isRead: 1 });
+notificationSchema.index({ createdAt: -1 });
 
-const Notification = mongoose.model('Notification', notificationSchema);
+const Notification = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);
 
 module.exports = Notification;

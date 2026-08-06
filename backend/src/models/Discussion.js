@@ -3,12 +3,8 @@ const mongoose = require('mongoose');
 
 const discussionReplySchema = new mongoose.Schema(
   {
-    author: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    authorName: { type: String, required: true },
+    author: { type: mongoose.Schema.Types.Mixed },
+    authorName: { type: String },
     authorAvatar: { type: String, default: '' },
     content: { type: String, required: true, trim: true },
     isInstructor: { type: Boolean, default: false },
@@ -19,23 +15,14 @@ const discussionReplySchema = new mongoose.Schema(
 
 const discussionSchema = new mongoose.Schema(
   {
-    course: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Course',
-      required: true,
-      index: true,
-    },
-    instructor: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      index: true,
-    },
-    author: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
+    course: { type: mongoose.Schema.Types.Mixed, index: true },
+    courseId: { type: mongoose.Schema.Types.Mixed, index: true },
+    instructor: { type: mongoose.Schema.Types.Mixed, index: true },
+    author: { type: mongoose.Schema.Types.Mixed },
+    authorId: { type: mongoose.Schema.Types.Mixed },
+    authorName: { type: String, default: '' },
+    authorAvatar: { type: String, default: '' },
+    courseName: { type: String, default: '' },
     title: {
       type: String,
       required: [true, 'Discussion title is required'],
@@ -57,6 +44,10 @@ const discussionSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    repliesCount: {
+      type: Number,
+      default: 0,
+    },
     replies: {
       type: [discussionReplySchema],
       default: [],
@@ -65,4 +56,4 @@ const discussionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Discussion', discussionSchema);
+module.exports = mongoose.models.Discussion || mongoose.model('Discussion', discussionSchema);

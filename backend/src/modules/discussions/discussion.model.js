@@ -12,8 +12,14 @@ const attachmentSchema = new mongoose.Schema(
 
 const discussionSchema = new mongoose.Schema(
   {
-    courseId: { type: mongoose.Schema.Types.Mixed, required: true, index: true },
-    authorId: { type: mongoose.Schema.Types.Mixed, required: true, index: true },
+    course: { type: mongoose.Schema.Types.Mixed, index: true },
+    courseId: { type: mongoose.Schema.Types.Mixed, index: true },
+    instructor: { type: mongoose.Schema.Types.Mixed, index: true },
+    author: { type: mongoose.Schema.Types.Mixed },
+    authorId: { type: mongoose.Schema.Types.Mixed, index: true },
+    authorName: { type: String, default: '' },
+    authorAvatar: { type: String, default: '' },
+    courseName: { type: String, default: '' },
     title: { type: String, required: true, trim: true },
     content: { type: String, required: true },
     attachments: { type: [attachmentSchema], default: [] },
@@ -23,6 +29,7 @@ const discussionSchema = new mongoose.Schema(
     likes: [{ type: mongoose.Schema.Types.Mixed }],
     likesCount: { type: Number, default: 0 },
     repliesCount: { type: Number, default: 0 },
+    replies: { type: [mongoose.Schema.Types.Mixed], default: [] },
   },
   { timestamps: true }
 );
@@ -31,10 +38,13 @@ const replySchema = new mongoose.Schema(
   {
     discussionId: { type: mongoose.Schema.Types.Mixed, required: true, index: true },
     authorId: { type: mongoose.Schema.Types.Mixed, required: true, index: true },
+    authorName: { type: String, default: '' },
+    authorAvatar: { type: String, default: '' },
     content: { type: String, required: true },
     parentReplyId: { type: mongoose.Schema.Types.Mixed, default: null, index: true },
     likes: [{ type: mongoose.Schema.Types.Mixed }],
     likesCount: { type: Number, default: 0 },
+    isInstructor: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
