@@ -27,7 +27,10 @@ export interface InstructorCourse {
   description?: string;
   status: 'published' | 'draft' | 'archived';
   enrolledStudents: number;
+  enrolledStudentsCount?: number;
   totalModules: number;
+  lessonsCount?: number;
+  assessmentsCount?: number;
   createdAt: string;
   thumbnailUrl?: string;
   thumbnail?: string;

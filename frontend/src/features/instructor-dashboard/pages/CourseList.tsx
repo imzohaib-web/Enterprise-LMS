@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import PageMeta from '../../../components/common/PageMeta';
 import ComponentCard from '../../../components/common/ComponentCard';
 import Badge from '../../../components/ui/badge/Badge';
@@ -11,13 +11,24 @@ import {
 import { InstructorCourse } from '../types';
 
 export const CourseList: React.FC = () => {
-  const { data: courses, isLoading, isError } = useInstructorCourses();
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft' | 'archived'>('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'title' | 'students' | 'rating'>('newest');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 8;
+
+  const { data: coursesData, isLoading, isError, refetch } = useInstructorCourses({
+    search: search || undefined,
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    category: categoryFilter !== 'all' ? categoryFilter : undefined,
+  });
+
   const createCourseMutation = useCreateCourse();
   const togglePublishMutation = useTogglePublishCourse();
   const deleteCourseMutation = useDeleteCourse();
 
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft' | 'archived'>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // New course form state
@@ -29,13 +40,36 @@ export const CourseList: React.FC = () => {
   const [newDifficulty, setNewDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
   const [newStatus, setNewStatus] = useState<'published' | 'draft'>('published');
 
-  const filteredCourses = courses?.filter((c) => {
-    const matchesSearch =
-      c.title.toLowerCase().includes(search.toLowerCase()) ||
-      c.category.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const coursesList = useMemo(() => {
+    const dataObj = coursesData as any;
+    let list: InstructorCourse[] = Array.isArray(dataObj)
+      ? dataObj
+      : dataObj?.courses || [];
+
+    // Local sorting
+    return [...list].sort((a, b) => {
+      if (sortBy === 'newest') {
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      }
+      if (sortBy === 'title') {
+        return a.title.localeCompare(b.title);
+      }
+      if (sortBy === 'students') {
+        return (b.enrolledStudents || 0) - (a.enrolledStudents || 0);
+      }
+      if (sortBy === 'rating') {
+        return (b.rating || 0) - (a.rating || 0);
+      }
+      return 0;
+    });
+  }, [coursesData, sortBy]);
+
+  // Paginated records
+  const totalPages = Math.ceil(coursesList.length / itemsPerPage) || 1;
+  const paginatedCourses = useMemo(() => {
+    const start = (page - 1) * itemsPerPage;
+    return coursesList.slice(start, start + itemsPerPage);
+  }, [coursesList, page, itemsPerPage]);
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +92,7 @@ export const CourseList: React.FC = () => {
           setIsCreateModalOpen(false);
           setNewTitle('');
           setNewDescription('');
+          setNewThumbnail('');
         },
       }
     );
@@ -69,175 +104,371 @@ export const CourseList: React.FC = () => {
   };
 
   const handleDelete = (courseId: string) => {
-    if (window.confirm('Are you sure you want to delete this course?')) {
+    if (window.confirm('Are you sure you want to delete this course from MongoDB?')) {
       deleteCourseMutation.mutate(courseId);
     }
   };
 
   return (
     <>
-      <PageMeta title="Course Management | Instructor Portal" description="Manage instructor authored courses" />
+      <PageMeta title="Authored Course Catalog | Instructor Portal" description="Manage instructor authored courses" />
 
       <div className="space-y-6">
-        {/* Header */}
+        {/* Top Banner Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-2xl shadow-sm">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">
               Instructor Course Catalog
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Create, edit, publish, and manage all your authored course modules synchronized with MongoDB.
+              Real-time course management synchronized directly with MongoDB. Filter, publish, edit, or delete your authored courses.
             </p>
           </div>
-          <div>
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm cursor-pointer"
             >
-              + Create New Course
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create Course
             </button>
           </div>
         </div>
 
-        {/* Filters & Search */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="relative w-full sm:w-80">
-            <input
-              type="text"
-              placeholder="Search course title or category..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500"
-            />
-            <svg
-              className="w-4 h-4 absolute left-3 top-3 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+        {/* Filters, Search & Layout Controls */}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-2xl shadow-sm space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {/* Search input */}
+            <div className="relative w-full lg:w-96">
+              <input
+                type="text"
+                placeholder="Search by course title or category..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-gray-900 transition"
+              />
+              <svg
+                className="w-4 h-4 absolute left-3 top-3 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            {/* Dropdown Filters & Sorting */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Category Filter */}
+              <select
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="px-3 py-2 text-xs font-semibold rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+              >
+                <option value="all">All Categories</option>
+                <option value="Software Engineering">Software Engineering</option>
+                <option value="Cloud & Architecture">Cloud & Architecture</option>
+                <option value="DevOps">DevOps</option>
+                <option value="Databases">Databases</option>
+                <option value="Artificial Intelligence">Artificial Intelligence</option>
+              </select>
+
+              {/* Sort By */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-3 py-2 text-xs font-semibold rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+              >
+                <option value="newest">Sort: Newest Created</option>
+                <option value="title">Sort: Title (A-Z)</option>
+                <option value="students">Sort: Most Enrolled</option>
+                <option value="rating">Sort: Highest Rated</option>
+              </select>
+
+              {/* View Toggle */}
+              <div className="flex items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`p-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    viewMode === 'table'
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                  title="Table View"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={`p-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    viewMode === 'grid'
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                  title="Grid Cards View"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Status Pills */}
+          <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
             <button
               type="button"
-              onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${
+              onClick={() => {
+                setStatusFilter('all');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
                 statusFilter === 'all'
-                  ? 'bg-brand-500 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
-              All ({courses?.length || 0})
+              All Courses ({coursesList.length})
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter('published')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${
+              onClick={() => {
+                setStatusFilter('published');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
                 statusFilter === 'published'
-                  ? 'bg-brand-500 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'
               }`}
             >
-              Published ({courses?.filter((c) => c.status === 'published').length || 0})
+              Published
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter('draft')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${
+              onClick={() => {
+                setStatusFilter('draft');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
                 statusFilter === 'draft'
-                  ? 'bg-brand-500 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-100'
               }`}
             >
-              Drafts ({courses?.filter((c) => c.status === 'draft').length || 0})
+              Drafts
             </button>
           </div>
         </div>
 
-        {/* Courses Table / Grid */}
-        <ComponentCard title="Authored Courses" desc="Live synchronized courses from MongoDB">
+        {/* Content Section */}
+        <ComponentCard title="MongoDB Synchronized Catalog" desc={`Showing ${paginatedCourses.length} of ${coursesList.length} total authored courses`}>
           {isLoading ? (
-            <div className="py-12 text-center text-sm text-gray-400">Loading courses from database...</div>
+            <div className="py-16 text-center space-y-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">Loading courses from MongoDB...</p>
+            </div>
           ) : isError ? (
-            <div className="py-12 text-center text-sm text-rose-500">Failed to load courses.</div>
-          ) : (
+            <div className="py-12 text-center space-y-3 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 rounded-2xl">
+              <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">
+                Failed to fetch course catalog from database.
+              </p>
+              <button
+                onClick={() => refetch()}
+                className="px-4 py-1.5 text-xs font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700"
+              >
+                Retry Request
+              </button>
+            </div>
+          ) : coursesList.length === 0 ? (
+            <div className="py-16 text-center space-y-4 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
+              <div className="w-12 h-12 rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto text-xl font-bold">
+                📚
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">No Assigned Courses Found</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm mx-auto">
+                  You have not authored any courses matching your criteria yet. Courses created by you or assigned by Admin will appear here.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl"
+              >
+                + Create Your First Course
+              </button>
+            </div>
+          ) : viewMode === 'table' ? (
+            /* Table View */
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-800 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    <th className="py-3 px-4">Course</th>
+                    <th className="py-3 px-4">Thumbnail & Title</th>
                     <th className="py-3 px-4">Category</th>
                     <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Enrolled Students</th>
-                    <th className="py-3 px-4">Price</th>
+                    <th className="py-3 px-4">Students</th>
+                    <th className="py-3 px-4">Lessons</th>
+                    <th className="py-3 px-4">Assessments</th>
+                    <th className="py-3 px-4">Created Date</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
-                  {filteredCourses && filteredCourses.length > 0 ? (
-                    filteredCourses.map((c) => (
-                      <tr key={c.id || c._id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-3">
-                            {c.thumbnail && (
-                              <img
-                                src={c.thumbnail}
-                                alt={c.title}
-                                className="w-12 h-10 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
-                              />
-                            )}
-                            <div>
-                              <div className="font-semibold text-gray-900 dark:text-white">{c.title}</div>
-                              <div className="text-xs text-gray-400">{c.duration || '10 hours'} • {c.difficulty || 'intermediate'}</div>
-                            </div>
+                  {paginatedCourses.map((c) => (
+                    <tr key={c.id || c._id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={c.thumbnail || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80'}
+                            alt={c.title}
+                            className="w-14 h-10 rounded-lg object-cover border border-gray-200 dark:border-gray-700 shadow-sm"
+                          />
+                          <div>
+                            <div className="font-semibold text-gray-900 dark:text-white line-clamp-1">{c.title}</div>
+                            <div className="text-xs text-gray-400">{c.duration || '10 hours'} • {c.difficulty || 'intermediate'}</div>
                           </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-gray-600 dark:text-gray-300 font-medium">
-                          {c.category}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <Badge color={c.status === 'published' ? 'success' : 'warning'}>
-                            {c.status === 'published' ? 'Published' : 'Draft'}
-                          </Badge>
-                        </td>
-                        <td className="py-3.5 px-4 font-medium text-gray-900 dark:text-white">
-                          {(c.enrolledStudents || 0).toLocaleString()}
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-gray-900 dark:text-white">
-                          ${c.price || 0}
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleTogglePublish(c)}
-                              className="px-2.5 py-1 text-xs font-medium rounded-md border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                            >
-                              {c.status === 'published' ? 'Unpublish' : 'Publish'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(c.id || c._id || '')}
-                              className="px-2.5 py-1 text-xs font-medium rounded-md bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-gray-400">
-                        No courses found matching your query.
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 font-medium text-gray-700 dark:text-gray-300">
+                        {c.category}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <Badge color={c.status === 'published' ? 'success' : 'warning'}>
+                          {c.status === 'published' ? 'Published' : 'Draft'}
+                        </Badge>
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-gray-900 dark:text-white">
+                        {(c.enrolledStudents || c.enrolledStudentsCount || 0).toLocaleString()}
+                      </td>
+                      <td className="py-3.5 px-4 font-medium text-gray-700 dark:text-gray-300">
+                        {c.lessonsCount !== undefined ? c.lessonsCount : c.totalModules || 0} Lessons
+                      </td>
+                      <td className="py-3.5 px-4 font-medium text-gray-700 dark:text-gray-300">
+                        {c.assessmentsCount || 0} Quizzes
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-gray-500 dark:text-gray-400">
+                        {c.createdAt}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePublish(c)}
+                            className="px-2.5 py-1 text-xs font-medium rounded-md border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          >
+                            {c.status === 'published' ? 'Unpublish' : 'Publish'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(c.id || c._id || '')}
+                            className="px-2.5 py-1 text-xs font-medium rounded-md bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
+            </div>
+          ) : (
+            /* Grid Card View */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {paginatedCourses.map((c) => (
+                <div
+                  key={c.id || c._id}
+                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between"
+                >
+                  <div className="relative">
+                    <img
+                      src={c.thumbnail || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80'}
+                      alt={c.title}
+                      className="w-full h-36 object-cover"
+                    />
+                    <div className="absolute top-2 right-2">
+                      <Badge color={c.status === 'published' ? 'success' : 'warning'}>
+                        {c.status === 'published' ? 'Published' : 'Draft'}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="p-4 space-y-2 flex-1">
+                    <div className="text-xs font-semibold text-brand-600 dark:text-brand-400 uppercase tracking-wider">
+                      {c.category}
+                    </div>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2">
+                      {c.title}
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
+                      <div>👥 {c.enrolledStudents || 0} Students</div>
+                      <div>📖 {c.lessonsCount || c.totalModules || 0} Lessons</div>
+                      <div>📝 {c.assessmentsCount || 0} Assessments</div>
+                      <div>📅 {c.createdAt}</div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 pt-0 flex items-center justify-between gap-2 border-t border-gray-100 dark:border-gray-700/50 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleTogglePublish(c)}
+                      className="flex-1 py-1.5 text-xs font-medium text-center rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      {c.status === 'published' ? 'Unpublish' : 'Publish'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(c.id || c._id || '')}
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination Footer */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Page {page} of {totalPages} ({coursesList.length} items total)
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </ComponentCard>
@@ -295,7 +526,7 @@ export const CourseList: React.FC = () => {
                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
                 <textarea
                   rows={3}
-                  placeholder="Comprehensive description..."
+                  placeholder="Comprehensive course description..."
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"

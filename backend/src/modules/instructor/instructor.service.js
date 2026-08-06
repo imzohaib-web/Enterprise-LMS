@@ -158,23 +158,40 @@ class InstructorService {
       .limit(Number(limit))
       .lean();
 
-    const formatted = courses.map((c) => ({
-      id: c._id.toString(),
-      _id: c._id.toString(),
-      title: c.title,
-      category: c.category,
-      status: c.status,
-      enrolledStudents: c.enrolledStudentsCount || 0,
-      totalModules: c.sections ? c.sections.reduce((acc, s) => acc + (s.lessons ? s.lessons.length : 0), 0) : 0,
-      sections: c.sections || [],
-      thumbnail: c.thumbnail || '',
-      coverImage: c.coverImage || '',
-      price: c.price || 0,
-      rating: c.rating || 4.8,
-      difficulty: c.difficulty || 'intermediate',
-      duration: c.duration || '10 hours',
-      createdAt: c.createdAt ? c.createdAt.toISOString().split('T')[0] : '',
-    }));
+    const courseIds = courses.map((c) => c._id);
+    const quizzes = await QuizModel.find({ courseId: { $in: courseIds } }, 'courseId').lean();
+    const quizCountMap = new Map();
+    quizzes.forEach((q) => {
+      if (q.courseId) {
+        const cid = q.courseId.toString();
+        quizCountMap.set(cid, (quizCountMap.get(cid) || 0) + 1);
+      }
+    });
+
+    const formatted = courses.map((c) => {
+      const lessonsCount = c.sections ? c.sections.reduce((acc, s) => acc + (s.lessons ? s.lessons.length : 0), 0) : 0;
+      const cidStr = c._id.toString();
+      return {
+        id: cidStr,
+        _id: cidStr,
+        title: c.title,
+        category: typeof c.category === 'object' && c.category ? c.category.name : c.category || 'General',
+        status: c.status || 'draft',
+        enrolledStudents: c.enrolledStudentsCount || 0,
+        enrolledStudentsCount: c.enrolledStudentsCount || 0,
+        totalModules: lessonsCount,
+        lessonsCount: lessonsCount,
+        assessmentsCount: quizCountMap.get(cidStr) || 0,
+        sections: c.sections || [],
+        thumbnail: c.thumbnail || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
+        coverImage: c.coverImage || '',
+        price: c.price || 0,
+        rating: c.rating || 4.8,
+        difficulty: c.difficulty || 'intermediate',
+        duration: c.duration || '10 hours',
+        createdAt: c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A',
+      };
+    });
 
     return { courses: formatted, total, page: Number(page), limit: Number(limit) };
   }
