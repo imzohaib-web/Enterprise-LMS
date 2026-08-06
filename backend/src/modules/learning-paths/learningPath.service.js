@@ -8,24 +8,55 @@ const { cacheGet, cacheSet, cacheDel, cacheDelPattern } = require('../../config/
 const LEVEL_ORDER = { beginner: 0, intermediate: 1, advanced: 2 };
 const CACHE_TTL = 300;
 
-const listLearningPaths = async ({ page = 1, limit = 10, level, search, isPublished } = {}) => {
-  const filter = {};
-  if (level) filter.level = level;
-  if (typeof isPublished === 'boolean') filter.isPublished = isPublished;
-  else filter.isPublished = true; // default: only published
-  if (search) filter.$or = [
-    { title: { $regex: search, $options: 'i' } },
-    { description: { $regex: search, $options: 'i' } },
-  ];
+const listLearningPaths = async ({ page = 1, limit = 20, level, search, isPublished, instructorId } = {}) => {
+  const conditions = [];
+
+  if (level && level !== 'all') {
+    conditions.push({ level });
+  }
+
+  if (isPublished === true || isPublished === 'true') {
+    conditions.push({ isPublished: true });
+  } else if (isPublished === false || isPublished === 'false') {
+    conditions.push({ isPublished: false });
+  }
+
+  if (instructorId) {
+    const instObjId = mongoose.Types.ObjectId.isValid(instructorId)
+      ? new mongoose.Types.ObjectId(instructorId)
+      : instructorId;
+    conditions.push({
+      $or: [
+        { createdBy: instObjId },
+        { assignedInstructors: instObjId },
+        { isPublished: true },
+      ],
+    });
+  }
+
+  if (search) {
+    conditions.push({
+      $or: [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ],
+    });
+  }
+
+  const filter = conditions.length > 0 ? { $and: conditions } : {};
 
   const skip = (page - 1) * limit;
   const [paths, total] = await Promise.all([
     LearningPath.find(filter)
-      .populate({ path: 'courses.course', select: 'title slug thumbnail level enrollmentCount averageRating', populate: { path: 'instructor', select: 'firstName lastName' } })
-      .populate('createdBy', 'firstName lastName')
-      .sort({ level: 1, createdAt: -1 })
+      .populate({
+        path: 'courses.course',
+        select: 'title slug thumbnail level enrollmentCount averageRating description',
+        populate: { path: 'instructor', select: 'firstName lastName' },
+      })
+      .populate('createdBy', 'firstName lastName name avatar')
+      .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
+      .limit(Number(limit))
       .lean(),
     LearningPath.countDocuments(filter),
   ]);

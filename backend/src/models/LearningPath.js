@@ -20,6 +20,7 @@ const learningPathSchema = new mongoose.Schema(
     tags:        { type: [String], default: [] },
     isPublished: { type: Boolean, default: true, index: true },
     createdBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    assignedInstructors: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     courses:     { type: [pathCourseSchema], default: [] },
     enrollmentCount: { type: Number, default: 0 },
   },
@@ -34,4 +35,4 @@ learningPathSchema.pre('save', function () {
   }
 });
 
-module.exports = mongoose.model('LearningPath', learningPathSchema);
+module.exports = mongoose.models.LearningPath || mongoose.model('LearningPath', learningPathSchema);

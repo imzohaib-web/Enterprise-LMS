@@ -152,6 +152,16 @@ class InstructorController {
     }
   }
 
+  static async getAnalytics(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const analytics = await InstructorService.getInstructorAnalytics(instructorId);
+      res.status(200).json({ success: true, data: analytics });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getEnrollmentTrends(req, res, next) {
     try {
       const instructorId = getUserId(req);

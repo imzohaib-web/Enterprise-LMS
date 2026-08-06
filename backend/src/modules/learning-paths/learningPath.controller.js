@@ -5,6 +5,7 @@ const { sendSuccess } = require('../../utils/response');
 const listLearningPaths = async (req, res) => {
   const query = { ...req.query };
   if (!req.user || req.user.role === 'student') query.isPublished = true;
+  if (req.user && req.user.role === 'instructor') query.instructorId = req.user._id;
   const { paths, meta } = await learningPathService.listLearningPaths(query);
   sendSuccess(res, { data: { paths }, meta });
 };

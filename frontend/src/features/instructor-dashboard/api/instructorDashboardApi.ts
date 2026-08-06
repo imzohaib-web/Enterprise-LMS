@@ -56,6 +56,26 @@ export const getStudentProgressList = async (): Promise<StudentProgressItem[]> =
   return res.data?.data || [];
 };
 
+export const getInstructorAssessments = async (): Promise<any[]> => {
+  const res = await axiosInstance.get('/instructor/assessments');
+  return res.data?.data || [];
+};
+
+export const createAssessment = async (assessmentData: any): Promise<any> => {
+  const res = await axiosInstance.post('/instructor/assessments', assessmentData);
+  return res.data?.data;
+};
+
+export const updateAssessment = async (id: string, assessmentData: any): Promise<any> => {
+  const res = await axiosInstance.put(`/instructor/assessments/${id}`, assessmentData);
+  return res.data?.data;
+};
+
+export const deleteAssessment = async (id: string): Promise<boolean> => {
+  await axiosInstance.delete(`/instructor/assessments/${id}`);
+  return true;
+};
+
 export const getQuizResultsList = async (): Promise<QuizResultItem[]> => {
   const res = await axiosInstance.get('/instructor/quiz-results');
   return res.data?.data || [];
@@ -72,6 +92,11 @@ export const reviewQuizAttempt = async (
 export const getInstructorActivities = async (): Promise<ActivityItem[]> => {
   const res = await axiosInstance.get('/instructor/activities');
   return res.data?.data?.recentActivity || [];
+};
+
+export const getInstructorAnalytics = async (): Promise<any> => {
+  const res = await axiosInstance.get('/instructor/analytics');
+  return res.data?.data;
 };
 
 export const getEnrollmentTrends = async (): Promise<EnrollmentTrend[]> => {

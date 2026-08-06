@@ -13,3 +13,4 @@ export * from './pages/StudentProgressPage';
 export * from './pages/QuizResultsPage';
 export * from './pages/StatisticsPage';
 export * from './pages/InstructorSettings';
+export * from './pages/InstructorAssessments';

@@ -10,6 +10,7 @@ import {
   getQuizResultsList,
   reviewQuizAttempt,
   getInstructorActivities,
+  getInstructorAnalytics,
   getEnrollmentTrends,
   getQuizPerformanceTrends,
   getInstructorDiscussions,
@@ -21,6 +22,10 @@ import {
   getInstructorProfile,
   updateInstructorProfile,
   updateInstructorSettings,
+  getInstructorAssessments,
+  createAssessment,
+  updateAssessment,
+  deleteAssessment,
 } from '../api/instructorDashboardApi';
 import { InstructorCourse, InstructorProfile } from '../types';
 
@@ -126,6 +131,14 @@ export const useInstructorActivities = () => {
   });
 };
 
+export const useInstructorAnalytics = () => {
+  return useQuery({
+    queryKey: ['instructor', 'analytics'],
+    queryFn: getInstructorAnalytics,
+    staleTime: 60 * 1000,
+  });
+};
+
 export const useEnrollmentTrends = () => {
   return useQuery({
     queryKey: ['instructor', 'enrollment-trends'],
@@ -226,6 +239,51 @@ export const useUpdateInstructorSettings = () => {
     mutationFn: (settingsData: any) => updateInstructorSettings(settingsData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructor', 'profile'] });
+    },
+  });
+};
+
+export const useInstructorAssessments = () => {
+  return useQuery({
+    queryKey: ['instructor', 'assessments'],
+    queryFn: getInstructorAssessments,
+    staleTime: 30 * 1000,
+  });
+};
+
+export const useCreateAssessment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (assessmentData: any) => createAssessment(assessmentData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'assessments'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+    },
+  });
+};
+
+export const useUpdateAssessment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, assessmentData }: { id: string; assessmentData: any }) =>
+      updateAssessment(id, assessmentData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'assessments'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+    },
+  });
+};
+
+export const useDeleteAssessment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteAssessment(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'assessments'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
     },
   });
 };

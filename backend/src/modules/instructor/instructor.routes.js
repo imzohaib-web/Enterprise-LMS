@@ -3,10 +3,10 @@
 const express = require('express');
 const router = express.Router();
 const InstructorController = require('./instructor.controller');
-const { protect } = require('../../middlewares/auth.middleware');
+const { authenticate, authorize } = require('../../middleware/auth.middleware');
 
 // Apply protection to all instructor routes
-router.use(protect);
+router.use(authenticate);
 
 // Dashboard stats & activity
 router.get('/dashboard/stats', InstructorController.getDashboardStats);
@@ -32,6 +32,7 @@ router.patch('/quiz-results/:id/review', InstructorController.reviewQuizAttempt)
 router.get('/students/progress', InstructorController.getStudentProgress);
 
 // Analytics & Trends
+router.get('/analytics', InstructorController.getAnalytics);
 router.get('/trends/enrollments', InstructorController.getEnrollmentTrends);
 router.get('/trends/quiz-performance', InstructorController.getQuizPerformanceTrends);
 
