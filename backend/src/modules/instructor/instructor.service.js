@@ -934,14 +934,34 @@ class InstructorService {
     const user = await User.findById(instructorId);
     if (!user) throw new Error('User not found');
 
+    if (settingsData.email) user.email = settingsData.email;
+    if (settingsData.phone) user.phone = settingsData.phone;
+    if (settingsData.name) user.name = settingsData.name;
+    if (settingsData.department) user.department = settingsData.department;
+
+    if (settingsData.password) {
+      if (settingsData.currentPassword && typeof user.comparePassword === 'function') {
+        const isMatch = await user.comparePassword(settingsData.currentPassword);
+        if (!isMatch) {
+          throw new Error('Current password is incorrect');
+        }
+      }
+      user.password = settingsData.password;
+    }
+
     if (settingsData.settings) {
       user.settings = { ...user.settings, ...settingsData.settings };
     }
-    if (settingsData.password) {
-      user.password = settingsData.password;
-    }
+
     await user.save();
-    return user.settings;
+
+    return {
+      email: user.email,
+      phone: user.phone,
+      name: user.name,
+      department: user.department,
+      settings: user.settings,
+    };
   }
 }
 
