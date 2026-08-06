@@ -1,5 +1,6 @@
 'use strict';
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const connectDB = require('./config/db');
 const { User, Course, Category } = require('./models');
 
@@ -20,47 +21,79 @@ const seedDatabase = async () => {
       console.log('✅ Created Category: Software Engineering');
     }
 
-    // 2. Seed Instructor User
-    let instructor = await User.findOne({ email: 'instructor@enterprise.lms' });
-    if (!instructor) {
-      instructor = await User.create({
-        firstName: 'Dr. Elena',
-        lastName: 'Rostova',
-        email: 'instructor@enterprise.lms',
-        password: 'InstructorPassword123!',
-        role: 'instructor',
-        isActive: true,
-      });
-      console.log('✅ Created Instructor: instructor@enterprise.lms / InstructorPassword123!');
-    }
+    // Helper to create or reset user password
+    const upsertUser = async (userData) => {
+      let user = await User.findOne({ email: userData.email });
+      if (!user) {
+        user = await User.create(userData);
+        console.log(`✅ Created User: ${userData.email} / ${userData.password}`);
+      } else {
+        user.firstName = userData.firstName || user.firstName || 'User';
+        user.lastName = userData.lastName || user.lastName || 'Account';
+        user.password = userData.password;
+        user.isActive = true;
+        await user.save();
+        console.log(`🔄 Reset Password for User: ${userData.email} / ${userData.password}`);
+      }
+      return user;
+    };
 
-    // 3. Seed Admin User
-    let admin = await User.findOne({ email: 'admin@enterprise.lms' });
-    if (!admin) {
-      admin = await User.create({
-        firstName: 'System',
-        lastName: 'Admin',
-        email: 'admin@enterprise.lms',
-        password: 'AdminPassword123!',
-        role: 'admin',
-        isActive: true,
-      });
-      console.log('✅ Created Admin: admin@enterprise.lms / AdminPassword123!');
-    }
+    // 2. Seed Instructor Accounts
+    const instructor = await upsertUser({
+      firstName: 'Dr. Elena',
+      lastName: 'Rostova',
+      email: 'instructor@enterprise.lms',
+      password: 'InstructorPassword123!',
+      role: 'instructor',
+      isActive: true,
+    });
 
-    // 4. Seed Student User
-    let student = await User.findOne({ email: 'student@enterprise.lms' });
-    if (!student) {
-      student = await User.create({
-        firstName: 'Alex',
-        lastName: 'Student',
-        email: 'student@enterprise.lms',
-        password: 'StudentPassword123!',
-        role: 'student',
-        isActive: true,
-      });
-      console.log('✅ Created Student: student@enterprise.lms / StudentPassword123!');
-    }
+    await upsertUser({
+      firstName: 'Dr. Sarah',
+      lastName: 'Jenkins',
+      email: 'instructor@lms.com',
+      password: 'password123',
+      role: 'instructor',
+      isActive: true,
+    });
+
+    // 3. Seed Admin Accounts
+    await upsertUser({
+      firstName: 'System',
+      lastName: 'Admin',
+      email: 'admin@enterprise.lms',
+      password: 'AdminPassword123!',
+      role: 'admin',
+      isActive: true,
+    });
+
+    await upsertUser({
+      firstName: 'Admin',
+      lastName: 'User',
+      email: 'admin@lms.com',
+      password: 'password123',
+      role: 'admin',
+      isActive: true,
+    });
+
+    // 4. Seed Student Accounts
+    await upsertUser({
+      firstName: 'Alex',
+      lastName: 'Student',
+      email: 'student@enterprise.lms',
+      password: 'StudentPassword123!',
+      role: 'student',
+      isActive: true,
+    });
+
+    await upsertUser({
+      firstName: 'Student',
+      lastName: 'User',
+      email: 'student@lms.com',
+      password: 'password123',
+      role: 'student',
+      isActive: true,
+    });
 
     // 5. Seed Courses
     const existingCoursesCount = await Course.countDocuments();
@@ -78,77 +111,16 @@ const seedDatabase = async () => {
           status: 'published',
           category: category._id,
           instructor: instructor._id,
-          tags: ['react', 'frontend', 'typescript'],
-          sections: [
-            {
-              title: 'Module 1: React 19 Core Fundamentals',
-              description: 'Understanding actions, useTransition, and useOptimistic.',
-              order: 1,
-              lessons: [
-                { title: 'Lesson 1: Introduction to React 19', type: 'video', duration: 600, order: 1 },
-                { title: 'Lesson 2: Server Actions & Custom Hooks', type: 'video', duration: 900, order: 2 },
-              ],
-            },
-          ],
-        },
-        {
-          title: 'Node.js Microservices & Event-Driven Systems',
-          slug: 'nodejs-microservices-event-driven-systems',
-          description: 'Build high-performance asynchronous Node.js microservices with Redis, MongoDB, and Docker.',
-          shortDesc: 'Scalable Microservices with Node.js & Docker',
-          level: 'intermediate',
-          language: 'English',
-          price: 49,
-          isFree: false,
-          status: 'published',
-          category: category._id,
-          instructor: instructor._id,
-          tags: ['nodejs', 'backend', 'mongodb', 'docker'],
-          sections: [
-            {
-              title: 'Module 1: Asynchronous Architecture',
-              description: 'Event loop tuning and worker threads.',
-              order: 1,
-              lessons: [
-                { title: 'Lesson 1: Event Loop Optimization', type: 'video', duration: 800, order: 1 },
-              ],
-            },
-          ],
-        },
-        {
-          title: 'Python for Data Science & Neural Networks',
-          slug: 'python-data-science-neural-networks',
-          description: 'Learn NumPy, Pandas, PyTorch, and deep neural network training from scratch.',
-          shortDesc: 'Data Science & PyTorch Deep Learning',
-          level: 'beginner',
-          language: 'English',
-          price: 0,
-          isFree: true,
-          status: 'published',
-          category: category._id,
-          instructor: instructor._id,
-          tags: ['python', 'ai', 'datascience'],
-          sections: [
-            {
-              title: 'Module 1: Python Data Foundations',
-              description: 'Data wrangling with Pandas.',
-              order: 1,
-              lessons: [
-                { title: 'Lesson 1: Data Structures in Python', type: 'text', duration: 400, order: 1 },
-              ],
-            },
-          ],
         },
       ];
-
       await Course.insertMany(coursesToInsert);
-      console.log('✅ Created 3 Published Courses in MongoDB!');
+      console.log('✅ Seeded initial courses.');
     }
 
-    console.log('🎉 Database seeding completed successfully!');
+    console.log('🎉 Seeding finished successfully!');
     process.exit(0);
-  } catch (err) {
-    console.error('❌ Seeding error:', err);
+  } catch (error) {
+    console.error('❌ Seeding failed:', error);
     process.exit(1);
   }
 };
