@@ -30,6 +30,8 @@ export const ADMIN = {
   COURSES:    '/admin/courses',
   REPORTS:    '/admin/reports',
   ANALYTICS:  '/admin/analytics',
+  AUDIT_LOGS: '/admin/audit-logs',
+  SETTINGS:   '/admin/settings',
   NOTIFICATIONS: '/admin/notifications',
   PROFILE:    '/admin/profile',
 } as const;

@@ -31,6 +31,12 @@ export default function UserDropdown() {
   const email = user?.email ?? "guest@example.com";
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}` : "U";
 
+  const profilePath = user?.role === 'admin'
+    ? '/admin/profile'
+    : user?.role === 'instructor'
+    ? '/instructor/profile'
+    : '/student/profile';
+
   return (
     <div className="relative">
       <button
@@ -84,7 +90,7 @@ export default function UserDropdown() {
         <ul className="flex flex-col gap-1 pb-2 border-b border-gray-100 dark:border-gray-800">
           <li>
             <DropdownItem
-              to="/admin/users"
+              to={profilePath}
               onItemClick={closeDropdown}
               className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 rounded-lg hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800 transition"
             >
