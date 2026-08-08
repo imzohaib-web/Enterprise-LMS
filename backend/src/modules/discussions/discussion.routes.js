@@ -8,6 +8,7 @@ const replyRouter = Router();
 const controller = new DiscussionController();
 
 // Discussions Endpoints
+router.get('/', protect, controller.getDiscussionsByCourse);
 router.get('/course/:courseId', protect, controller.getDiscussionsByCourse);
 router.get('/:discussionId', protect, controller.getDiscussionById);
 router.post('/', protect, controller.createDiscussion);
