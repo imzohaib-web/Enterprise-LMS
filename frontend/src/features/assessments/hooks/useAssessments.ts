@@ -36,3 +36,11 @@ export const useSubmitQuiz = (): UseMutationResult<
     },
   });
 };
+
+export const useQuizResult = (quizId: string): UseQueryResult<QuizEvaluationResult, Error> => {
+  return useQuery({
+    queryKey: ['quizResult', quizId],
+    queryFn: () => assessmentApi.getQuizResult(quizId),
+    enabled: Boolean(quizId),
+  });
+};

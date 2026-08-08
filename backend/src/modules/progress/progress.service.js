@@ -168,8 +168,41 @@ class ProgressService {
   }
 
   async getUserAllProgress(studentId) {
-    const records = await StudentProgressModel.find({ studentId }).populate('courseId').sort({ lastActivity: -1 }).exec();
-    return records.map((r) => this.toResponseDTO(r));
+    const Enrollment = require('../../models/Enrollment');
+    const enrollments = await Enrollment.find({ student: studentId })
+      .populate({
+        path: 'course',
+        populate: { path: 'instructor', select: 'firstName lastName' },
+      })
+      .lean();
+
+    const progressRecords = await StudentProgressModel.find({ studentId }).exec();
+    const progressMap = new Map();
+    progressRecords.forEach((p) => {
+      if (p.courseId) {
+        progressMap.set(p.courseId.toString(), p);
+      }
+    });
+
+    const result = [];
+    for (const enc of enrollments) {
+      if (!enc.course) continue;
+      const courseIdStr = enc.course._id.toString();
+      let progDoc = progressMap.get(courseIdStr);
+
+      if (!progDoc) {
+        progDoc = await this.getOrCreateProgress(studentId, courseIdStr);
+      }
+
+      result.push({
+        ...this.toResponseDTO(progDoc),
+        course: enc.course,
+        enrollmentStatus: enc.status || 'active',
+        enrolledAt: enc.createdAt,
+      });
+    }
+
+    return result;
   }
 
   async getCourseProgressDTO(studentId, courseId) {

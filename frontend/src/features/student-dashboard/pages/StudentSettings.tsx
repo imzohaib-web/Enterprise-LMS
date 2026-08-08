@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import PageMeta from '../../../components/common/PageMeta';
 import ComponentCard from '../../../components/common/ComponentCard';
 import { userService } from '../../../services/user.service';
 import { authService } from '../../../services/auth.service';
+import { logoutThunk } from '../../auth/authSlice';
+import { AppDispatch } from '../../../app/store';
 
 export const StudentSettings: React.FC = () => {
   const queryClient = useQueryClient();
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'account' | 'notifications' | 'appearance' | 'privacy' | 'danger'>('account');
 
   // Password form state
@@ -34,7 +40,6 @@ export const StudentSettings: React.FC = () => {
       accountVisibility: 'enrolled_only',
       dataPreferences: 'standard',
     },
-    twoFactorEnabled: false,
   });
 
   // Fetch current user settings
@@ -64,7 +69,6 @@ export const StudentSettings: React.FC = () => {
           accountVisibility: userData.settings.privacy?.accountVisibility || 'enrolled_only',
           dataPreferences: userData.settings.privacy?.dataPreferences || 'standard',
         },
-        twoFactorEnabled: userData.settings.twoFactorEnabled ?? false,
       });
     }
   }, [userData]);
@@ -102,10 +106,14 @@ export const StudentSettings: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await dispatch(logoutThunk()).unwrap();
+    } catch {}
+    queryClient.clear();
     localStorage.clear();
     sessionStorage.clear();
-    window.location.href = '/login';
+    navigate('/login', { replace: true });
   };
 
   if (isLoading) {
@@ -200,32 +208,24 @@ export const StudentSettings: React.FC = () => {
               </form>
             </ComponentCard>
 
-            <ComponentCard title="Two-Step Verification (2FA)" desc="Add an extra layer of protection to your account">
-              <div className="flex items-center justify-between">
+            <ComponentCard title="Account Security & 2FA Status" desc="Overview of multi-factor and account authentication status">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
                 <div>
-                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                    Two-Factor Authentication: {settings.twoFactorEnabled ? 'Enabled' : 'Disabled'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                      Protection Level:
+                    </p>
+                    <span className="px-2.5 py-0.5 text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 rounded-full">
+                      JWT Encrypted Session
+                    </span>
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Secure your account using an authenticator app (Google Authenticator or Authy).
+                    Authenticator TOTP multi-factor setup requires configuring an authenticator app (Google Authenticator / Authy) with server secret verification.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const nextVal = !settings.twoFactorEnabled;
-                    const updated = { ...settings, twoFactorEnabled: nextVal };
-                    setSettings(updated);
-                    saveSettingsMutation.mutate(updated);
-                  }}
-                  className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors ${
-                    settings.twoFactorEnabled
-                      ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                      : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                  }`}
-                >
-                  {settings.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}
-                </button>
+                <span className="px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 whitespace-nowrap self-start sm:self-auto">
+                  🔐 Password Protected
+                </span>
               </div>
             </ComponentCard>
           </div>
@@ -369,7 +369,7 @@ export const StudentSettings: React.FC = () => {
           <div className="p-6 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-2xl space-y-4">
             <h3 className="text-base font-extrabold text-rose-700 dark:text-rose-400">Danger Zone Actions</h3>
             <p className="text-xs text-rose-600 dark:text-rose-300">
-              Be cautious when modifying these settings. Logging out clears active tokens. Account deletion is permanent.
+              Be cautious when modifying these settings. Logging out clears active session tokens and user caches.
             </p>
             <div className="flex flex-wrap gap-4 pt-2">
               <button
