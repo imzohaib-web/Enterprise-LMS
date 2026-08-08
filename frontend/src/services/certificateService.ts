@@ -17,6 +17,18 @@ export interface VerifiedCertificateData {
   qrCode?: string;
 }
 
+export interface StudentCertificateItem {
+  _id: string;
+  studentId: string | { _id: string; firstName: string; lastName: string; email: string };
+  courseId: string | { _id: string; title: string; description?: string; thumbnail?: string; level?: string; instructor?: any };
+  issuedAt: string;
+  certificateUrl: string;
+  verificationCode: string;
+  qrCode: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface VerificationResponse {
   success: boolean;
   message: string;
@@ -39,7 +51,12 @@ export const verifyCertificate = async (
 /**
  * Private API call to get all certificates belonging to the logged-in student.
  */
-export const getMyCertificates = async (): Promise<VerifiedCertificateData[]> => {
+export const getMyCertificates = async (): Promise<StudentCertificateItem[]> => {
   const response = await axiosInstance.get('/certificates/my');
   return response.data?.data || [];
+};
+
+export default {
+  verifyCertificate,
+  getMyCertificates,
 };

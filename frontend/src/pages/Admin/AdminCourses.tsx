@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 import { courseService } from '../../services/course.service';
-import type { Course, CourseStatus, CourseLevel } from '../../types/course';
+import type { Course, CourseStatus } from '../../types/course';
 
 const STATUS_TABS: { label: string; value: string; badgeColor: string }[] = [
   { label: 'All Courses', value: 'all', badgeColor: 'bg-gray-100 text-gray-700' },
@@ -66,7 +66,7 @@ const AdminCourses: React.FC = () => {
           isFeatured: isFeaturedFilter,
           sortBy: sortBy as any,
           order: 'desc',
-        })
+        } as any)
         .then((r) => r.data),
   });
 
@@ -77,7 +77,7 @@ const AdminCourses: React.FC = () => {
   // ── 3. Mutations for Moderation Actions ───────────────────────────────────
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status, isFeatured }: { id: string; status?: CourseStatus; isFeatured?: boolean }) =>
-      courseService.updateCourse(id, { status, isFeatured }),
+      courseService.updateCourse(id, { status, isFeatured } as any),
     onSuccess: (_, vars) => {
       if (vars.status) toast.success(`Course status updated to ${vars.status.replace('_', ' ').toUpperCase()}`);
       if (typeof vars.isFeatured === 'boolean') toast.success(`Course ${vars.isFeatured ? 'marked as Featured ⭐' : 'unfeatured'}`);
@@ -411,14 +411,14 @@ const AdminCourses: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={!meta.hasPrevPage}
+                  disabled={meta.page <= 1}
                   className="px-3.5 py-1.5 text-xs font-semibold border border-gray-200 dark:border-gray-700 rounded-xl disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setPage((p) => p + 1)}
-                  disabled={!meta.hasNextPage}
+                  disabled={meta.page >= meta.totalPages}
                   className="px-3.5 py-1.5 text-xs font-semibold border border-gray-200 dark:border-gray-700 rounded-xl disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
                 >
                   Next

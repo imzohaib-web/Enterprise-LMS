@@ -29,7 +29,7 @@ const AuditLogs: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
 
   // ── Fetch Audit Logs Query ──────────────────────────────────────────────────
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-audit-logs', page, limit, search, categoryFilter, severityFilter],
     queryFn: async () => {
       const res = await adminService.getAuditLogs({
@@ -270,14 +270,14 @@ const AuditLogs: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={!meta.hasPrevPage}
+                  disabled={meta.page <= 1}
                   className="px-3.5 py-1.5 text-xs font-semibold border border-gray-200 dark:border-gray-700 rounded-xl disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setPage((p) => p + 1)}
-                  disabled={!meta.hasNextPage}
+                  disabled={meta.page >= meta.totalPages}
                   className="px-3.5 py-1.5 text-xs font-semibold border border-gray-200 dark:border-gray-700 rounded-xl disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
                 >
                   Next

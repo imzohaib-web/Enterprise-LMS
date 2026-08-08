@@ -12,13 +12,13 @@ import {
 } from '../types';
 
 export const useDiscussions = (
-  courseId: string,
+  courseId?: string,
   params?: { search?: string; filter?: string; sort?: string; page?: number; limit?: number }
 ): UseQueryResult<DiscussionPaginatedResponse, Error> => {
   return useQuery({
-    queryKey: ['discussions', courseId, params],
+    queryKey: ['discussions', courseId || 'all', params],
     queryFn: () => discussionApi.getDiscussions(courseId, params),
-    enabled: Boolean(courseId),
+    enabled: true,
   });
 };
 

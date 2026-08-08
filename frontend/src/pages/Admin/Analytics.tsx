@@ -142,7 +142,7 @@ const AdminAnalytics: React.FC = () => {
   });
 
   // Calculate estimated revenue index from course performance
-  const estimatedRevenue = (coursesPerf || []).reduce((sum, c) => sum + (c.price || 0) * (c.enrollmentCount || 0), 0);
+  const estimatedRevenue = (coursesPerf || []).reduce((sum, c: any) => sum + (c.price || 0) * (c.enrollmentCount || 0), 0);
   const totalCompletions = overview?.enrollments.completed ?? 0;
   const totalCertificates = Math.round(totalCompletions * 0.95);
   const averageQuizPassRate = 88.4;

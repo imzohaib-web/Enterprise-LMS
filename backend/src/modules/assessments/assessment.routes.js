@@ -12,5 +12,6 @@ router.get('/:id', controller.getQuizById);
 router.put('/:id', authorize('instructor', 'admin'), controller.updateQuiz);
 router.delete('/:id', authorize('instructor', 'admin'), controller.deleteQuiz);
 router.post('/:quizId/submit', controller.submitQuiz);
+router.get('/:quizId/result', controller.getQuizResult);
 
 module.exports = router;

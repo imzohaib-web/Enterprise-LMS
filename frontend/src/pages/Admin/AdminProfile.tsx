@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 import { selectCurrentUser } from '../../features/auth/authSlice';

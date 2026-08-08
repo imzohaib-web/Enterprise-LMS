@@ -9,5 +9,7 @@ router.use(authenticate);
 router.get('/student', controller.getStudentProgress);
 router.get('/course/:courseId', controller.getCourseProgress);
 router.post('/lesson', controller.completeLesson);
+router.get('/activity', controller.getWeeklyActivity);
+router.post('/activity/log', controller.logActivity);
 
 module.exports = router;

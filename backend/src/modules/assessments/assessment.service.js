@@ -155,6 +155,27 @@ class AssessmentService {
     if (mins > 0) return `${mins}m`;
     return `${secs}s`;
   }
+
+  async getLatestQuizAttempt(quizId, studentId) {
+    const attempt = await QuizAttemptModel.findOne({ quizId, studentId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (!attempt) {
+      return null;
+    }
+
+    return {
+      score: attempt.score,
+      percentage: attempt.percentage,
+      correctAnswers: attempt.correctAnswersCount,
+      wrongAnswers: attempt.wrongAnswersCount,
+      passed: attempt.passed,
+      totalMarks: attempt.totalMarks,
+      timeTaken: this.formatTimeTaken(attempt.timeTakenSeconds),
+      createdAt: attempt.createdAt,
+    };
+  }
 }
 
 module.exports = new AssessmentService();

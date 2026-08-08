@@ -22,8 +22,23 @@ const completeLesson = async (req, res) => {
   sendSuccess(res, { message: 'Lesson marked as complete', data: { progress } });
 };
 
+const getWeeklyActivity = async (req, res) => {
+  const studentId = req.user._id;
+  const activityData = await progressService.getWeeklyActivity(studentId);
+  sendSuccess(res, { data: { activityData } });
+};
+
+const logActivity = async (req, res) => {
+  const studentId = req.user._id;
+  const { courseId, lessonId, durationMinutes, type } = req.body;
+  const result = await progressService.logActivity(studentId, courseId, lessonId, durationMinutes, type);
+  sendSuccess(res, { message: 'Activity logged successfully', data: result });
+};
+
 module.exports = {
   getStudentProgress,
   getCourseProgress,
   completeLesson,
+  getWeeklyActivity,
+  logActivity,
 };

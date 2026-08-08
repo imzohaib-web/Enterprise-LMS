@@ -9,20 +9,14 @@ interface DiscussionHeaderProps {
   courses?: { id: string; title: string }[];
 }
 
-const DEFAULT_COURSES = [
-  { id: 'course-101', title: 'CS101: Full Stack Web Development' },
-  { id: 'course-102', title: 'CS102: Advanced React & Node.js' },
-  { id: 'course-103', title: 'CS103: Enterprise Architecture & Cloud' },
-];
-
 export const DiscussionHeader: React.FC<DiscussionHeaderProps> = ({
   selectedCourseId,
   onCourseChange,
   onOpenComposer,
-  courses = DEFAULT_COURSES,
+  courses = [],
 }) => {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-2xl shadow-sm">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-2xl shadow-xs">
       <div className="space-y-1">
         <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
           Discussion Forums
@@ -35,12 +29,15 @@ export const DiscussionHeader: React.FC<DiscussionHeaderProps> = ({
       <div className="flex flex-wrap items-center gap-3">
         {/* Course Dropdown Selector */}
         <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-xl">
-          <BookOpen className="w-4 h-4 text-brand-500" />
+          <BookOpen className="w-4 h-4 text-indigo-500" />
           <select
             value={selectedCourseId}
             onChange={(e) => onCourseChange(e.target.value)}
             className="bg-transparent text-xs font-semibold text-gray-800 dark:text-gray-200 focus:outline-none cursor-pointer max-w-[200px] truncate"
           >
+            <option value="all" className="bg-white dark:bg-gray-900">
+              All Courses
+            </option>
             {courses.map((c) => (
               <option key={c.id} value={c.id} className="bg-white dark:bg-gray-900">
                 {c.title}
