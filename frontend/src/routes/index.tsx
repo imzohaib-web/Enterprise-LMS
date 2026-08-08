@@ -65,6 +65,8 @@ const CourseBuilder      = lazy(() => import('../pages/Courses/CourseBuilder'));
 const CoursePlayer       = lazy(() => import('../features/course-player/CoursePlayer'));
 const LearningPathList   = lazy(() => import('../pages/LearningPaths/LearningPathList'));
 const LearningPathDetail = lazy(() => import('../pages/LearningPaths/LearningPathDetail'));
+const StudentCertificates= lazy(() => import('../features/student-dashboard/pages/StudentCertificates'));
+
 
 const Loader = () => (
   <div className="flex items-center justify-center h-64">
@@ -85,6 +87,7 @@ const AppRoutes: React.FC = () => {
         <Route path={PUBLIC.ABOUT} element={<PublicAboutPage />} />
         <Route path={PUBLIC.VERIFY} element={<PublicVerifyCertificatePage />} />
         <Route path={PUBLIC.VERIFY_CODE} element={<PublicVerifyCertificatePage />} />
+        <Route path="/verify/:verificationCode" element={<CertificateVerification />} />
         <Route path={PUBLIC.CONTACT} element={<PublicContactPage />} />
         <Route path={PUBLIC.PRIVACY} element={<PublicPrivacyPage />} />
         <Route path={PUBLIC.TERMS} element={<PublicTermsPage />} />
@@ -140,7 +143,7 @@ const AppRoutes: React.FC = () => {
             <Route path={`${STUDENT.ASSESSMENTS}/:id/take`} element={<TakeQuizRouteWrapper />} />
             <Route path={`${STUDENT.ASSESSMENTS}/:id/result`} element={<QuizResultRouteWrapper />} />
             <Route path={STUDENT.PROGRESS} element={<StudentProgress />} />
-            <Route path={STUDENT.CERTIFICATES} element={<CertificateVerification />} />
+            <Route path={STUDENT.CERTIFICATES} element={<Suspense fallback={<Loader />}><StudentCertificates /></Suspense>} />
             <Route path={STUDENT.DISCUSSIONS} element={<Discussions />} />
             <Route path={STUDENT.NOTIFICATIONS} element={<Notifications />} />
             <Route path={STUDENT.PROFILE} element={<StudentProfile />} />

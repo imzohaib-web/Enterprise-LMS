@@ -346,7 +346,10 @@ const generateCertificate = async (studentId, courseId, studentUser = {}) => {
  * Service function: Fetch all certificates belonging to a student.
  */
 const getStudentCertificates = async (studentId) => {
-  return await Certificate.find({ studentId }).sort({ createdAt: -1 });
+  return await Certificate.find({ studentId })
+    .populate('courseId', 'title description thumbnail level instructor')
+    .populate('studentId', 'firstName lastName email')
+    .sort({ createdAt: -1 });
 };
 
 /**
