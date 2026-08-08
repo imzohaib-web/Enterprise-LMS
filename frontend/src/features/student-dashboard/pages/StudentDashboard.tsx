@@ -7,6 +7,7 @@ import ComponentCard from '../../../components/common/ComponentCard';
 import { selectCurrentUser, fetchMeThunk } from '../../auth/authSlice';
 import type { AppDispatch } from '../../../app/store';
 import { courseService } from '../../../services/course.service';
+import { progressService } from '../../../services/progress.service';
 import { assessmentApi } from '../../assessments/api/assessmentApi';
 import { getMyCertificates } from '../../../services/certificateService';
 import { getNotifications } from '../../notifications/api/notificationApi';
@@ -91,6 +92,22 @@ export const StudentDashboard: React.FC = () => {
       return res.data?.data?.discussions || res.data?.discussions || [];
     },
     enabled: !!userId,
+  });
+
+  // ── 7. Real Weekly Learning Activity Query ──────────────────────────────────
+  const {
+    data: weeklyActivity,
+    isLoading: isActivityLoading,
+    isError: isActivityError,
+    refetch: refetchActivity,
+  } = useQuery({
+    queryKey: ['studentLearningActivity', userId],
+    queryFn: async () => {
+      const res = await progressService.getWeeklyActivity();
+      return res.data?.data?.activityData;
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5,
   });
 
   const isLoading =
@@ -309,32 +326,88 @@ export const StudentDashboard: React.FC = () => {
             )}
           </ComponentCard>
 
-          {/* Card 6: Weekly Learning Activity */}
-          <ComponentCard title="Weekly Learning Activity" desc="Hours spent learning this week">
-            <div className="flex items-end justify-between h-32 pt-4 px-2">
-              {[
-                { day: 'Mon', hours: 2.5 },
-                { day: 'Tue', hours: 4.0 },
-                { day: 'Wed', hours: 1.5 },
-                { day: 'Thu', hours: 3.5 },
-                { day: 'Fri', hours: 5.0 },
-                { day: 'Sat', hours: 2.0 },
-                { day: 'Sun', hours: 1.0 },
-              ].map((item, idx) => {
-                const heightPct = (item.hours / 5) * 100;
-                return (
-                  <div key={idx} className="flex flex-col items-center gap-2 flex-1">
-                    <div className="w-full max-w-[28px] bg-gray-100 dark:bg-gray-800 rounded-t-lg h-full flex items-end overflow-hidden">
-                      <div
-                        className="w-full bg-brand-500 rounded-t-lg transition-all duration-500"
-                        style={{ height: `${heightPct}%` }}
-                      />
-                    </div>
-                    <span className="text-2xs text-gray-500 font-semibold">{item.day}</span>
+          {/* Card 6: Real Weekly Learning Activity */}
+          <ComponentCard
+            title="Weekly Learning Activity"
+            desc={
+              isActivityLoading
+                ? "Loading activity..."
+                : weeklyActivity?.totalFormatted
+                ? `${weeklyActivity.totalFormatted} total this week`
+                : "Active learning time"
+            }
+          >
+            {isActivityLoading ? (
+              <div className="flex items-end justify-between h-32 pt-4 px-2 animate-pulse">
+                {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                  <div key={i} className="flex flex-col items-center gap-2 flex-1">
+                    <div className="w-full max-w-[28px] bg-gray-200 dark:bg-gray-800 rounded-t-lg h-24" />
+                    <div className="w-6 h-3 bg-gray-200 dark:bg-gray-800 rounded" />
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            ) : isActivityError ? (
+              <div className="py-6 text-center space-y-3 border border-rose-100 dark:border-rose-900/40 bg-rose-50/40 dark:bg-rose-950/20 rounded-2xl p-4">
+                <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+                  Unable to load learning activity.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => refetchActivity()}
+                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : !weeklyActivity || weeklyActivity.totalMinutes === 0 ? (
+              <div className="py-8 text-center space-y-2 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-4">
+                <p className="text-xs text-gray-500">No learning activity recorded this week yet.</p>
+                <Link
+                  to={STUDENT.COURSES}
+                  className="inline-block text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  Start Learning &rarr;
+                </Link>
+              </div>
+            ) : (
+              <div
+                className="space-y-2"
+                aria-label={`Weekly activity chart: total ${weeklyActivity.totalFormatted} learned this week`}
+              >
+                <div className="flex items-end justify-between h-32 pt-4 px-2">
+                  {(() => {
+                    const maxMins = Math.max(60, ...weeklyActivity.activity.map((a) => a.minutes));
+                    return weeklyActivity.activity.map((item, idx) => {
+                      const heightPct = item.minutes > 0 ? Math.max(12, Math.round((item.minutes / maxMins) * 100)) : 0;
+                      return (
+                        <div
+                          key={idx}
+                          className="flex flex-col items-center gap-2 flex-1 group relative"
+                          title={`${item.day}: ${item.formatted}`}
+                        >
+                          <div className="w-full max-w-[28px] bg-gray-100 dark:bg-gray-800 rounded-t-lg h-full flex items-end overflow-hidden">
+                            <div
+                              className={`w-full rounded-t-lg transition-all duration-500 ${
+                                item.minutes > 0 ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-transparent'
+                              }`}
+                              style={{ height: `${heightPct}%` }}
+                            />
+                          </div>
+                          <span className="text-2xs text-gray-500 dark:text-gray-400 font-semibold">{item.day}</span>
+
+                          {/* Hover Tooltip */}
+                          {item.minutes > 0 && (
+                            <div className="absolute -top-8 hidden group-hover:block bg-gray-900 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-md z-10 whitespace-nowrap">
+                              {item.formatted}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            )}
           </ComponentCard>
         </div>
 

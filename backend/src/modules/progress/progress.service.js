@@ -1,5 +1,7 @@
 'use strict';
+const mongoose = require('mongoose');
 const { StudentProgressModel } = require('./progress.model');
+const { StudentActivityModel } = require('./activity.model');
 
 class ProgressService {
   async getOrCreateProgress(studentId, courseId) {
@@ -22,6 +24,97 @@ class ProgressService {
     return progress;
   }
 
+  async logActivity(studentId, courseId, lessonId, durationMinutes = 1, type = 'general') {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const mins = Math.max(1, Math.round(Number(durationMinutes) || 1));
+
+    await StudentActivityModel.create({
+      studentId,
+      courseId: courseId && mongoose.Types.ObjectId.isValid(courseId) ? courseId : undefined,
+      lessonId: lessonId ? String(lessonId) : undefined,
+      date: todayStr,
+      durationMinutes: mins,
+      type: type || 'general',
+    });
+
+    if (courseId && mongoose.Types.ObjectId.isValid(courseId)) {
+      await StudentProgressModel.updateOne(
+        { studentId, courseId },
+        { $set: { lastActivity: new Date() } }
+      ).exec();
+    }
+    return { success: true };
+  }
+
+  async getWeeklyActivity(studentId) {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 is Sun, 1 is Mon, ... 6 is Sat
+    const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - distanceToMonday);
+
+    const weekDays = [];
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      weekDays.push({
+        date: dateStr,
+        day: dayNames[i],
+      });
+    }
+
+    const startOfWeekStr = weekDays[0].date;
+    const endOfWeekStr = weekDays[6].date;
+
+    const aggregation = await StudentActivityModel.aggregate([
+      {
+        $match: {
+          studentId: new mongoose.Types.ObjectId(studentId),
+          date: { $gte: startOfWeekStr, $lte: endOfWeekStr },
+        },
+      },
+      {
+        $group: {
+          _id: '$date',
+          totalMinutes: { $sum: '$durationMinutes' },
+        },
+      },
+    ]);
+
+    const activityMap = new Map(aggregation.map((a) => [a._id, a.totalMinutes]));
+
+    let overallWeeklyMinutes = 0;
+    const activityResult = weekDays.map((wd) => {
+      const mins = activityMap.get(wd.date) || 0;
+      overallWeeklyMinutes += mins;
+      return {
+        date: wd.date,
+        day: wd.day,
+        minutes: mins,
+        formatted: this.formatMinutes(mins),
+      };
+    });
+
+    return {
+      period: 'week',
+      totalMinutes: overallWeeklyMinutes,
+      totalFormatted: this.formatMinutes(overallWeeklyMinutes),
+      activity: activityResult,
+    };
+  }
+
+  formatMinutes(totalMins) {
+    if (!totalMins || totalMins <= 0) return '0m';
+    const hrs = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    if (hrs > 0 && mins > 0) return `${hrs}h ${mins}m`;
+    if (hrs > 0) return `${hrs}h`;
+    return `${mins}m`;
+  }
+
   async markLessonComplete(studentId, courseId, lessonId) {
     const progress = await this.getOrCreateProgress(studentId, courseId);
     if (!progress.completedLessons.includes(lessonId)) {
@@ -30,6 +123,9 @@ class ProgressService {
     progress.lastActivity = new Date();
     this.recalculateMetrics(progress);
     await progress.save();
+
+    await this.logActivity(studentId, courseId, lessonId, 5, 'general');
+
     return this.toResponseDTO(progress);
   }
 
@@ -49,6 +145,8 @@ class ProgressService {
     progress.lastActivity = new Date();
     this.recalculateMetrics(progress);
     await progress.save();
+
+    await this.logActivity(studentId, courseId, quizId, 10, 'quiz');
 
     if (progress.completed) {
       try {

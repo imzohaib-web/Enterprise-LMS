@@ -119,11 +119,42 @@ export const CoursePlayer: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['studentProgressPage'] });
       queryClient.invalidateQueries({ queryKey: ['studentDashboard'] });
       queryClient.invalidateQueries({ queryKey: ['myEnrollments'] });
+      queryClient.invalidateQueries({ queryKey: ['studentLearningActivity'] });
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || 'Failed to update lesson progress');
     },
   });
+
+  // Periodically log active learning duration while viewing a lesson
+  useEffect(() => {
+    if (!activeLesson || !isEnrolled) return;
+
+    const timeout = setTimeout(() => {
+      progressService.logActivity({
+        courseId,
+        lessonId: activeLesson._id,
+        durationMinutes: 1,
+        type: activeLesson.type,
+      }).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: ['studentLearningActivity'] });
+    }, 15000);
+
+    const interval = setInterval(() => {
+      progressService.logActivity({
+        courseId,
+        lessonId: activeLesson._id,
+        durationMinutes: 1,
+        type: activeLesson.type,
+      }).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: ['studentLearningActivity'] });
+    }, 60000);
+
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [activeLesson, isEnrolled, courseId, queryClient]);
 
   // Enroll Mutation for Preview page
   const enrollMutation = useMutation({
