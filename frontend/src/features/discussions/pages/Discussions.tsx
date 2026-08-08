@@ -16,7 +16,6 @@ import PinnedBadge from '../components/PinnedBadge';
 import LockedBadge from '../components/LockedBadge';
 import { selectCurrentUser } from '../../auth/authSlice';
 import { progressService } from '../../../services/progress.service';
-
 import {
   useDiscussions,
   useDiscussion,
@@ -31,6 +30,7 @@ import {
   usePinDiscussion,
   useLockDiscussion,
 } from '../hooks/useDiscussions';
+import { useInstructorCourses } from '../../instructor-dashboard/hooks/useInstructorDashboard';
 import { DiscussionFilter, DiscussionSort, IDiscussion, CreateDiscussionInput } from '../types';
 import { Heart, MessageSquare, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -65,20 +65,27 @@ export const Discussions: React.FC = () => {
     }
   }, [threadParam]);
 
-  // Fetch student's real enrolled courses for dropdown
+  // Fetch courses for dropdown (enrolled courses for students, taught courses for instructors)
   const { data: enrollmentsData = [] } = useQuery({
     queryKey: ['studentEnrolledCoursesForDiscussions', currentUserId],
     queryFn: async () => {
       const res: any = await progressService.getStudentProgress();
       return res.data?.enrollments || res.enrollments || [];
     },
-    enabled: !!currentUserId,
+    enabled: !!currentUserId && currentUserRole === 'student',
   });
 
-  const availableCourses = enrollmentsData.map((e: any) => ({
-    id: e.courseId?._id || e.courseId || e.course,
-    title: e.courseId?.title || e.courseTitle || 'Enrolled Course',
-  }));
+  const { data: instructorCoursesData } = useInstructorCourses();
+
+  const availableCourses = currentUserRole === 'student'
+    ? enrollmentsData.map((e: any) => ({
+        id: e.courseId?._id || e.courseId || e.course,
+        title: e.courseId?.title || e.courseTitle || 'Enrolled Course',
+      }))
+    : (Array.isArray(instructorCoursesData) ? instructorCoursesData : (instructorCoursesData as any)?.courses || []).map((c: any) => ({
+        id: c._id || c.id,
+        title: c.title || 'Course',
+      }));
 
   // Discussions Query
   const { data: discussionsData, isLoading, isError, refetch } = useDiscussions(
@@ -104,6 +111,7 @@ export const Discussions: React.FC = () => {
   const updateDiscussionMutation = useUpdateDiscussion();
   const deleteDiscussionMutation = useDeleteDiscussion();
   const createReplyMutation = useCreateReply();
+  const updateReplyMutation = useUpdateReply();
   const deleteReplyMutation = useDeleteReply();
   const likeDiscussionMutation = useLikeDiscussion();
   const likeReplyMutation = useLikeReply();
@@ -263,8 +271,6 @@ export const Discussions: React.FC = () => {
     }
   };
 
-  const updateReplyMutation = useUpdateReply();
-
   const handleEditReply = async (replyId: string, newContent: string) => {
     try {
       await updateReplyMutation.mutateAsync({
@@ -288,8 +294,8 @@ export const Discussions: React.FC = () => {
   return (
     <>
       <PageMeta
-        title="Discussion Forum | Student Portal"
-        description="Collaborate with peers, ask questions, and engage in technical course discussions."
+        title="Discussion Forum | Enterprise LMS"
+        description="Collaborate with peers and instructors, ask questions, and engage in technical course discussions."
       />
 
       <div className="space-y-6">
@@ -339,13 +345,13 @@ export const Discussions: React.FC = () => {
                         <>
                           <button
                             onClick={() => handlePinDiscussion(discussion._id || discussion.id || '')}
-                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 transition"
+                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 transition cursor-pointer"
                           >
                             {discussion.isPinned ? 'Unpin' : 'Pin'}
                           </button>
                           <button
                             onClick={() => handleLockDiscussion(discussion._id || discussion.id || '')}
-                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 transition"
+                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 transition cursor-pointer"
                           >
                             {discussion.isLocked ? 'Unlock' : 'Lock'}
                           </button>
@@ -356,13 +362,13 @@ export const Discussions: React.FC = () => {
                         <>
                           <button
                             onClick={() => handleEditClick(discussion)}
-                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition"
+                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition cursor-pointer"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleDeleteClick(discussion._id || discussion.id || '')}
-                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition"
+                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition cursor-pointer"
                           >
                             Delete
                           </button>
@@ -384,7 +390,7 @@ export const Discussions: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-gray-900 dark:text-white">
-                          {discussion.authorName || 'Student'}
+                          {discussion.authorName || 'User'}
                         </span>
                         {discussion.authorRole === 'instructor' && (
                           <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded-full bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">

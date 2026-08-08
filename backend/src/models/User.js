@@ -21,41 +21,36 @@ const userSchema = new mongoose.Schema(
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
     },
-    password:    { type: String, required: true, minlength: 8, select: false },
+    password:    { type: String, required: true, minlength: 6, select: false },
     role:        { type: String, enum: ['student', 'instructor', 'admin'], default: 'student', index: true },
     avatar:      { type: String, default: null },
-    bio:         { type: String, maxlength: 500 },
+    phone:       { type: String, default: '' },
+    studentId:   { type: String, trim: true, default: '' },
+    bio:         { type: String, maxlength: 500, default: '' },
     isActive:    { type: Boolean, default: true, index: true },
     isVerified:  { type: Boolean, default: false },
 
-    phone:       { type: String, trim: true, default: '' },
-    studentId:   { type: String, trim: true, default: '' },
-    department:  { type: String, trim: true, default: 'Computer Science' },
-    settings:    {
-      notifications: {
-        email: { type: Boolean, default: true },
-        inApp: { type: Boolean, default: true },
-        discussion: { type: Boolean, default: true },
-        assessmentReminders: { type: Boolean, default: true },
-      },
-      appearance: {
-        theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
-        language: { type: String, default: 'English' },
-        timezone: { type: String, default: 'UTC' },
-      },
-      privacy: {
-        accountVisibility: { type: String, enum: ['public', 'enrolled_only', 'private'], default: 'enrolled_only' },
-        dataPreferences: { type: String, default: 'standard' },
-      },
-      twoFactorEnabled: { type: Boolean, default: false },
-    },
-
-    // Instructor-specific
-    expertise:   { type: [String], default: [] },
+    // Instructor & Student profile attributes
+    department:     { type: String, default: 'Computer Science' },
+    qualification:  { type: String, default: '' },
+    specialization: { type: String, default: '' },
+    experience:     { type: String, default: '' },
+    expertise:      { type: [String], default: [] },
     socialLinks: {
-      linkedin: String,
-      github:   String,
-      website:  String,
+      linkedin: { type: String, default: '' },
+      github:   { type: String, default: '' },
+      twitter:  { type: String, default: '' },
+      website:  { type: String, default: '' },
+    },
+    settings: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {
+        notifications: { type: Boolean, default: true },
+        theme: 'light',
+        language: 'en',
+        timezone: 'UTC',
+        privacy: 'public',
+      },
     },
 
     // Device session tracking
@@ -68,6 +63,7 @@ const userSchema = new mongoose.Schema(
   {
     timestamps: true,
     toJSON: {
+      virtuals: true,
       transform(doc, ret) {
         delete ret.password;
         delete ret.__v;
@@ -90,14 +86,17 @@ userSchema.pre('save', async function () {
 
 // Instance method: compare password
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  // Need to re-fetch password since it's select: false
   const user = await mongoose.model('User').findById(this._id).select('+password');
   return bcrypt.compare(candidatePassword, user.password);
 };
 
-// Virtual: full name
+// Virtual: full name / name
 userSchema.virtual('fullName').get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
 
-module.exports = mongoose.model('User', userSchema);
+userSchema.virtual('name').get(function () {
+  return `${this.firstName} ${this.lastName}`;
+});
+
+module.exports = mongoose.models.User || mongoose.model('User', userSchema);

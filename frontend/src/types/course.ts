@@ -1,7 +1,7 @@
 import type { User } from './user';
 
 export type CourseLevel = 'beginner' | 'intermediate' | 'advanced';
-export type CourseStatus = 'draft' | 'published' | 'archived';
+export type CourseStatus = 'draft' | 'published' | 'archived' | 'pending_approval' | 'rejected';
 export type LessonType = 'video' | 'pdf' | 'text' | 'assignment';
 
 export interface Resource {
@@ -58,6 +58,7 @@ export interface Course {
   price: number;
   isFree: boolean;
   status: CourseStatus;
+  isFeatured?: boolean;
   tags: string[];
   category?: Category;
   instructor?: Partial<User>;

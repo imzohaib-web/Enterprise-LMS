@@ -25,7 +25,7 @@ module.exports = {
     apiSecret: process.env.CLOUDINARY_API_SECRET || '',
   },
   redis: {
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
+    url: process.env.REDIS_URL || '',
   },
   smtp: {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',

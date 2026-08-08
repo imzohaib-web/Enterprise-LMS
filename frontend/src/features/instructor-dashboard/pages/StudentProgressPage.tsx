@@ -4,35 +4,36 @@ import ComponentCard from '../../../components/common/ComponentCard';
 import { useStudentProgressList } from '../hooks/useInstructorDashboard';
 
 export const StudentProgressPage: React.FC = () => {
-  const { data: students, isLoading } = useStudentProgressList();
+  const { data: students, isLoading, isError } = useStudentProgressList();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filtered = students?.filter(
     (s) =>
       s.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.courseName.toLowerCase().includes(searchTerm.toLowerCase())
+      s.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.studentEmail.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <>
-      <PageMeta title="Student Progress | Instructor Dashboard" description="Track student progress across courses" />
+      <PageMeta title="Student Management & Progress | Instructor Portal" description="Track enrolled students progress" />
 
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-2xl shadow-sm">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">
-              Student Progress Overview
+              Enrolled Students & Progress
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Monitor individual student completion percentages, module achievements, and average grades.
+              Displaying students enrolled in your assigned courses, completion rates, and average quiz scores.
             </p>
           </div>
 
           <div className="w-full sm:w-72">
             <input
               type="text"
-              placeholder="Search student or course..."
+              placeholder="Search student, email, or course..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500"
@@ -41,9 +42,11 @@ export const StudentProgressPage: React.FC = () => {
         </div>
 
         {/* Table Card */}
-        <ComponentCard title="Enrolled Students Progress" desc="Real-time progress records">
+        <ComponentCard title="Enrolled Students Progress" desc="Synchronized from MongoDB enrollment records">
           {isLoading ? (
             <div className="py-12 text-center text-sm text-gray-400">Loading student progress...</div>
+          ) : isError ? (
+            <div className="py-12 text-center text-sm text-rose-500">Failed to load student progress.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -65,7 +68,7 @@ export const StudentProgressPage: React.FC = () => {
                           <img
                             src={item.avatar || '/images/user/owner.jpg'}
                             alt={item.studentName}
-                            className="w-8 h-8 rounded-full object-cover"
+                            className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-700"
                           />
                           <div>
                             <p className="font-semibold text-gray-900 dark:text-white">{item.studentName}</p>
@@ -97,14 +100,14 @@ export const StudentProgressPage: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3.5 px-4 text-right text-xs text-gray-400">
-                          {item.lastActive}
+                          {item.lastActive ? new Date(item.lastActive).toLocaleDateString() : 'Recently'}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-gray-400">
-                        No student progress records found.
+                        No enrolled student records found.
                       </td>
                     </tr>
                   )}

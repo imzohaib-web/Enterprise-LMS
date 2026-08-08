@@ -19,7 +19,6 @@ const notificationSchema = new mongoose.Schema(
     message: {
       type: String,
       required: true,
-      trim: true,
     },
     type: {
       type: String,
@@ -47,13 +46,7 @@ const notificationSchema = new mongoose.Schema(
       default: {},
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-notificationSchema.index({ createdAt: -1 });
-
-const Notification = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);
-
-module.exports = Notification;
+module.exports = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);

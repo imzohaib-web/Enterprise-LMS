@@ -1,10 +1,11 @@
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import AppLayout from '../layout/AppLayout';
 import PublicLayout from '../layout/PublicLayout';
 import NotFound from '../pages/OtherPage/NotFound';
 import ProtectedRoute from './ProtectedRoute';
-import LMSPlaceholderPage from '../components/common/LMSPlaceholderPage';
+import { selectCurrentUser } from '../features/auth/authSlice';
 import {
   PUBLIC,
   STUDENT,
@@ -33,7 +34,7 @@ import {
   PublicTermsPage,
 } from '../features/public';
 
-// ── Feature Pages ───────────────────────────────────────────────────────
+// ── Feature Pages ─────────────────────────────────────────────────────────
 import StudentDashboard from '../features/student-dashboard/pages/StudentDashboard';
 import {
   InstructorDashboard,
@@ -42,6 +43,8 @@ import {
   QuizResultsPage,
   StatisticsPage,
   InstructorSettings,
+  InstructorAssessments,
+  InstructorProfilePage,
 } from '../features/instructor-dashboard';
 import {
   QuizList,
@@ -60,6 +63,11 @@ import StudentSettings from '../features/student-dashboard/pages/StudentSettings
 const AdminDashboard     = lazy(() => import('../pages/Admin/Dashboard'));
 const AdminUsers         = lazy(() => import('../pages/Admin/Users'));
 const AdminReports       = lazy(() => import('../pages/Admin/Reports'));
+const AdminAnalytics     = lazy(() => import('../pages/Admin/Analytics'));
+const AdminAuditLogs     = lazy(() => import('../pages/Admin/AuditLogs'));
+const AdminSettings      = lazy(() => import('../pages/Admin/SystemSettings'));
+const AdminProfile       = lazy(() => import('../pages/Admin/AdminProfile'));
+const AdminCourses       = lazy(() => import('../pages/Admin/AdminCourses'));
 const CourseList         = lazy(() => import('../pages/Courses/CourseList'));
 const CourseBuilder      = lazy(() => import('../pages/Courses/CourseBuilder'));
 const CoursePlayer       = lazy(() => import('../features/course-player/CoursePlayer'));
@@ -67,12 +75,18 @@ const LearningPathList   = lazy(() => import('../pages/LearningPaths/LearningPat
 const LearningPathDetail = lazy(() => import('../pages/LearningPaths/LearningPathDetail'));
 const StudentCertificates= lazy(() => import('../features/student-dashboard/pages/StudentCertificates'));
 
-
 const Loader = () => (
   <div className="flex items-center justify-center h-64">
     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500" />
   </div>
 );
+
+const RootRedirect: React.FC = () => {
+  const user = useSelector(selectCurrentUser);
+  if (user?.role === 'admin') return <Navigate to={ADMIN.DASHBOARD} replace />;
+  if (user?.role === 'student') return <Navigate to={STUDENT.DASHBOARD} replace />;
+  return <Navigate to={INSTRUCTOR.DASHBOARD} replace />;
+};
 
 const AppRoutes: React.FC = () => {
   return (
@@ -96,24 +110,20 @@ const AppRoutes: React.FC = () => {
       {/* ── Protected Application Routes ───────────────────────────────── */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
+          {/* Main Root Role-Aware Redirect */}
+          <Route path="/" element={<RootRedirect />} />
 
           {/* Admin Feature Routes (Admin Only) */}
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
             <Route path={ADMIN.DASHBOARD} element={<Suspense fallback={<Loader />}><AdminDashboard /></Suspense>} />
             <Route path={ADMIN.USERS}     element={<Suspense fallback={<Loader />}><AdminUsers /></Suspense>} />
             <Route path={ADMIN.REPORTS}   element={<Suspense fallback={<Loader />}><AdminReports /></Suspense>} />
-            <Route path={ADMIN.COURSES}   element={<Suspense fallback={<Loader />}><CourseList /></Suspense>} />
-            <Route
-              path={ADMIN.ANALYTICS}
-              element={
-                <LMSPlaceholderPage
-                  title="Platform Analytics"
-                  description="System-wide usage analytics, storage monitoring, and engagement tracking."
-                  category="Admin Module"
-                />
-              }
-            />
+            <Route path={ADMIN.COURSES}   element={<Suspense fallback={<Loader />}><AdminCourses /></Suspense>} />
+            <Route path={ADMIN.ANALYTICS} element={<Suspense fallback={<Loader />}><AdminAnalytics /></Suspense>} />
+            <Route path={ADMIN.AUDIT_LOGS} element={<Suspense fallback={<Loader />}><AdminAuditLogs /></Suspense>} />
+            <Route path={ADMIN.SETTINGS}  element={<Suspense fallback={<Loader />}><AdminSettings /></Suspense>} />
             <Route path={ADMIN.NOTIFICATIONS} element={<Notifications />} />
+            <Route path={ADMIN.PROFILE} element={<Suspense fallback={<Loader />}><AdminProfile /></Suspense>} />
           </Route>
 
           {/* Instructor Feature Routes (Instructor & Admin) */}
@@ -121,13 +131,15 @@ const AppRoutes: React.FC = () => {
             <Route path={INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
             <Route path={INSTRUCTOR.COURSES} element={<InstructorCourseList />} />
             <Route path={INSTRUCTOR.STUDENTS} element={<StudentProgressPage />} />
-            <Route path={INSTRUCTOR.ASSESSMENTS} element={<QuizList />} />
+            <Route path={INSTRUCTOR.ASSESSMENTS} element={<InstructorAssessments />} />
             <Route path={INSTRUCTOR.CERTIFICATES} element={<CertificateVerification />} />
             <Route path={INSTRUCTOR.DISCUSSIONS} element={<Discussions />} />
             <Route path={INSTRUCTOR.NOTIFICATIONS} element={<Notifications />} />
             <Route path={INSTRUCTOR.QUIZ_RESULTS} element={<QuizResultsPage />} />
             <Route path={INSTRUCTOR.STATISTICS} element={<StatisticsPage />} />
+            <Route path={INSTRUCTOR.ANALYTICS} element={<StatisticsPage />} />
             <Route path={INSTRUCTOR.SETTINGS} element={<InstructorSettings />} />
+            <Route path={INSTRUCTOR.PROFILE} element={<InstructorProfilePage />} />
             <Route path={COURSES.NEW} element={<Suspense fallback={<Loader />}><CourseBuilder /></Suspense>} />
             <Route path="/courses/:id/builder" element={<Suspense fallback={<Loader />}><CourseBuilder /></Suspense>} />
           </Route>

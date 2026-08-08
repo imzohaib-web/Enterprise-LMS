@@ -12,10 +12,15 @@ const axiosInstance = axios.create({
   },
 });
 
-// Request interceptor - attach JWT token from Redux store
+// Request interceptor - attach JWT token from Redux store or localStorage
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = store.getState().auth.accessToken;
+    const token =
+      store.getState().auth.accessToken ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('jwt') ||
+      localStorage.getItem('authToken');
+
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -32,6 +37,9 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (error.response && error.response.status === 401) {
+      console.warn('Unauthorized request - user token may be expired');
+    }
     return Promise.reject(error);
   }
 );

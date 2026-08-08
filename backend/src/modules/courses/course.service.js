@@ -15,15 +15,21 @@ const CACHE_TTL = 300; // 5 minutes
 /* ── Course CRUD ─────────────────────────────────────────────────────────── */
 
 const listCourses = async (query) => {
-  const { page = 1, limit = 12, search, level, category, status = 'published', instructor, isFree, sortBy = 'createdAt', order = 'desc' } = query;
+  const { page = 1, limit = 12, search, level, category, status = 'published', instructor, isFree, isFeatured, sortBy = 'createdAt', order = 'desc' } = query;
 
   const filter = {};
-  if (status) filter.status = status;
+  if (status && status !== 'all') filter.status = status;
   if (level) filter.level = level;
   if (category) filter.category = new mongoose.Types.ObjectId(category);
   if (instructor) filter.instructor = new mongoose.Types.ObjectId(instructor);
   if (typeof isFree === 'boolean') filter.isFree = isFree;
-  if (search) filter.$text = { $search: search };
+  if (typeof isFeatured === 'boolean') filter.isFeatured = isFeatured;
+  if (search) {
+    filter.$or = [
+      { title: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } },
+    ];
+  }
 
   const skip = (page - 1) * limit;
   const sort = search ? { score: { $meta: 'textScore' } } : { [sortBy]: order === 'asc' ? 1 : -1 };

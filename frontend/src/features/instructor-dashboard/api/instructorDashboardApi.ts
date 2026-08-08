@@ -7,325 +7,174 @@ import {
   ActivityItem,
   EnrollmentTrend,
   QuizPerformanceTrend,
+  InstructorProfile,
+  DiscussionItem,
+  NotificationItem,
 } from '../types';
 
-const MOCK_STATS: InstructorStats = {
-  totalCourses: 12,
-  totalStudents: 1450,
-  publishedCourses: 9,
-  pendingAssessments: 8,
-  coursesGrowth: 8.5,
-  studentsGrowth: 14.2,
-  publishedGrowth: 5.0,
-  pendingGrowth: -2.4,
-};
-
-const MOCK_COURSES: InstructorCourse[] = [
-  {
-    id: 'course-1',
-    title: 'Advanced Full-Stack Engineering with Node.js & React',
-    category: 'Software Engineering',
-    status: 'published',
-    enrolledStudents: 420,
-    totalModules: 14,
-    createdAt: '2026-01-15',
-  },
-  {
-    id: 'course-2',
-    title: 'Enterprise Architecture & Microservices',
-    category: 'Cloud & Architecture',
-    status: 'published',
-    enrolledStudents: 310,
-    totalModules: 10,
-    createdAt: '2026-02-01',
-  },
-  {
-    id: 'course-3',
-    title: 'Docker & Kubernetes for Production Engineering',
-    category: 'DevOps',
-    status: 'published',
-    enrolledStudents: 280,
-    totalModules: 12,
-    createdAt: '2026-03-10',
-  },
-  {
-    id: 'course-4',
-    title: 'Database Systems & SQL Optimization Mastery',
-    category: 'Databases',
-    status: 'published',
-    enrolledStudents: 240,
-    totalModules: 8,
-    createdAt: '2026-04-05',
-  },
-  {
-    id: 'course-5',
-    title: 'Modern Cyber Security Fundamentals',
-    category: 'Security',
-    status: 'draft',
-    enrolledStudents: 0,
-    totalModules: 6,
-    createdAt: '2026-06-20',
-  },
-  {
-    id: 'course-6',
-    title: 'AI & Machine Learning Model Deployment',
-    category: 'Artificial Intelligence',
-    status: 'draft',
-    enrolledStudents: 0,
-    totalModules: 15,
-    createdAt: '2026-07-01',
-  },
-];
-
-const MOCK_STUDENT_PROGRESS: StudentProgressItem[] = [
-  {
-    id: 'sp-1',
-    studentName: 'Alexander Wright',
-    studentEmail: 'alex.wright@example.com',
-    avatar: '/images/user/owner.jpg',
-    courseName: 'Advanced Full-Stack Engineering with Node.js & React',
-    progressPercent: 88,
-    completedModules: 12,
-    totalModules: 14,
-    avgScore: 94,
-    lastActive: '2 hours ago',
-  },
-  {
-    id: 'sp-2',
-    studentName: 'Sophia Martinez',
-    studentEmail: 'sophia.m@example.com',
-    avatar: '/images/user/owner.jpg',
-    courseName: 'Enterprise Architecture & Microservices',
-    progressPercent: 72,
-    completedModules: 7,
-    totalModules: 10,
-    avgScore: 88,
-    lastActive: '5 hours ago',
-  },
-  {
-    id: 'sp-3',
-    studentName: 'David Chen',
-    studentEmail: 'david.chen@example.com',
-    avatar: '/images/user/owner.jpg',
-    courseName: 'Docker & Kubernetes for Production Engineering',
-    progressPercent: 95,
-    completedModules: 11,
-    totalModules: 12,
-    avgScore: 96,
-    lastActive: '1 day ago',
-  },
-  {
-    id: 'sp-4',
-    studentName: 'Emma Watson',
-    studentEmail: 'emma.w@example.com',
-    avatar: '/images/user/owner.jpg',
-    courseName: 'Database Systems & SQL Optimization Mastery',
-    progressPercent: 60,
-    completedModules: 5,
-    totalModules: 8,
-    avgScore: 82,
-    lastActive: '3 days ago',
-  },
-  {
-    id: 'sp-5',
-    studentName: 'Liam Johnson',
-    studentEmail: 'liam.j@example.com',
-    avatar: '/images/user/owner.jpg',
-    courseName: 'Advanced Full-Stack Engineering with Node.js & React',
-    progressPercent: 45,
-    completedModules: 6,
-    totalModules: 14,
-    avgScore: 78,
-    lastActive: '4 hours ago',
-  },
-];
-
-const MOCK_QUIZ_RESULTS: QuizResultItem[] = [
-  {
-    id: 'qr-1',
-    quizTitle: 'Node.js Event Loop & Async Architecture',
-    courseName: 'Advanced Full-Stack Engineering with Node.js & React',
-    studentName: 'Alexander Wright',
-    studentAvatar: '/images/user/owner.jpg',
-    score: 95,
-    totalQuestions: 20,
-    passed: true,
-    attemptDate: '2026-07-22 14:30',
-  },
-  {
-    id: 'qr-2',
-    quizTitle: 'Microservices Communication Protocols',
-    courseName: 'Enterprise Architecture & Microservices',
-    studentName: 'Sophia Martinez',
-    studentAvatar: '/images/user/owner.jpg',
-    score: 85,
-    totalQuestions: 15,
-    passed: true,
-    attemptDate: '2026-07-22 11:15',
-  },
-  {
-    id: 'qr-3',
-    quizTitle: 'Kubernetes Pod Ingress & Service Networking',
-    courseName: 'Docker & Kubernetes for Production Engineering',
-    studentName: 'David Chen',
-    studentAvatar: '/images/user/owner.jpg',
-    score: 98,
-    totalQuestions: 25,
-    passed: true,
-    attemptDate: '2026-07-21 16:45',
-  },
-  {
-    id: 'qr-4',
-    quizTitle: 'SQL Indexing & Query Execution Plans',
-    courseName: 'Database Systems & SQL Optimization Mastery',
-    studentName: 'Emma Watson',
-    studentAvatar: '/images/user/owner.jpg',
-    score: 55,
-    totalQuestions: 20,
-    passed: false,
-    attemptDate: '2026-07-20 09:20',
-  },
-  {
-    id: 'qr-5',
-    quizTitle: 'React Hooks & State Management Patterns',
-    courseName: 'Advanced Full-Stack Engineering with Node.js & React',
-    studentName: 'Liam Johnson',
-    studentAvatar: '/images/user/owner.jpg',
-    score: 90,
-    totalQuestions: 10,
-    passed: true,
-    attemptDate: '2026-07-20 18:10',
-  },
-];
-
-const MOCK_ACTIVITIES: ActivityItem[] = [
-  {
-    id: 'act-1',
-    type: 'quiz_attempt',
-    studentName: 'Alexander Wright',
-    studentAvatar: '/images/user/owner.jpg',
-    targetTitle: 'Node.js Event Loop & Async Architecture',
-    scoreOrProgress: '95%',
-    status: 'passed',
-    timestamp: '10 minutes ago',
-  },
-  {
-    id: 'act-2',
-    type: 'enrollment',
-    studentName: 'Olivia Taylor',
-    studentAvatar: '/images/user/owner.jpg',
-    targetTitle: 'Docker & Kubernetes for Production Engineering',
-    status: 'enrolled',
-    timestamp: '45 minutes ago',
-  },
-  {
-    id: 'act-3',
-    type: 'quiz_attempt',
-    studentName: 'Emma Watson',
-    studentAvatar: '/images/user/owner.jpg',
-    targetTitle: 'SQL Indexing & Query Execution Plans',
-    scoreOrProgress: '55%',
-    status: 'failed',
-    timestamp: '2 hours ago',
-  },
-  {
-    id: 'act-4',
-    type: 'enrollment',
-    studentName: 'Ethan Davis',
-    studentAvatar: '/images/user/owner.jpg',
-    targetTitle: 'Advanced Full-Stack Engineering with Node.js & React',
-    status: 'enrolled',
-    timestamp: '3 hours ago',
-  },
-  {
-    id: 'act-5',
-    type: 'quiz_attempt',
-    studentName: 'Sophia Martinez',
-    studentAvatar: '/images/user/owner.jpg',
-    targetTitle: 'Microservices Communication Protocols',
-    scoreOrProgress: '85%',
-    status: 'passed',
-    timestamp: '5 hours ago',
-  },
-];
-
-const MOCK_ENROLLMENT_TRENDS: EnrollmentTrend[] = [
-  { month: 'Jan', enrollments: 120 },
-  { month: 'Feb', enrollments: 185 },
-  { month: 'Mar', enrollments: 240 },
-  { month: 'Apr', enrollments: 310 },
-  { month: 'May', enrollments: 290 },
-  { month: 'Jun', enrollments: 380 },
-  { month: 'Jul', enrollments: 450 },
-];
-
-const MOCK_QUIZ_PERFORMANCE_TRENDS: QuizPerformanceTrend[] = [
-  { category: 'Full-Stack', averageScore: 88, passRate: 92 },
-  { category: 'Architecture', averageScore: 82, passRate: 85 },
-  { category: 'DevOps', averageScore: 91, passRate: 95 },
-  { category: 'Databases', averageScore: 76, passRate: 78 },
-  { category: 'Security', averageScore: 84, passRate: 88 },
-];
-
 export const getInstructorStats = async (): Promise<InstructorStats> => {
-  try {
-    const res = await axiosInstance.get('/instructor/dashboard/stats');
-    return res.data?.data || MOCK_STATS;
-  } catch (error) {
-    return MOCK_STATS;
-  }
+  const res = await axiosInstance.get('/instructor/dashboard/stats');
+  return res.data?.data;
 };
 
-export const getInstructorCourses = async (): Promise<InstructorCourse[]> => {
-  try {
-    const res = await axiosInstance.get('/instructor/courses');
-    return res.data?.data || MOCK_COURSES;
-  } catch (error) {
-    return MOCK_COURSES;
-  }
+export const getInstructorCourses = async (params?: {
+  search?: string;
+  status?: string;
+  category?: string;
+}): Promise<InstructorCourse[]> => {
+  const res = await axiosInstance.get('/instructor/courses', { params });
+  return res.data?.data || [];
+};
+
+export const createCourse = async (courseData: Partial<InstructorCourse>): Promise<InstructorCourse> => {
+  const res = await axiosInstance.post('/instructor/courses', courseData);
+  return res.data?.data;
+};
+
+export const getCourseById = async (id: string): Promise<InstructorCourse> => {
+  const res = await axiosInstance.get(`/instructor/courses/${id}`);
+  return res.data?.data;
+};
+
+export const updateCourse = async (id: string, courseData: Partial<InstructorCourse>): Promise<InstructorCourse> => {
+  const res = await axiosInstance.put(`/instructor/courses/${id}`, courseData);
+  return res.data?.data;
+};
+
+export const deleteCourse = async (id: string): Promise<boolean> => {
+  await axiosInstance.delete(`/instructor/courses/${id}`);
+  return true;
+};
+
+export const togglePublishCourse = async (id: string, status: string): Promise<InstructorCourse> => {
+  const res = await axiosInstance.patch(`/instructor/courses/${id}/publish`, { status });
+  return res.data?.data;
 };
 
 export const getStudentProgressList = async (): Promise<StudentProgressItem[]> => {
-  try {
-    const res = await axiosInstance.get('/instructor/students/progress');
-    return res.data?.data || MOCK_STUDENT_PROGRESS;
-  } catch (error) {
-    return MOCK_STUDENT_PROGRESS;
-  }
+  const res = await axiosInstance.get('/instructor/students/progress');
+  return res.data?.data || [];
+};
+
+export const getInstructorAssessments = async (): Promise<any[]> => {
+  const res = await axiosInstance.get('/instructor/assessments');
+  return res.data?.data || [];
+};
+
+export const createAssessment = async (assessmentData: any): Promise<any> => {
+  const res = await axiosInstance.post('/instructor/assessments', assessmentData);
+  return res.data?.data;
+};
+
+export const updateAssessment = async (id: string, assessmentData: any): Promise<any> => {
+  const res = await axiosInstance.put(`/instructor/assessments/${id}`, assessmentData);
+  return res.data?.data;
+};
+
+export const deleteAssessment = async (id: string): Promise<boolean> => {
+  await axiosInstance.delete(`/instructor/assessments/${id}`);
+  return true;
 };
 
 export const getQuizResultsList = async (): Promise<QuizResultItem[]> => {
-  try {
-    const res = await axiosInstance.get('/instructor/quiz-results');
-    return res.data?.data || MOCK_QUIZ_RESULTS;
-  } catch (error) {
-    return MOCK_QUIZ_RESULTS;
-  }
+  const res = await axiosInstance.get('/instructor/quiz-results');
+  return res.data?.data || [];
+};
+
+export const reviewQuizAttempt = async (
+  attemptId: string,
+  reviewData: { score?: number; status?: string; feedback?: string }
+): Promise<any> => {
+  const res = await axiosInstance.patch(`/instructor/quiz-results/${attemptId}/review`, reviewData);
+  return res.data?.data;
 };
 
 export const getInstructorActivities = async (): Promise<ActivityItem[]> => {
-  try {
-    const res = await axiosInstance.get('/instructor/activities');
-    return res.data?.data || MOCK_ACTIVITIES;
-  } catch (error) {
-    return MOCK_ACTIVITIES;
-  }
+  const res = await axiosInstance.get('/instructor/activities');
+  return res.data?.data?.recentActivity || [];
+};
+
+export const getInstructorAnalytics = async (): Promise<any> => {
+  const res = await axiosInstance.get('/instructor/analytics');
+  return res.data?.data;
 };
 
 export const getEnrollmentTrends = async (): Promise<EnrollmentTrend[]> => {
-  try {
-    const res = await axiosInstance.get('/instructor/trends/enrollments');
-    return res.data?.data || MOCK_ENROLLMENT_TRENDS;
-  } catch (error) {
-    return MOCK_ENROLLMENT_TRENDS;
-  }
+  const res = await axiosInstance.get('/instructor/trends/enrollments');
+  return res.data?.data || [];
 };
 
 export const getQuizPerformanceTrends = async (): Promise<QuizPerformanceTrend[]> => {
-  try {
-    const res = await axiosInstance.get('/instructor/trends/quiz-performance');
-    return res.data?.data || MOCK_QUIZ_PERFORMANCE_TRENDS;
-  } catch (error) {
-    return MOCK_QUIZ_PERFORMANCE_TRENDS;
-  }
+  const res = await axiosInstance.get('/instructor/trends/quiz-performance');
+  return res.data?.data || [];
+};
+
+export const getInstructorDiscussions = async (): Promise<DiscussionItem[]> => {
+  const res = await axiosInstance.get('/instructor/discussions');
+  return res.data?.data || [];
+};
+
+export const createDiscussion = async (discussionData: any): Promise<DiscussionItem> => {
+  const res = await axiosInstance.post('/instructor/discussions', discussionData);
+  return res.data?.data;
+};
+
+export const updateDiscussion = async (id: string, discussionData: any): Promise<DiscussionItem> => {
+  const res = await axiosInstance.put(`/instructor/discussions/${id}`, discussionData);
+  return res.data?.data;
+};
+
+export const deleteDiscussion = async (id: string): Promise<boolean> => {
+  await axiosInstance.delete(`/instructor/discussions/${id}`);
+  return true;
+};
+
+export const toggleLikeDiscussion = async (id: string): Promise<DiscussionItem> => {
+  const res = await axiosInstance.patch(`/instructor/discussions/${id}/status`, { toggleLike: true });
+  return res.data?.data;
+};
+
+export const replyDiscussion = async (discussionId: string, content: string): Promise<DiscussionItem> => {
+  const res = await axiosInstance.post(`/instructor/discussions/${discussionId}/reply`, { content });
+  return res.data?.data;
+};
+
+export const updateDiscussionStatus = async (discussionId: string, statusData: any): Promise<DiscussionItem> => {
+  const res = await axiosInstance.patch(`/instructor/discussions/${discussionId}/status`, statusData);
+  return res.data?.data;
+};
+
+export const getInstructorNotifications = async (): Promise<NotificationItem[]> => {
+  const res = await axiosInstance.get('/instructor/notifications');
+  return res.data?.data || [];
+};
+
+export const markNotificationRead = async (id: string): Promise<boolean> => {
+  await axiosInstance.patch(`/instructor/notifications/${id}/read`);
+  return true;
+};
+
+export const markAllNotificationsRead = async (): Promise<boolean> => {
+  await axiosInstance.patch('/instructor/notifications/read-all');
+  return true;
+};
+
+export const getInstructorProfile = async (): Promise<InstructorProfile> => {
+  const res = await axiosInstance.get('/instructor/profile');
+  return res.data?.data;
+};
+
+export const updateInstructorProfile = async (profileData: Partial<InstructorProfile>): Promise<InstructorProfile> => {
+  const res = await axiosInstance.put('/instructor/profile', profileData);
+  return res.data?.data;
+};
+
+export const updateInstructorSettings = async (settingsData: any): Promise<any> => {
+  const res = await axiosInstance.put('/instructor/settings', settingsData);
+  return res.data?.data;
+};
+
+export const uploadImage = async (fileOrUrl: string): Promise<string> => {
+  const res = await axiosInstance.post('/instructor/upload', { url: fileOrUrl });
+  return res.data?.data?.url || fileOrUrl;
 };

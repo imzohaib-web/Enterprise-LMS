@@ -20,6 +20,22 @@ export interface InstructorPerformance {
 }
 export interface CategoryBreakdown { _id: string; name: string; count: number; enrollments: number }
 
+export interface AuditLogItem {
+  _id: string;
+  action: string;
+  category: 'auth' | 'user' | 'course' | 'certificate' | 'report' | 'system';
+  severity: 'info' | 'warning' | 'critical';
+  performedBy?: { _id: string; firstName: string; lastName: string; email: string; avatar?: string; role: string };
+  performedByName?: string;
+  performedByEmail?: string;
+  affectedResource: string;
+  resourceId?: string;
+  ipAddress: string;
+  userAgent?: string;
+  details?: any;
+  createdAt: string;
+}
+
 export const adminService = {
   getOverview: () =>
     api.get<ApiResponse<OverviewStats>>('/admin/analytics/overview'),
@@ -38,6 +54,9 @@ export const adminService = {
 
   getCategoryBreakdown: () =>
     api.get<ApiResponse<CategoryBreakdown[]>>('/admin/analytics/categories'),
+
+  getAuditLogs: (params: { page?: number; limit?: number; search?: string; category?: string; severity?: string; action?: string } = {}) =>
+    api.get<ApiResponse<{ logs: AuditLogItem[] }>>('/admin/audit-logs', { params }),
 
   exportReport: (type: 'students' | 'courses' | 'progress', format: 'csv' | 'pdf' = 'csv') =>
     api.get(`/reports/${type}`, { params: { format }, responseType: 'blob' }),

@@ -1,377 +1,363 @@
 'use strict';
-require('dotenv').config();
-const connectDB = require('./config/db');
-const { User, Course, Category, Enrollment, LearningPath, Certificate, Notification, Discussion } = require('./models');
-const { QuizModel } = require('./modules/assessments/assessment.model');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+const mongoose = require('mongoose');
+
+const User = require('./models/User');
+const Course = require('./models/Course');
+const Category = require('./models/Category');
+const Enrollment = require('./models/Enrollment');
+const Discussion = require('./models/Discussion');
+const Notification = require('./models/Notification');
+const LearningPath = require('./models/LearningPath');
+const { QuizModel, QuizAttemptModel } = require('./modules/assessments/assessment.model');
+const CertificateModel = require('./modules/certificates/certificate.model');
 const { StudentProgressModel } = require('./modules/progress/progress.model');
 
-const seedDatabase = async () => {
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+
+async function seedDatabase() {
   try {
-    await connectDB();
-    console.log('🌱 Seeding database...');
+    console.log('Connecting to MongoDB for seeding...');
+    await mongoose.connect(MONGO_URI);
+    console.log('Connected to MongoDB successfully.');
 
-    // 1. Seed Categories
-    let category = await Category.findOne({ slug: 'software-engineering' });
-    if (!category) {
-      category = await Category.create({
-        name: 'Software Engineering',
-        slug: 'software-engineering',
-        description: 'Full-stack engineering, cloud, and modern web development.',
-        icon: 'code',
-      });
-      console.log('✅ Created Category: Software Engineering');
-    }
+    // Clear existing data in collections
+    await User.deleteMany({});
+    await Course.deleteMany({});
+    await Category.deleteMany({});
+    await Enrollment.deleteMany({});
+    await Discussion.deleteMany({});
+    await Notification.deleteMany({});
+    await LearningPath.deleteMany({});
+    await QuizModel.deleteMany({});
+    await QuizAttemptModel.deleteMany({});
+    await CertificateModel.deleteMany({});
+    await StudentProgressModel.deleteMany({});
 
-    // 2. Seed Instructor User
-    let instructor = await User.findOne({ email: 'instructor@enterprise.lms' });
-    if (!instructor) {
-      instructor = await User.create({
-        firstName: 'Dr. Elena',
-        lastName: 'Rostova',
-        email: 'instructor@enterprise.lms',
-        password: 'InstructorPassword123!',
-        role: 'instructor',
-        isActive: true,
-      });
-      console.log('✅ Created Instructor');
-    }
+    console.log('Cleared previous database entries.');
 
-    // 3. Seed Admin User
-    let admin = await User.findOne({ email: 'admin@enterprise.lms' });
-    if (!admin) {
-      admin = await User.create({
-        firstName: 'System',
-        lastName: 'Admin',
-        email: 'admin@enterprise.lms',
-        password: 'AdminPassword123!',
-        role: 'admin',
-        isActive: true,
-      });
-      console.log('✅ Created Admin');
-    }
+    // 1. Seed Category
+    const category = await Category.create({
+      name: 'Software Engineering',
+      slug: 'software-engineering',
+      description: 'Full-stack engineering, cloud, and modern web development.',
+      icon: 'code',
+    });
 
-    // 4. Seed Student User
-    let student = await User.findOne({ email: 'student@enterprise.lms' });
-    if (!student) {
-      student = await User.create({
-        firstName: 'Alex',
-        lastName: 'Student',
-        email: 'student@enterprise.lms',
-        password: 'StudentPassword123!',
-        role: 'student',
-        phone: '+1-555-0192',
-        studentId: 'STU-2026-8841',
-        department: 'Computer Science',
-        bio: 'Aspiring Full Stack Engineer and Cloud Architect.',
-        isActive: true,
-      });
-      console.log('✅ Created Student');
-    }
+    // 2. Create Instructor Users
+    const instructor = await User.create({
+      _id: new mongoose.Types.ObjectId('661000000000000000000001'),
+      firstName: 'Dr. Sarah',
+      lastName: 'Jenkins',
+      email: 'instructor@lms.com',
+      password: 'password123',
+      role: 'instructor',
+      avatar: '/images/user/owner.jpg',
+      phone: '+1 (555) 234-5678',
+      department: 'Computer Science & Software Engineering',
+      qualification: 'Ph.D. in Computer Science',
+      specialization: 'Cloud Architecture & Distributed Systems',
+      experience: '12+ Years Industry & Research Experience',
+      bio: 'Senior LMS Educator and System Architect specializing in scalable Node.js microservices, React UI frameworks, and cloud infrastructure.',
+      socialLinks: {
+        linkedin: 'https://linkedin.com/in/sarahjenkins-lms',
+        github: 'https://github.com/sarahjenkins-lms',
+        twitter: 'https://twitter.com/sarah_lms',
+        website: 'https://sarahjenkins.dev',
+      },
+    });
 
-    // 5. Seed Courses
-    let courses = await Course.find();
-    if (courses.length === 0) {
-      const coursesToInsert = [
+    await User.create({
+      firstName: 'Dr. Elena',
+      lastName: 'Rostova',
+      email: 'instructor@enterprise.lms',
+      password: 'InstructorPassword123!',
+      role: 'instructor',
+      isActive: true,
+    });
+
+    // 3. Create Admin Users
+    await User.create({
+      firstName: 'System',
+      lastName: 'Admin',
+      email: 'admin@enterprise.lms',
+      password: 'AdminPassword123!',
+      role: 'admin',
+      isActive: true,
+    });
+
+    await User.create({
+      firstName: 'Admin',
+      lastName: 'User',
+      email: 'admin@lms.com',
+      password: 'password123',
+      role: 'admin',
+      isActive: true,
+    });
+
+    // 4. Create Students
+    const student1 = await User.create({
+      _id: new mongoose.Types.ObjectId('661000000000000000000002'),
+      firstName: 'Alexander',
+      lastName: 'Wright',
+      email: 'alex.wright@student.com',
+      password: 'password123',
+      role: 'student',
+      avatar: '/images/user/user-01.jpg',
+      phone: '+1-555-0192',
+      studentId: 'STU-2026-8841',
+      department: 'Computer Science',
+      bio: 'Aspiring Full Stack Engineer and Cloud Architect.',
+    });
+
+    const student2 = await User.create({
+      _id: new mongoose.Types.ObjectId('661000000000000000000003'),
+      firstName: 'Sophia',
+      lastName: 'Martinez',
+      email: 'sophia.m@student.com',
+      password: 'password123',
+      role: 'student',
+      avatar: '/images/user/user-02.jpg',
+    });
+
+    const student3 = await User.create({
+      _id: new mongoose.Types.ObjectId('661000000000000000000004'),
+      firstName: 'David',
+      lastName: 'Chen',
+      email: 'david.chen@student.com',
+      password: 'password123',
+      role: 'student',
+      avatar: '/images/user/user-03.jpg',
+    });
+
+    const studentDefault = await User.create({
+      firstName: 'Student',
+      lastName: 'User',
+      email: 'student@lms.com',
+      password: 'password123',
+      role: 'student',
+      isActive: true,
+    });
+
+    await User.create({
+      firstName: 'Alex',
+      lastName: 'Student',
+      email: 'student@enterprise.lms',
+      password: 'StudentPassword123!',
+      role: 'student',
+      isActive: true,
+    });
+
+    console.log('Created Users (Instructor, Admin & Students).');
+
+    // 5. Create Courses
+    const course1 = await Course.create({
+      title: 'Advanced Full-Stack Engineering with Node.js & React',
+      slug: 'advanced-full-stack-engineering-with-nodejs-and-react',
+      description: 'Master enterprise web application architecture using Node.js, Express, MongoDB, and React with TypeScript.',
+      category: category._id,
+      status: 'published',
+      instructor: instructor._id,
+      thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
+      price: 199,
+      difficulty: 'advanced',
+      duration: '24 hours',
+      tags: ['Node.js', 'React', 'MongoDB', 'TypeScript'],
+      prerequisites: ['JavaScript ES6+', 'HTML5/CSS3'],
+      learningOutcomes: ['Build enterprise REST APIs', 'Implement JWT authentication', 'Design scalable MongoDB schemas'],
+      enrolledStudentsCount: 420,
+      rating: 4.9,
+      sections: [
         {
-          title: 'Advanced React 19 & Enterprise Architecture',
-          slug: 'advanced-react-19-enterprise-architecture',
-          description: 'Master React 19 Server Components, Concurrent Mode, Redux Toolkit, and scalable state management.',
-          shortDesc: 'Production React 19 & State Architecture',
-          level: 'advanced',
-          language: 'English',
-          price: 0,
-          isFree: true,
-          status: 'published',
-          category: category._id,
-          instructor: instructor._id,
-          tags: ['react', 'frontend', 'typescript'],
-          sections: [
-            {
-              title: 'Module 1: React 19 Core Fundamentals',
-              description: 'Understanding actions, useTransition, and useOptimistic.',
-              order: 1,
-              lessons: [
-                { title: 'Lesson 1: Introduction to React 19', type: 'video', duration: 600, order: 1 },
-                { title: 'Lesson 2: Server Actions & Custom Hooks', type: 'video', duration: 900, order: 2 },
-              ],
-            },
+          title: 'Module 1: Enterprise Node.js Architecture',
+          order: 1,
+          lessons: [
+            { title: 'Node.js Event Loop Deep Dive', duration: 1200, type: 'video', isPreview: true },
+            { title: 'Express Routing & Middleware Design', duration: 2100, type: 'video' },
           ],
         },
+      ],
+    });
+
+    const course2 = await Course.create({
+      title: 'Enterprise Architecture & Microservices',
+      slug: 'enterprise-architecture-and-microservices',
+      description: 'Learn modern microservices design patterns, API gateways, event-driven systems, and distributed caching.',
+      category: category._id,
+      status: 'published',
+      instructor: instructor._id,
+      thumbnail: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80',
+      price: 249,
+      difficulty: 'advanced',
+      duration: '18 hours',
+      tags: ['Microservices', 'System Design', 'Docker', 'Redis'],
+      enrolledStudentsCount: 310,
+      rating: 4.8,
+    });
+
+    console.log('Created Courses.');
+
+    // 6. Create Enrollments
+    await Enrollment.create([
+      {
+        student: student1._id,
+        course: course1._id,
+        instructor: instructor._id,
+        status: 'active',
+        progressPercentage: 88,
+        completedModules: 8,
+        totalModules: 10,
+        averageQuizScore: 94,
+      },
+      {
+        student: student2._id,
+        course: course1._id,
+        instructor: instructor._id,
+        status: 'active',
+        progressPercentage: 72,
+        completedModules: 6,
+        totalModules: 10,
+        averageQuizScore: 88,
+      },
+      {
+        student: studentDefault._id,
+        course: course1._id,
+        instructor: instructor._id,
+        status: 'active',
+        progressPercentage: 75,
+      },
+    ]);
+
+    console.log('Created Enrollments.');
+
+    // 7. Create Quizzes & Attempts
+    const quiz1 = await QuizModel.create({
+      title: 'Node.js Event Loop & Async Architecture',
+      description: 'Comprehensive quiz covering Node.js event queue, libuv, microtasks, and asynchronous non-blocking I/O.',
+      courseId: course1._id,
+      instructorId: instructor._id,
+      type: 'quiz',
+      status: 'published',
+      timeLimitMinutes: 30,
+      passingScore: 70,
+      totalMarks: 100,
+      attemptsAllowed: 3,
+      questions: [
         {
-          title: 'Node.js Microservices & Event-Driven Systems',
-          slug: 'nodejs-microservices-event-driven-systems',
-          description: 'Build high-performance asynchronous Node.js microservices with Redis, MongoDB, and Docker.',
-          shortDesc: 'Scalable Microservices with Node.js & Docker',
-          level: 'intermediate',
-          language: 'English',
-          price: 49,
-          isFree: false,
-          status: 'published',
-          category: category._id,
-          instructor: instructor._id,
-          tags: ['nodejs', 'backend', 'mongodb', 'docker'],
-          sections: [
-            {
-              title: 'Module 1: Asynchronous Architecture',
-              description: 'Event loop tuning and worker threads.',
-              order: 1,
-              lessons: [
-                { title: 'Lesson 1: Event Loop Optimization', type: 'video', duration: 800, order: 1 },
-              ],
-            },
+          question: 'Which component of Node.js handles asynchronous I/O operations under the hood?',
+          type: 'mcq',
+          options: [
+            { id: '1', text: 'V8 Engine' },
+            { id: '2', text: 'libuv library' },
           ],
+          correctAnswer: 'libuv library',
+          marks: 50,
         },
-        {
-          title: 'Python for Data Science & Neural Networks',
-          slug: 'python-data-science-neural-networks',
-          description: 'Learn NumPy, Pandas, PyTorch, and deep neural network training from scratch.',
-          shortDesc: 'Data Science & PyTorch Deep Learning',
-          level: 'beginner',
-          language: 'English',
-          price: 0,
-          isFree: true,
-          status: 'published',
-          category: category._id,
-          instructor: instructor._id,
-          tags: ['python', 'ai', 'datascience'],
-          sections: [
-            {
-              title: 'Module 1: Python Data Foundations',
-              description: 'Data wrangling with Pandas.',
-              order: 1,
-              lessons: [
-                { title: 'Lesson 1: Data Structures in Python', type: 'text', duration: 400, order: 1 },
-              ],
-            },
-          ],
-        },
-      ];
+      ],
+    });
 
-      courses = await Course.insertMany(coursesToInsert);
-      console.log('✅ Created 3 Published Courses');
-    }
+    await QuizAttemptModel.create([
+      {
+        quizId: quiz1._id,
+        studentId: student1._id,
+        courseId: course1._id,
+        instructorId: instructor._id,
+        score: 95,
+        totalMarks: 100,
+        percentage: 95,
+        passed: true,
+        status: 'reviewed',
+        correctAnswersCount: 1,
+        wrongAnswersCount: 0,
+        timeTakenSeconds: 840,
+        answers: [{ questionId: '1', selectedOption: 'libuv library', isCorrect: true, marksAwarded: 50 }],
+      },
+    ]);
 
-    const reactCourse = courses[0];
-    const nodeCourse = courses[1];
-    const pythonCourse = courses[2];
+    console.log('Created Quizzes & Attempts.');
 
-    // 6. Seed Enrollments
-    const existingEnrollments = await Enrollment.countDocuments({ student: student._id });
-    if (existingEnrollments === 0) {
-      const reactLessonId = reactCourse.sections[0]?.lessons[0]?._id;
-      const nodeLessonId = nodeCourse.sections[0]?.lessons[0]?._id;
-      const pythonLessonId = pythonCourse.sections[0]?.lessons[0]?._id;
+    // 8. Create Learning Paths & Student Progress
+    await LearningPath.create([
+      {
+        title: 'Full Stack JavaScript Architect',
+        slug: 'full-stack-javascript-architect',
+        description: 'Complete roadmap from React 19 frontend mastery to Node.js microservices backend architecture.',
+        level: 'advanced',
+        category: category._id,
+        createdBy: instructor._id,
+        isPublished: true,
+        courses: [
+          { course: course1._id, order: 0, isRequired: true },
+          { course: course2._id, order: 1, isRequired: true },
+        ],
+        enrollmentCount: 2,
+      },
+    ]);
 
-      await Enrollment.create([
-        {
-          student: student._id,
-          course: reactCourse._id,
-          status: 'active',
-          progressPercentage: 75,
-          completedLessons: reactLessonId ? [reactLessonId] : [],
-        },
-        {
-          student: student._id,
-          course: nodeCourse._id,
-          status: 'active',
-          progressPercentage: 40,
-          completedLessons: nodeLessonId ? [nodeLessonId] : [],
-        },
-        {
-          student: student._id,
-          course: pythonCourse._id,
-          status: 'completed',
-          progressPercentage: 100,
-          completedLessons: pythonLessonId ? [pythonLessonId] : [],
-        },
-      ]);
-      console.log('✅ Seeded Enrollments for student');
-    }
+    await StudentProgressModel.create([
+      {
+        studentId: student1._id,
+        courseId: course1._id,
+        completedLessons: ['Node.js Event Loop Deep Dive'],
+        completedQuizzes: [quiz1._id.toString()],
+        quizScores: [{ quizId: quiz1._id.toString(), score: 95, percentage: 95 }],
+        overallScore: 95,
+        progressPercentage: 88,
+        completed: false,
+      },
+    ]);
 
-    // 7. Seed Quizzes/Assessments
-    const existingQuizzes = await QuizModel.countDocuments();
-    if (existingQuizzes === 0) {
-      await QuizModel.create([
-        {
-          title: 'React 19 Hooks & Server Components Comprehensive Assessment',
-          description: 'Evaluate your knowledge on useActionState, useOptimistic, and React 19 server architecture.',
-          courseId: reactCourse._id,
-          timeLimitMinutes: 20,
-          passingScore: 70,
-          questions: [
-            {
-              question: 'Which new hook in React 19 handles form state and async pending transitions?',
-              options: ['useActionState', 'useFormStatus', 'useOptimistic', 'useAsyncState'],
-              correctAnswer: 'useActionState',
-              marks: 5,
-              explanation: 'useActionState is the official React 19 replacement for custom async form state handling.',
-              difficulty: 'medium',
-            },
-            {
-              question: 'What is the primary benefit of React Server Components (RSC)?',
-              options: [
-                'Zero bundle-size overhead for server-only components',
-                'Automatic CSS compilation',
-                'Replaces Redux state management completely',
-                'Eliminates the need for API endpoints entirely',
-              ],
-              correctAnswer: 'Zero bundle-size overhead for server-only components',
-              marks: 5,
-              explanation: 'RSC runs on the server and does not send its code dependencies to the client bundle.',
-              difficulty: 'easy',
-            },
-          ],
-        },
-        {
-          title: 'Node.js Event Loop & Microservices Architecture Quiz',
-          description: 'Assess event loop phases, worker threads, and cluster scaling techniques in Node.js.',
-          courseId: nodeCourse._id,
-          timeLimitMinutes: 15,
-          passingScore: 75,
-          questions: [
-            {
-              question: 'Which phase of the Node.js event loop executes setImmediate() callbacks?',
-              options: ['Check Phase', 'Timers Phase', 'Poll Phase', 'Close Callbacks Phase'],
-              correctAnswer: 'Check Phase',
-              marks: 5,
-              explanation: 'setImmediate callbacks are processed during the Check phase of the event loop.',
-              difficulty: 'hard',
-            },
-          ],
-        },
-      ]);
-      console.log('✅ Seeded Quizzes');
-    }
+    // 9. Create Discussions & Notifications
+    await Discussion.create([
+      {
+        course: course1._id,
+        instructor: instructor._id,
+        author: student1._id,
+        title: 'Best practices for Mongoose schema indexing in high-traffic applications?',
+        content: 'Should we create compound indexes on studentId and courseId for progress queries?',
+        isPinned: true,
+        tags: ['Mongoose', 'Database', 'Optimization'],
+        replies: [
+          {
+            author: instructor._id,
+            authorName: 'Dr. Sarah Jenkins',
+            authorAvatar: instructor.avatar,
+            content: 'Yes! Compound indexing on { studentId: 1, courseId: 1 } ensures O(1) query lookups for progress tracking.',
+            isInstructor: true,
+          },
+        ],
+      },
+    ]);
 
-    // 8. Seed Learning Paths
-    const existingPaths = await LearningPath.countDocuments();
-    if (existingPaths === 0) {
-      await LearningPath.create([
-        {
-          title: 'Full Stack JavaScript Architect',
-          slug: 'full-stack-javascript-architect',
-          description: 'Complete roadmap from React 19 frontend mastery to Node.js microservices backend architecture.',
-          level: 'advanced',
-          category: category._id,
-          creator: instructor._id,
-          isPublished: true,
-          estimatedHours: 40,
-          courses: [
-            { course: reactCourse._id, order: 0, isRequired: true },
-            { course: nodeCourse._id, order: 1, isRequired: true },
-          ],
-          enrolledStudents: [student._id],
-          enrollmentCount: 1,
-        },
-        {
-          title: 'AI & Data Science Specialist Roadmap',
-          slug: 'ai-data-science-specialist-roadmap',
-          description: 'From Python fundamentals to neural networks, model deployment, and MLOps pipeline engineering.',
-          level: 'beginner',
-          category: category._id,
-          creator: instructor._id,
-          isPublished: true,
-          estimatedHours: 30,
-          courses: [
-            { course: pythonCourse._id, order: 0, isRequired: true },
-          ],
-          enrolledStudents: [student._id],
-          enrollmentCount: 1,
-        },
-      ]);
-      console.log('✅ Seeded Learning Paths');
-    }
+    await Notification.create([
+      {
+        recipient: instructor._id,
+        userId: instructor._id,
+        title: 'New Quiz Submission Pending Review',
+        message: 'Student Sophia Martinez completed "Microservices Communication Protocols" and requires manual short-answer review.',
+        type: 'assessment',
+        isRead: false,
+        link: '/instructor/quiz-results',
+      },
+    ]);
 
-    // 9. Seed Student Progress Records
-    const existingProgress = await StudentProgressModel.countDocuments({ studentId: student._id });
-    if (existingProgress === 0) {
-      await StudentProgressModel.create([
-        {
-          studentId: student._id,
-          courseId: reactCourse._id,
-          completedLessons: ['Lesson 1: Introduction to React 19'],
-          completedQuizzes: [],
-          quizScores: [{ quizId: 'q1', score: 10, percentage: 100 }],
-          overallScore: 100,
-          progressPercentage: 75,
-          completed: false,
-          lastActivity: new Date(),
-        },
-        {
-          studentId: student._id,
-          courseId: pythonCourse._id,
-          completedLessons: ['Lesson 1: Data Structures in Python'],
-          completedQuizzes: ['q2'],
-          quizScores: [{ quizId: 'q2', score: 5, percentage: 100 }],
-          overallScore: 100,
-          progressPercentage: 100,
-          completed: true,
-          completedAt: new Date(),
-          lastActivity: new Date(),
-        },
-      ]);
-      console.log('✅ Seeded Student Progress');
-    }
+    await CertificateModel.create({
+      verificationCode: 'EZT-CERT-880CEA-3ZTX',
+      studentId: student1._id,
+      courseId: course1._id,
+      issuedAt: new Date(),
+      certificateUrl: '/uploads/certificates/certificate_EZT-CERT-880CEA-3ZTX.pdf',
+      qrCode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA',
+    });
 
-    // 10. Seed Certificate
-    const existingCerts = await Certificate.countDocuments({ studentId: student._id });
-    if (existingCerts === 0) {
-      await Certificate.create({
-        studentId: student._id,
-        courseId: pythonCourse._id,
-        verificationCode: 'VERIFY-PY-8841',
-        certificateUrl: '/uploads/certificates/cert-python.pdf',
-        qrCode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-        issuedAt: new Date(),
-      });
-      console.log('✅ Seeded Certificate');
-    }
-
-    // 11. Seed Discussions
-    const existingDiscussions = await Discussion.countDocuments();
-    if (existingDiscussions === 0) {
-      await Discussion.create({
-        courseId: reactCourse._id,
-        authorId: student._id,
-        title: 'Best practices for React 19 useActionState in forms?',
-        content: 'Should we replace react-hook-form with useActionState for simple CRUD forms in Enterprise apps?',
-        tags: ['react19', 'forms'],
-        likes: [instructor._id],
-        likesCount: 1,
-      });
-      console.log('✅ Seeded Discussions');
-    }
-
-    // 12. Seed Notifications
-    const existingNotifs = await Notification.countDocuments({ userId: student._id });
-    if (existingNotifs === 0) {
-      await Notification.create([
-        {
-          userId: student._id,
-          title: 'Welcome to Enterprise LMS! 🚀',
-          message: 'Your student portal is fully operational. Continue your assigned courses and test your skills.',
-          type: 'info',
-          category: 'system',
-          isRead: false,
-        },
-        {
-          userId: student._id,
-          title: 'Certificate Awarded 🎉',
-          message: 'Congratulations! You earned a verified certificate in Python for Data Science.',
-          type: 'success',
-          category: 'certificate',
-          isRead: true,
-        },
-      ]);
-      console.log('✅ Seeded Notifications');
-    }
-
-    console.log('🎉 Enterprise LMS Seeding Completed Successfully!');
+    console.log('Created Discussions, Notifications & Certificates.');
+    console.log('=== SEEDING COMPLETED SUCCESSFULLY ===');
     process.exit(0);
-  } catch (err) {
-    console.error('❌ Seeding error:', err);
+  } catch (error) {
+    console.error('Error during database seeding:', error);
     process.exit(1);
   }
-};
+}
 
 seedDatabase();

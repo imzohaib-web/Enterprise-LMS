@@ -29,14 +29,20 @@ const login = async (req, res) => {
   });
 };
 
-const refreshToken = async (req, res) => {
-  const token = req.cookies?.refreshToken;
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'No refresh token', code: 'UNAUTHORIZED' });
+const refreshToken = async (req, res, next) => {
+  try {
+    const token = req.cookies?.refreshToken;
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'No refresh token', code: 'UNAUTHORIZED' });
+    }
+    const { user, accessToken, refreshToken: newRefreshToken } = await authService.refresh(token);
+    setRefreshCookie(res, newRefreshToken);
+    sendSuccess(res, { message: 'Token refreshed', data: { user, accessToken } });
+  } catch (error) {
+    clearRefreshCookie(res);
+    if (next) next(error);
+    else res.status(401).json({ success: false, message: error.message || 'Unauthorized' });
   }
-  const { user, accessToken, refreshToken: newRefreshToken } = await authService.refresh(token);
-  setRefreshCookie(res, newRefreshToken);
-  sendSuccess(res, { message: 'Token refreshed', data: { user, accessToken } });
 };
 
 const logout = async (req, res) => {

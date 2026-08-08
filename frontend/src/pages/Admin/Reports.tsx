@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { adminService } from '../../services/admin.service';
+import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 
 interface ReportConfig {
   id: string;
@@ -81,10 +82,7 @@ const AdminReports: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reports</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Export platform data in CSV or PDF format</p>
-      </div>
+      <PageBreadcrumb pageTitle="Reports & Analytics" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {reports.map((report) => (

@@ -31,7 +31,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
   if (allowedRoles && allowedRoles.length > 0) {
     const userRole = currentUser.role;
     // Allow if user has role or if user is admin (admin override)
-    const hasRole = allowedRoles.includes(userRole) || userRole === 'admin';
+    const hasRole = allowedRoles.includes(userRole as UserRole) || userRole === 'admin';
 
     if (!hasRole) {
       return <AccessDenied allowedRoles={allowedRoles} userRole={userRole} />;

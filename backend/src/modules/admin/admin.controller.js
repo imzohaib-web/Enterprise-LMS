@@ -31,9 +31,17 @@ const getEnrollmentTrend = async (req, res) => {
   sendSuccess(res, { data });
 };
 
+const auditLogService = require('./auditLog.service');
+
 const getCategoryBreakdown = async (req, res) => {
   const data = await adminService.getCategoryBreakdown();
   sendSuccess(res, { data });
 };
 
-module.exports = { getOverview, getStudentGrowth, getCoursePerformance, getInstructorPerformance, getEnrollmentTrend, getCategoryBreakdown };
+const listAuditLogs = async (req, res) => {
+  const data = await auditLogService.listAuditLogs(req.query);
+  sendSuccess(res, data);
+};
+
+module.exports = { getOverview, getStudentGrowth, getCoursePerformance, getInstructorPerformance, getEnrollmentTrend, getCategoryBreakdown, listAuditLogs };
+

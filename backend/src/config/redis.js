@@ -5,6 +5,10 @@ const config = require('./env');
 let redis = null;
 
 const createRedisClient = () => {
+  if (!config.redis.url || !config.redis.url.trim()) {
+    console.log('ℹ️  Redis URL not configured – caching disabled');
+    return null;
+  }
   try {
     const client = new Redis(config.redis.url, {
       lazyConnect: true,

@@ -30,6 +30,8 @@ export const ADMIN = {
   COURSES:    '/admin/courses',
   REPORTS:    '/admin/reports',
   ANALYTICS:  '/admin/analytics',
+  AUDIT_LOGS: '/admin/audit-logs',
+  SETTINGS:   '/admin/settings',
   NOTIFICATIONS: '/admin/notifications',
   PROFILE:    '/admin/profile',
 } as const;
@@ -84,6 +86,7 @@ export const INSTRUCTOR = {
   PROFILE:       '/instructor/profile',
   QUIZ_RESULTS:  '/instructor/quiz-results',
   STATISTICS:    '/instructor/statistics',
+  ANALYTICS:     '/instructor/statistics',
   SETTINGS:      '/instructor/settings',
 } as const;
 

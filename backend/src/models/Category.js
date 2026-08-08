@@ -21,4 +21,4 @@ categorySchema.pre('validate', function () {
   }
 });
 
-module.exports = mongoose.model('Category', categorySchema);
+module.exports = mongoose.models.Category || mongoose.model('Category', categorySchema);
