@@ -55,6 +55,13 @@ const CourseList: React.FC = () => {
     )
   );
 
+  const enrolledProgressMap = new Map<string, number>(
+    myEnrollments.map((e: any) => [
+      typeof e.course === 'object' ? e.course?._id : e.course,
+      e.progressPercentage || 0,
+    ])
+  );
+
   // ── 3. Enrollment Mutation ──────────────────────────────────────────────────
   const enrollMutation = useMutation({
     mutationFn: async (courseId: string) => {
@@ -62,11 +69,13 @@ const CourseList: React.FC = () => {
       const res = await courseService.enrollInCourse(courseId);
       return res.data;
     },
-    onSuccess: (data, _courseId) => {
+    onSuccess: (data, courseId) => {
       toast.success(data?.message || 'Enrolled successfully!');
       queryClient.invalidateQueries({ queryKey: ['myEnrollments'] });
       queryClient.invalidateQueries({ queryKey: ['courses'] });
       queryClient.invalidateQueries({ queryKey: ['studentDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['courseProgress', courseId] });
+      queryClient.invalidateQueries({ queryKey: ['studentProgressPage'] });
     },
     onError: (err: any) => {
       const msg = err.response?.data?.message || 'Enrollment failed';
@@ -180,6 +189,7 @@ const CourseList: React.FC = () => {
               showActions={canCreate}
               isEnrolled={enrolledCourseIds.has(course._id)}
               isEnrolling={enrollingCourseId === course._id}
+              progressPercentage={enrolledProgressMap.get(course._id)}
               onEnroll={handleEnroll}
             />
           ))}

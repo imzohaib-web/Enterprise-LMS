@@ -164,12 +164,24 @@ export const CoursePlayer: React.FC = () => {
     return <CoursePlayerSkeleton />;
   }
 
-  // Error State
+  // Error State (Invalid ID / 404 / 401 / 403 / Network Error)
   if (isCourseError || !course) {
+    const status = (courseError as any)?.response?.status;
+    let title = 'Course Not Found';
+    let message = "The course you're looking for doesn't exist or is no longer available.";
+
+    if (status === 401 || status === 403) {
+      title = 'Access Denied';
+      message = "You don't have permission to access this course. Enrollment may be required.";
+    } else if (status && status !== 404) {
+      title = 'Unable to Load Course';
+      message = (courseError as any)?.response?.data?.message || (courseError as any)?.message || 'An error occurred while communicating with the server.';
+    }
+
     return (
       <CoursePlayerError
-        title="Course Not Found"
-        message={courseError?.message || 'The requested course is unavailable.'}
+        title={title}
+        message={message}
         onRetry={() => refetchCourse()}
       />
     );

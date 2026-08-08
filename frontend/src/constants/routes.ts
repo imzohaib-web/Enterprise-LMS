@@ -35,6 +35,9 @@ export const ADMIN = {
 } as const;
 
 // ── Courses ───────────────────────────────────────────────────────────────────
+export const getCourseLearnRoute = (id: string) => `/courses/${id}/learn`;
+export const getCourseDetailRoute = (id: string) => `/courses/${id}`;
+
 export const COURSES = {
   LIST:    '/courses',
   NEW:     '/courses/new',
@@ -42,6 +45,7 @@ export const COURSES = {
   LEARN:   (id: string) => `/courses/${id}/learn`,
   BUILDER: (id: string) => `/courses/${id}/builder`,
 } as const;
+
 
 
 // ── Learning Paths ────────────────────────────────────────────────────────────

@@ -1,9 +1,12 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import PageMeta from '../../../components/common/PageMeta';
 import ComponentCard from '../../../components/common/ComponentCard';
 import api from '../../../services/api';
 import { getMyCertificates } from '../../../services/certificateService';
+import { getCourseLearnRoute } from '../../../constants/routes';
+
 
 export const StudentProgress: React.FC = () => {
   // 1. Fetch Real Student Progress records from MongoDB
@@ -110,13 +113,21 @@ export const StudentProgress: React.FC = () => {
             {progressList.length > 0 ? (
               <div className="space-y-4">
                 {progressList.map((item: any, idx: number) => {
-                  const courseTitle = item.courseId?.title || `Course Module #${idx + 1}`;
+                  const courseObj = item.courseId;
+                  const cId = typeof courseObj === 'object' ? courseObj?._id : courseObj;
+                  const courseTitle = (typeof courseObj === 'object' ? courseObj?.title : null) || item.courseTitle || `Course Module #${idx + 1}`;
                   const pct = item.progressPercentage || 0;
                   return (
                     <div key={item.id || item._id || idx} className="p-4 border border-gray-100 dark:border-gray-800 rounded-xl space-y-2">
                       <div className="flex items-center justify-between text-xs font-bold text-gray-800 dark:text-gray-200">
-                        <span className="truncate max-w-[240px]">{courseTitle}</span>
-                        <span className="text-brand-600">{pct}%</span>
+                        {cId ? (
+                          <Link to={getCourseLearnRoute(cId)} className="truncate max-w-[240px] hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+                            {courseTitle}
+                          </Link>
+                        ) : (
+                          <span className="truncate max-w-[240px]">{courseTitle}</span>
+                        )}
+                        <span className="text-brand-600 font-bold">{pct}%</span>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 h-2.5 rounded-full overflow-hidden">
                         <div
@@ -126,9 +137,13 @@ export const StudentProgress: React.FC = () => {
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <div className="flex justify-between text-2xs text-gray-400">
+                      <div className="flex items-center justify-between text-2xs text-gray-400">
                         <span>{item.completedLessons?.length || 0} lessons done</span>
-                        <span>Status: {item.completed ? 'Completed' : 'Active'}</span>
+                        {cId && (
+                          <Link to={getCourseLearnRoute(cId)} className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                            {pct === 100 ? 'Review Course →' : 'Continue Learning →'}
+                          </Link>
+                        )}
                       </div>
                     </div>
                   );
