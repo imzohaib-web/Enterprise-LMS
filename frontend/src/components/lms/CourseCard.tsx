@@ -17,11 +17,14 @@ const levelColors = {
   advanced:     'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
 };
 
-const statusColors = {
-  published: 'bg-emerald-100 text-emerald-700',
-  draft:     'bg-gray-100 text-gray-600',
-  archived:  'bg-red-100 text-red-600',
+const statusColors: Record<string, string> = {
+  published:        'bg-emerald-100 text-emerald-700',
+  draft:            'bg-gray-100 text-gray-600',
+  archived:         'bg-red-100 text-red-600',
+  pending_approval: 'bg-amber-100 text-amber-700',
+  rejected:         'bg-rose-100 text-rose-700',
 };
+
 
 const CourseCard: React.FC<CourseCardProps> = ({
   course,
@@ -64,7 +67,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
         {/* Content */}
         <div className="p-5">
           <div className="flex items-start justify-between gap-2">
-            <Link to={`/courses/${course._id}`} className="group-hover:text-indigo-600 transition-colors">
+            <Link to={`/courses/${course._id}/learn`} className="group-hover:text-indigo-600 transition-colors">
               <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 text-sm leading-5">{course.title}</h3>
             </Link>
           </div>
@@ -115,13 +118,14 @@ const CourseCard: React.FC<CourseCardProps> = ({
               ✓ Enrolled
             </span>
             <Link
-              to={`/student/dashboard`}
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+              to={`/courses/${course._id}/learn`}
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
             >
-              Go to Dashboard &rarr;
+              Start Learning &rarr;
             </Link>
           </div>
         ) : onEnroll ? (
+
           <button
             onClick={() => onEnroll(course._id)}
             disabled={isEnrolling}

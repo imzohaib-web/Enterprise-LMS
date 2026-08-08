@@ -39,8 +39,10 @@ export const COURSES = {
   LIST:    '/courses',
   NEW:     '/courses/new',
   DETAIL:  (id: string) => `/courses/${id}`,
+  LEARN:   (id: string) => `/courses/${id}/learn`,
   BUILDER: (id: string) => `/courses/${id}/builder`,
 } as const;
+
 
 // ── Learning Paths ────────────────────────────────────────────────────────────
 export const LEARNING_PATHS = {

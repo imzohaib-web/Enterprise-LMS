@@ -196,7 +196,7 @@ export const StudentDashboard: React.FC = () => {
                   />
                 </div>
                 <Link
-                  to={STUDENT.COURSES}
+                  to={`/courses/${typeof continueLearningEnrollment.course === 'object' ? continueLearningEnrollment.course._id : continueLearningEnrollment.course}/learn`}
                   className="inline-flex items-center justify-center w-full mt-2 px-3 py-2 text-xs font-semibold text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
                 >
                   Resume Course

@@ -62,8 +62,10 @@ const AdminUsers         = lazy(() => import('../pages/Admin/Users'));
 const AdminReports       = lazy(() => import('../pages/Admin/Reports'));
 const CourseList         = lazy(() => import('../pages/Courses/CourseList'));
 const CourseBuilder      = lazy(() => import('../pages/Courses/CourseBuilder'));
+const CoursePlayer       = lazy(() => import('../features/course-player/CoursePlayer'));
 const LearningPathList   = lazy(() => import('../pages/LearningPaths/LearningPathList'));
 const LearningPathDetail = lazy(() => import('../pages/LearningPaths/LearningPathDetail'));
+
 
 const Loader = () => (
   <div className="flex items-center justify-center h-64">
@@ -112,8 +114,11 @@ const AppRoutes: React.FC = () => {
           {/* Courses & Learning Paths */}
           <Route path={COURSES.LIST} element={<Suspense fallback={<Loader />}><CourseList /></Suspense>} />
           <Route path={COURSES.NEW} element={<Suspense fallback={<Loader />}><CourseBuilder /></Suspense>} />
+          <Route path="/courses/:id" element={<Suspense fallback={<Loader />}><CoursePlayer /></Suspense>} />
+          <Route path="/courses/:id/learn" element={<Suspense fallback={<Loader />}><CoursePlayer /></Suspense>} />
           <Route path="/courses/:id/builder" element={<Suspense fallback={<Loader />}><CourseBuilder /></Suspense>} />
           <Route path={LEARNING_PATHS.LIST} element={<Suspense fallback={<Loader />}><LearningPathList /></Suspense>} />
+
 
           {/* Student Feature Routes */}
           <Route path={STUDENT.DASHBOARD} element={<StudentDashboard />} />
