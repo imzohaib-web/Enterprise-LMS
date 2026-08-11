@@ -15,3 +15,4 @@ export * from './pages/StatisticsPage';
 export * from './pages/InstructorSettings';
 export * from './pages/InstructorAssessments';
 export { InstructorProfilePage } from './pages/InstructorProfile';
+export { InstructorAssignmentsPage } from './pages/InstructorAssignments';

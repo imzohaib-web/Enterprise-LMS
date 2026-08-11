@@ -1,5 +1,7 @@
 'use strict';
 
+const Assignment = require('../../models/Assignment');
+const AssignmentSubmission = require('../../models/AssignmentSubmission');
 const mongoose = require('mongoose');
 const User = require('../../models/User');
 const Course = require('../../models/Course');
@@ -1162,6 +1164,354 @@ class InstructorService {
       name: user.name,
       department: user.department,
       settings: user.settings,
+    };
+  }
+
+  // ── Assignment Management Service Methods ─────────────────────────────────
+
+  /**
+   * Get assignments for instructor (or all assignments for admin).
+   */
+  static async getAssignments(instructorId, userRole) {
+    const filter = userRole === 'admin' ? {} : { instructorId: mongoose.Types.ObjectId.isValid(instructorId) ? new mongoose.Types.ObjectId(instructorId) : instructorId };
+    const assignments = await Assignment.find(filter)
+      .populate('courseId', 'title')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const result = await Promise.all(
+      assignments.map(async (a) => {
+        const submissionCount = await AssignmentSubmission.countDocuments({ assignmentId: a._id });
+        const gradedCount = await AssignmentSubmission.countDocuments({ assignmentId: a._id, status: 'graded' });
+
+        return {
+          id: a._id.toString(),
+          title: a.title,
+          description: a.description || '',
+          instructions: a.instructions || '',
+          courseId: a.courseId?._id?.toString() || a.courseId?.toString() || '',
+          courseTitle: a.courseId?.title || 'Assigned Course',
+          lessonId: a.lessonId || '',
+          dueDate: a.dueDate ? new Date(a.dueDate).toISOString() : new Date().toISOString(),
+          maxScore: a.maxScore || 100,
+          allowedFileTypes: a.allowedFileTypes || ['pdf', 'zip', 'docx', 'png', 'txt'],
+          status: a.status || 'published',
+          submissionCount,
+          gradedCount,
+          createdAt: a.createdAt ? new Date(a.createdAt).toISOString() : new Date().toISOString(),
+        };
+      })
+    );
+
+    return result;
+  }
+
+  /**
+   * Create assignment with course ownership check.
+   */
+  static async createAssignment(instructorId, assignmentData) {
+    if (!assignmentData.courseId) {
+      throw AppError.badRequest('Course ID is required');
+    }
+
+    const course = await Course.findById(assignmentData.courseId).lean();
+    if (!course) {
+      throw AppError.notFound('Course');
+    }
+
+    if (course.instructor.toString() !== instructorId.toString()) {
+      throw AppError.forbidden('You can only create assignments for courses you instruct');
+    }
+
+    const newAssignment = await Assignment.create({
+      title: assignmentData.title,
+      description: assignmentData.description || '',
+      instructions: assignmentData.instructions || '',
+      courseId: assignmentData.courseId,
+      lessonId: assignmentData.lessonId || '',
+      instructorId: mongoose.Types.ObjectId.isValid(instructorId) ? new mongoose.Types.ObjectId(instructorId) : instructorId,
+      dueDate: assignmentData.dueDate ? new Date(assignmentData.dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      maxScore: Number(assignmentData.maxScore) || 100,
+      allowedFileTypes: assignmentData.allowedFileTypes || ['pdf', 'zip', 'docx', 'png', 'txt'],
+      status: assignmentData.status || 'published',
+    });
+
+    return newAssignment;
+  }
+
+  /**
+   * Update assignment with ownership check.
+   */
+  static async updateAssignment(instructorId, userRole, assignmentId, updateData) {
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) {
+      throw AppError.notFound('Assignment');
+    }
+
+    if (userRole !== 'admin' && assignment.instructorId.toString() !== instructorId.toString()) {
+      throw AppError.forbidden('You do not have permission to modify this assignment');
+    }
+
+    if (updateData.title) assignment.title = updateData.title;
+    if (updateData.description !== undefined) assignment.description = updateData.description;
+    if (updateData.instructions !== undefined) assignment.instructions = updateData.instructions;
+    if (updateData.dueDate) assignment.dueDate = new Date(updateData.dueDate);
+    if (updateData.maxScore !== undefined) assignment.maxScore = Number(updateData.maxScore);
+    if (updateData.allowedFileTypes) assignment.allowedFileTypes = updateData.allowedFileTypes;
+    if (updateData.status) assignment.status = updateData.status;
+
+    await assignment.save();
+    return assignment;
+  }
+
+  /**
+   * Delete assignment with ownership check.
+   */
+  static async deleteAssignment(instructorId, userRole, assignmentId) {
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) {
+      throw AppError.notFound('Assignment');
+    }
+
+    if (userRole !== 'admin' && assignment.instructorId.toString() !== instructorId.toString()) {
+      throw AppError.forbidden('You do not have permission to delete this assignment');
+    }
+
+    await Assignment.findByIdAndDelete(assignmentId);
+    await AssignmentSubmission.deleteMany({ assignmentId: assignment._id });
+    return true;
+  }
+
+  /**
+   * Get student submissions for an assignment with ownership check.
+   */
+  static async getAssignmentSubmissions(instructorId, userRole, assignmentId) {
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) {
+      throw AppError.notFound('Assignment');
+    }
+
+    if (userRole !== 'admin' && assignment.instructorId.toString() !== instructorId.toString()) {
+      throw AppError.forbidden('You do not have permission to view submissions for this assignment');
+    }
+
+    const queryId = mongoose.Types.ObjectId.isValid(assignmentId) ? new mongoose.Types.ObjectId(assignmentId) : assignmentId;
+    const submissions = await AssignmentSubmission.find({ assignmentId: queryId })
+      .populate('studentId', 'name email avatar')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return submissions.map((s) => ({
+      id: s._id.toString(),
+      assignmentId: s.assignmentId.toString(),
+      assignmentTitle: assignment.title,
+      studentId: s.studentId?._id?.toString() || '',
+      studentName: s.studentId?.name || 'Student',
+      studentEmail: s.studentId?.email || '',
+      studentAvatar: s.studentId?.avatar || '',
+      fileUrl: s.fileUrl || '',
+      fileName: s.fileName || 'Submission File',
+      fileSize: s.fileSize || 0,
+      textSubmission: s.textSubmission || '',
+      status: s.status || 'submitted',
+      score: s.score || 0,
+      maxScore: assignment.maxScore || 100,
+      feedback: s.feedback || '',
+      submittedAt: s.createdAt ? new Date(s.createdAt).toISOString() : new Date().toISOString(),
+      gradedAt: s.gradedAt ? new Date(s.gradedAt).toISOString() : null,
+    }));
+  }
+
+  /**
+   * Grade student submission with ownership check.
+   */
+  static async gradeSubmission(instructorId, userRole, submissionId, gradeData) {
+    const submission = await AssignmentSubmission.findById(submissionId).populate('assignmentId');
+    if (!submission) {
+      throw AppError.notFound('Submission');
+    }
+
+    const assignment = submission.assignmentId;
+    if (userRole !== 'admin' && submission.instructorId.toString() !== instructorId.toString() && assignment?.instructorId?.toString() !== instructorId.toString()) {
+      throw AppError.forbidden('You do not have permission to grade this submission');
+    }
+
+    if (gradeData.score !== undefined) {
+      submission.score = Math.min(assignment?.maxScore || 100, Math.max(0, Number(gradeData.score)));
+    }
+    if (gradeData.feedback !== undefined) {
+      submission.feedback = gradeData.feedback;
+    }
+    submission.status = 'graded';
+    submission.gradedAt = new Date();
+    submission.gradedBy = new mongoose.Types.ObjectId(instructorId);
+
+    await submission.save();
+    return submission;
+  }
+
+  /**
+   * Submit assignment by student with file/text response.
+   */
+  static async submitAssignment(studentId, assignmentId, submitData, file) {
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) {
+      throw AppError.notFound('Assignment');
+    }
+
+    let fileUrl = submitData.fileUrl || '';
+    let fileName = submitData.fileName || '';
+    let fileSize = submitData.fileSize || 0;
+
+    if (file) {
+      fileName = file.originalname || 'assignment_submission';
+      fileSize = file.size || 0;
+
+      try {
+        const { uploadToCloudinary } = require('../../utils/upload');
+        const cloudResult = await uploadToCloudinary(file.buffer, {
+          folder: 'lms/assignments',
+          resource_type: 'auto',
+        });
+        fileUrl = cloudResult.secure_url;
+      } catch (err) {
+        // Disk fallback
+        const fs = require('fs');
+        const path = require('path');
+        const uploadsDir = path.join(__dirname, '../../../public/uploads/assignments');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        const ext = file.originalname ? path.extname(file.originalname) : '.pdf';
+        const diskFileName = `submission-${studentId}-${Date.now()}${ext}`;
+        fs.writeFileSync(path.join(uploadsDir, diskFileName), file.buffer);
+        fileUrl = `/uploads/assignments/${diskFileName}`;
+      }
+    }
+
+    const studentObjId = mongoose.Types.ObjectId.isValid(studentId) ? new mongoose.Types.ObjectId(studentId) : studentId;
+    let submission = await AssignmentSubmission.findOne({ assignmentId: assignment._id, studentId: studentObjId });
+    if (submission) {
+      submission.fileUrl = fileUrl || submission.fileUrl;
+      submission.fileName = fileName || submission.fileName;
+      submission.fileSize = fileSize || submission.fileSize;
+      submission.textSubmission = submitData.textSubmission || submission.textSubmission;
+      submission.status = 'submitted';
+      await submission.save();
+    } else {
+      submission = await AssignmentSubmission.create({
+        assignmentId: assignment._id,
+        courseId: assignment.courseId,
+        studentId: studentObjId,
+        instructorId: assignment.instructorId,
+        fileUrl,
+        fileName,
+        fileSize,
+        textSubmission: submitData.textSubmission || '',
+        status: 'submitted',
+      });
+    }
+
+    return submission;
+  }
+
+  /**
+   * Get published assignments for a course (student/public view).
+   */
+  static async getCourseAssignments(courseId, studentId = null) {
+    if (!courseId) throw AppError.badRequest('Course ID is required');
+
+    const queryCourseId = mongoose.Types.ObjectId.isValid(courseId) ? new mongoose.Types.ObjectId(courseId) : courseId;
+    const assignments = await Assignment.find({ courseId: queryCourseId, status: 'published' })
+      .populate('courseId', 'title')
+      .sort({ dueDate: 1 })
+      .lean();
+
+    const result = await Promise.all(
+      assignments.map(async (a) => {
+        let studentSubmission = null;
+        if (studentId) {
+          const queryStudentId = mongoose.Types.ObjectId.isValid(studentId) ? new mongoose.Types.ObjectId(studentId) : studentId;
+          const subQuery = AssignmentSubmission.findOne({
+            assignmentId: a._id,
+            studentId: queryStudentId,
+          });
+          studentSubmission = typeof subQuery?.lean === 'function' ? await subQuery.lean() : await subQuery;
+        }
+
+        return {
+          id: a._id.toString(),
+          title: a.title,
+          description: a.description || '',
+          instructions: a.instructions || '',
+          courseId: a.courseId?._id?.toString() || a.courseId?.toString() || '',
+          courseTitle: a.courseId?.title || '',
+          dueDate: a.dueDate ? new Date(a.dueDate).toISOString() : '',
+          maxScore: a.maxScore || 100,
+          allowedFileTypes: a.allowedFileTypes || ['pdf', 'zip', 'docx', 'png', 'txt'],
+          status: a.status || 'published',
+          studentSubmission: studentSubmission
+            ? {
+                id: studentSubmission._id.toString(),
+                fileUrl: studentSubmission.fileUrl || '',
+                fileName: studentSubmission.fileName || '',
+                textSubmission: studentSubmission.textSubmission || '',
+                status: studentSubmission.status,
+                score: studentSubmission.score || 0,
+                feedback: studentSubmission.feedback || '',
+                submittedAt: studentSubmission.createdAt,
+              }
+            : null,
+        };
+      })
+    );
+
+    return result;
+  }
+
+  /**
+   * Get single assignment details by ID.
+   */
+  static async getAssignmentById(assignmentId, studentId = null) {
+    const asgnQuery = Assignment.findById(assignmentId).populate('courseId', 'title');
+    const assignment = typeof asgnQuery?.lean === 'function' ? await asgnQuery.lean() : await asgnQuery;
+    if (!assignment) {
+      throw AppError.notFound('Assignment');
+    }
+
+    let studentSubmission = null;
+    if (studentId) {
+      const queryStudentId = mongoose.Types.ObjectId.isValid(studentId) ? new mongoose.Types.ObjectId(studentId) : studentId;
+      const subQuery = AssignmentSubmission.findOne({
+        assignmentId: assignment._id,
+        studentId: queryStudentId,
+      });
+      studentSubmission = typeof subQuery?.lean === 'function' ? await subQuery.lean() : await subQuery;
+    }
+
+    return {
+      id: assignment._id.toString(),
+      title: assignment.title,
+      description: assignment.description || '',
+      instructions: assignment.instructions || '',
+      courseId: assignment.courseId?._id?.toString() || assignment.courseId?.toString() || '',
+      courseTitle: assignment.courseId?.title || '',
+      dueDate: assignment.dueDate ? new Date(assignment.dueDate).toISOString() : '',
+      maxScore: assignment.maxScore || 100,
+      allowedFileTypes: assignment.allowedFileTypes || ['pdf', 'zip', 'docx', 'png', 'txt'],
+      status: assignment.status || 'published',
+      studentSubmission: studentSubmission
+        ? {
+            id: studentSubmission._id.toString(),
+            fileUrl: studentSubmission.fileUrl || '',
+            fileName: studentSubmission.fileName || '',
+            textSubmission: studentSubmission.textSubmission || '',
+            status: studentSubmission.status,
+            score: studentSubmission.score || 0,
+            feedback: studentSubmission.feedback || '',
+            submittedAt: studentSubmission.createdAt,
+          }
+        : null,
     };
   }
 }

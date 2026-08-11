@@ -4,6 +4,10 @@ const express = require('express');
 const router = express.Router();
 const InstructorController = require('./instructor.controller');
 const { authenticate, authorize } = require('../../middleware/auth.middleware');
+const { documentUpload } = require('../../utils/upload');
+
+// Student Assignment Submission endpoint (accessible to authenticated students/users)
+router.post('/assignments/:id/submit', authenticate, documentUpload.single('file'), InstructorController.submitAssignment);
 
 // Apply authentication and RBAC protection to all instructor routes
 router.use(authenticate, authorize('instructor', 'admin'));
@@ -20,13 +24,21 @@ router.put('/courses/:id', InstructorController.updateCourse);
 router.delete('/courses/:id', InstructorController.deleteCourse);
 router.patch('/courses/:id/publish', InstructorController.togglePublishCourse);
 
-// Assessment Management
+// Assessment & Assignment Management
 router.get('/assessments', InstructorController.getAssessments);
 router.post('/assessments', InstructorController.createAssessment);
 router.put('/assessments/:id', InstructorController.updateAssessment);
 router.delete('/assessments/:id', InstructorController.deleteAssessment);
 router.get('/quiz-results', InstructorController.getQuizResults);
 router.patch('/quiz-results/:id/review', InstructorController.reviewQuizAttempt);
+
+// Assignment Management
+router.get('/assignments', InstructorController.getAssignments);
+router.post('/assignments', InstructorController.createAssignment);
+router.put('/assignments/:id', InstructorController.updateAssignment);
+router.delete('/assignments/:id', InstructorController.deleteAssignment);
+router.get('/assignments/:id/submissions', InstructorController.getAssignmentSubmissions);
+router.patch('/submissions/:id/grade', InstructorController.gradeSubmission);
 
 // Student Management & Progress
 router.get('/students/progress', InstructorController.getStudentProgress);

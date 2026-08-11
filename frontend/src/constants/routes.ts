@@ -72,6 +72,7 @@ export const INSTRUCTOR = {
   COURSES:       '/instructor/courses',
   STUDENTS:      '/instructor/students',
   ASSESSMENTS:   '/instructor/assessments',
+  ASSIGNMENTS:   '/instructor/assignments',
   CERTIFICATES:  '/instructor/certificates',
   DISCUSSIONS:   '/instructor/discussions',
   NOTIFICATIONS: '/instructor/notifications',

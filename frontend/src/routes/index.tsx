@@ -44,6 +44,7 @@ import {
   InstructorSettings,
   InstructorAssessments,
   InstructorProfilePage,
+  InstructorAssignmentsPage,
 } from '../features/instructor-dashboard';
 import {
   QuizList,
@@ -141,6 +142,7 @@ const AppRoutes: React.FC = () => {
           <Route path={INSTRUCTOR.COURSES} element={<InstructorCourseList />} />
           <Route path={INSTRUCTOR.STUDENTS} element={<StudentProgressPage />} />
           <Route path={INSTRUCTOR.ASSESSMENTS} element={<InstructorAssessments />} />
+          <Route path={INSTRUCTOR.ASSIGNMENTS} element={<InstructorAssignmentsPage />} />
           <Route path={INSTRUCTOR.CERTIFICATES} element={<CertificateVerification />} />
           <Route path={INSTRUCTOR.DISCUSSIONS} element={<Discussions />} />
           <Route path={INSTRUCTOR.NOTIFICATIONS} element={<Notifications />} />

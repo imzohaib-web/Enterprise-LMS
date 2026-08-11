@@ -10,6 +10,8 @@ import {
   InstructorProfile,
   DiscussionItem,
   NotificationItem,
+  InstructorAssignment,
+  AssignmentSubmissionItem,
 } from '../types';
 
 export const getInstructorStats = async (): Promise<InstructorStats> => {
@@ -177,4 +179,39 @@ export const updateInstructorSettings = async (settingsData: any): Promise<any> 
 export const uploadImage = async (fileOrUrl: string): Promise<string> => {
   const res = await axiosInstance.post('/instructor/upload', { url: fileOrUrl });
   return res.data?.data?.url || fileOrUrl;
+};
+
+// ── Assignment Management API Callers ──────────────────────────────────────────
+
+export const getInstructorAssignments = async (): Promise<InstructorAssignment[]> => {
+  const res = await axiosInstance.get('/instructor/assignments');
+  return res.data?.data || [];
+};
+
+export const createInstructorAssignment = async (assignmentData: Partial<InstructorAssignment>): Promise<InstructorAssignment> => {
+  const res = await axiosInstance.post('/instructor/assignments', assignmentData);
+  return res.data?.data;
+};
+
+export const updateInstructorAssignment = async (id: string, assignmentData: Partial<InstructorAssignment>): Promise<InstructorAssignment> => {
+  const res = await axiosInstance.put(`/instructor/assignments/${id}`, assignmentData);
+  return res.data?.data;
+};
+
+export const deleteInstructorAssignment = async (id: string): Promise<boolean> => {
+  await axiosInstance.delete(`/instructor/assignments/${id}`);
+  return true;
+};
+
+export const getAssignmentSubmissions = async (assignmentId: string): Promise<AssignmentSubmissionItem[]> => {
+  const res = await axiosInstance.get(`/instructor/assignments/${assignmentId}/submissions`);
+  return res.data?.data || [];
+};
+
+export const gradeAssignmentSubmission = async (
+  submissionId: string,
+  gradeData: { score: number; feedback?: string }
+): Promise<AssignmentSubmissionItem> => {
+  const res = await axiosInstance.patch(`/instructor/submissions/${submissionId}/grade`, gradeData);
+  return res.data?.data;
 };

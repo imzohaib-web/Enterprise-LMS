@@ -30,8 +30,14 @@ import {
   createAssessment,
   updateAssessment,
   deleteAssessment,
+  getInstructorAssignments,
+  createInstructorAssignment,
+  updateInstructorAssignment,
+  deleteInstructorAssignment,
+  getAssignmentSubmissions,
+  gradeAssignmentSubmission,
 } from '../api/instructorDashboardApi';
-import { InstructorCourse, InstructorProfile } from '../types';
+import { InstructorCourse, InstructorProfile, InstructorAssignment } from '../types';
 
 export const useInstructorStats = () => {
   return useQuery({
@@ -331,6 +337,71 @@ export const useDeleteAssessment = () => {
       queryClient.invalidateQueries({ queryKey: ['instructor', 'assessments'] });
       queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+    },
+  });
+};
+
+// ── Assignment Hooks ──────────────────────────────────────────────────────────
+
+export const useInstructorAssignments = () => {
+  return useQuery({
+    queryKey: ['instructor', 'assignments'],
+    queryFn: getInstructorAssignments,
+    staleTime: 30 * 1000,
+  });
+};
+
+export const useCreateAssignment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (assignmentData: Partial<InstructorAssignment>) => createInstructorAssignment(assignmentData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
+    },
+  });
+};
+
+export const useUpdateAssignment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, assignmentData }: { id: string; assignmentData: Partial<InstructorAssignment> }) =>
+      updateInstructorAssignment(id, assignmentData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'assignments'] });
+    },
+  });
+};
+
+export const useDeleteAssignment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteInstructorAssignment(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
+    },
+  });
+};
+
+export const useAssignmentSubmissions = (assignmentId: string | null) => {
+  return useQuery({
+    queryKey: ['instructor', 'assignment-submissions', assignmentId],
+    queryFn: () => getAssignmentSubmissions(assignmentId!),
+    enabled: Boolean(assignmentId),
+    staleTime: 15 * 1000,
+  });
+};
+
+export const useGradeSubmission = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ submissionId, gradeData }: { submissionId: string; gradeData: { score: number; feedback?: string } }) =>
+      gradeAssignmentSubmission(submissionId, gradeData),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'assignment-submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
     },
   });
 };

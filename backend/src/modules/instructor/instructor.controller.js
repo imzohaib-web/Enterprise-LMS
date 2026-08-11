@@ -324,6 +324,103 @@ class InstructorController {
       next(error);
     }
   }
+
+  // ── Assignment Controller Handlers ─────────────────────────────────────────
+
+  static async getAssignments(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const userRole = req.user?.role;
+      const assignments = await InstructorService.getAssignments(instructorId, userRole);
+      res.status(200).json({ success: true, data: assignments });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async createAssignment(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const assignment = await InstructorService.createAssignment(instructorId, req.body);
+      res.status(201).json({ success: true, message: 'Assignment created successfully', data: assignment });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateAssignment(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const userRole = req.user?.role;
+      const assignment = await InstructorService.updateAssignment(instructorId, userRole, req.params.id, req.body);
+      res.status(200).json({ success: true, message: 'Assignment updated successfully', data: assignment });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteAssignment(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const userRole = req.user?.role;
+      await InstructorService.deleteAssignment(instructorId, userRole, req.params.id);
+      res.status(200).json({ success: true, message: 'Assignment deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getAssignmentSubmissions(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const userRole = req.user?.role;
+      const submissions = await InstructorService.getAssignmentSubmissions(instructorId, userRole, req.params.id);
+      res.status(200).json({ success: true, data: submissions });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async gradeSubmission(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const userRole = req.user?.role;
+      const submission = await InstructorService.gradeSubmission(instructorId, userRole, req.params.id, req.body);
+      res.status(200).json({ success: true, message: 'Submission graded successfully', data: submission });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async submitAssignment(req, res, next) {
+    try {
+      const studentId = getUserId(req);
+      const submission = await InstructorService.submitAssignment(studentId, req.params.id, req.body, req.file);
+      res.status(200).json({ success: true, message: 'Assignment submitted successfully', data: submission });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getCourseAssignments(req, res, next) {
+    try {
+      const studentId = req.user ? getUserId(req) : null;
+      const assignments = await InstructorService.getCourseAssignments(req.params.courseId, studentId);
+      res.status(200).json({ success: true, data: assignments });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getAssignmentById(req, res, next) {
+    try {
+      const studentId = req.user ? getUserId(req) : null;
+      const assignment = await InstructorService.getAssignmentById(req.params.id, studentId);
+      res.status(200).json({ success: true, data: assignment });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = InstructorController;

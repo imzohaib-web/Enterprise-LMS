@@ -1,6 +1,8 @@
 'use strict';
 const mongoose = require('mongoose');
 
+const Assignment = require('./Assignment');
+const AssignmentSubmission = require('./AssignmentSubmission');
 const User = require('./User');
 const Course = require('./Course');
 const Category = require('./Category');
@@ -27,5 +29,7 @@ module.exports = {
   Discussion: DiscussionModel,
   Reply: ReplyModel,
   StudentProgress: StudentProgressModel,
+  Assignment,
+  AssignmentSubmission,
   models: mongoose.models,
 };

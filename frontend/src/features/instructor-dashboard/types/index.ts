@@ -163,3 +163,41 @@ export interface NotificationItem {
   link?: string;
   createdAt: string;
 }
+
+export interface InstructorAssignment {
+  id: string;
+  _id?: string;
+  title: string;
+  description?: string;
+  instructions?: string;
+  courseId: string;
+  courseTitle?: string;
+  lessonId?: string;
+  dueDate: string;
+  maxScore: number;
+  allowedFileTypes?: string[];
+  status?: 'published' | 'draft' | 'archived';
+  submissionCount?: number;
+  gradedCount?: number;
+  createdAt?: string;
+}
+
+export interface AssignmentSubmissionItem {
+  id: string;
+  assignmentId: string;
+  assignmentTitle?: string;
+  studentId: string;
+  studentName: string;
+  studentEmail?: string;
+  studentAvatar?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  textSubmission?: string;
+  status: 'submitted' | 'graded' | 'resubmitted';
+  score: number;
+  maxScore: number;
+  feedback?: string;
+  submittedAt: string;
+  gradedAt?: string | null;
+}
