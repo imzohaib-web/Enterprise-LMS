@@ -30,8 +30,8 @@ export const QuizResultsPage: React.FC = () => {
 
   const handleOpenReviewModal = (attempt: QuizResultItem) => {
     setSelectedAttempt(attempt);
-    setReviewScore(attempt.score || 90);
-    setReviewFeedback('');
+    setReviewScore(attempt.score || 0);
+    setReviewFeedback(attempt.feedback || '');
   };
 
   const handleSaveReview = (e: React.FormEvent) => {
@@ -192,59 +192,195 @@ export const QuizResultsPage: React.FC = () => {
         </ComponentCard>
       </div>
 
-      {/* Manual Review Modal */}
+      {/* Enhanced Manual Review & Answer Inspection Modal */}
       {selectedAttempt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 w-full max-w-lg rounded-2xl shadow-xl p-6 space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              Manual Review: {selectedAttempt.studentName}
-            </h2>
-            <p className="text-xs text-gray-500">
-              Quiz: <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedAttempt.quizTitle}</span>
-            </p>
-
-            <form onSubmit={handleSaveReview} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Adjusted Total Score (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={reviewScore}
-                  onChange={(e) => setReviewScore(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 w-full max-w-3xl rounded-2xl shadow-2xl p-6 my-8 space-y-6 max-h-[90vh] flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-gray-100 dark:border-gray-800 pb-4">
+              <div className="flex items-center gap-3">
+                <img
+                  src={selectedAttempt.studentAvatar || '/images/user/owner.jpg'}
+                  alt={selectedAttempt.studentName}
+                  className="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700"
                 />
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                    {selectedAttempt.studentName}
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {selectedAttempt.studentEmail || 'Student'} • {selectedAttempt.courseName}
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Instructor Feedback / Notes
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Provide constructive feedback for the student..."
-                  value={reviewFeedback}
-                  onChange={(e) => setReviewFeedback(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
-                />
+              <div className="text-right">
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {selectedAttempt.quizTitle}
+                </div>
+                <div className="text-xs text-gray-400">
+                  Attempt Date: {selectedAttempt.attemptDate}
+                </div>
+              </div>
+            </div>
+
+            {/* Questions & Student Submissions Section */}
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                  Submitted Questions & Answers ({selectedAttempt.answers?.length || 0})
+                </h3>
+                <div className="flex items-center gap-2">
+                  <Badge color={selectedAttempt.passed ? 'success' : 'error'}>
+                    Auto Score: {selectedAttempt.score}%
+                  </Badge>
+                </div>
+              </div>
+
+              {!selectedAttempt.answers || selectedAttempt.answers.length === 0 ? (
+                <div className="p-8 text-center bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No detailed question breakdown available for this attempt.
+                  </p>
+                </div>
+              ) : (
+                selectedAttempt.answers.map((ans, idx) => (
+                  <div
+                    key={ans.questionId || idx}
+                    className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="font-semibold text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400 text-xs flex items-center justify-center font-bold">
+                          {idx + 1}
+                        </span>
+                        <span>{ans.questionText}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="px-2 py-0.5 text-[10px] uppercase font-bold rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                          {ans.type || 'MCQ'}
+                        </span>
+                        <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
+                          ans.isCorrect
+                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            : 'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
+                        }`}>
+                          {ans.isCorrect ? `+${ans.marksAwarded || ans.marks || 1} pts` : `0 / ${ans.marks || 1} pts`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* MCQ Options Display */}
+                    {Array.isArray(ans.options) && ans.options.length > 0 && (
+                      <div className="space-y-1.5 pl-8 text-xs">
+                        <div className="font-medium text-gray-500 mb-1">Available Options:</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {ans.options.map((opt: any, oIdx: number) => {
+                            const optText = typeof opt === 'object' ? opt.text || opt.option : String(opt);
+                            const isSubmitted = String(optText).trim() === String(ans.selectedOption).trim();
+                            const isCorrectOpt = String(optText).trim() === String(ans.correctAnswer).trim();
+
+                            return (
+                              <div
+                                key={oIdx}
+                                className={`px-3 py-1.5 rounded-lg border flex items-center justify-between ${
+                                  isSubmitted && isCorrectOpt
+                                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300'
+                                    : isSubmitted
+                                    ? 'border-rose-400 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300'
+                                    : isCorrectOpt
+                                    ? 'border-emerald-300 bg-emerald-50/50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                                    : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                                }`}
+                              >
+                                <span>{optText}</span>
+                                {isSubmitted && <span className="text-[10px] font-bold uppercase ml-2 px-1.5 py-0.5 rounded bg-brand-500 text-white">Student Answer</span>}
+                                {!isSubmitted && isCorrectOpt && <span className="text-[10px] font-bold uppercase ml-2 px-1.5 py-0.5 rounded bg-emerald-600 text-white">Correct</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Student Submitted Answer Box (Text / Code) */}
+                    {(!ans.options || ans.options.length === 0 || ans.textAnswer || ans.codeAnswer) && (
+                      <div className="pl-8 space-y-1.5 text-xs">
+                        <div className="font-medium text-gray-500">Student's Submitted Answer:</div>
+                        <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-xs whitespace-pre-wrap border border-gray-200 dark:border-gray-700">
+                          {ans.submittedAnswer || ans.textAnswer || ans.codeAnswer || 'No response provided.'}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Correct Answer Reference */}
+                    {ans.correctAnswer && (!ans.options || ans.options.length === 0) && (
+                      <div className="pl-8 text-xs">
+                        <span className="font-medium text-emerald-600 dark:text-emerald-400">Correct Answer Reference: </span>
+                        <span className="text-gray-700 dark:text-gray-300 font-semibold">{ans.correctAnswer}</span>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Manual Grading & Feedback Form */}
+            <form onSubmit={handleSaveReview} className="border-t border-gray-100 dark:border-gray-800 pt-4 space-y-4 shrink-0">
+              <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                Instructor Manual Review & Feedback
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Adjusted Final Score (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={reviewScore}
+                    onChange={(e) => setReviewScore(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Instructor Feedback / Remarks
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Provide constructive feedback or explanations for score adjustments..."
+                    value={reviewFeedback}
+                    onChange={(e) => setReviewFeedback(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 resize-none"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setSelectedAttempt(null)}
-                  className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 rounded-xl"
+                  className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={reviewMutation.isPending}
-                  className="px-4 py-2 text-sm font-semibold bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-50"
+                  className="px-5 py-2 text-sm font-semibold bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-50 flex items-center gap-2 shadow-sm transition"
                 >
-                  {reviewMutation.isPending ? 'Saving...' : 'Submit Final Grade'}
+                  {reviewMutation.isPending && (
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  )}
+                  {reviewMutation.isPending ? 'Saving Review...' : 'Submit Final Grade'}
                 </button>
               </div>
             </form>

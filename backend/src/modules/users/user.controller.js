@@ -44,25 +44,45 @@ const updateSettings = async (req, res) => {
   sendSuccess(res, { message: 'Settings updated successfully', data: { user } });
 };
 
-const uploadAvatar = async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ success: false, message: 'No file uploaded' });
-  }
-  let avatarUrl;
+const uploadAvatar = async (req, res, next) => {
   try {
-    const result = await uploadToCloudinary(req.file.buffer, {
-      folder: 'lms/avatars',
-      resource_type: 'image',
-      transformation: [{ width: 300, height: 300, crop: 'fill', gravity: 'face' }],
-    });
-    avatarUrl = result.secure_url;
-  } catch (err) {
-    // Fallback if Cloudinary config is not active locally
-    const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-    avatarUrl = base64Image;
+    if (!req.file) {
+      throw AppError.badRequest('No image file uploaded');
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      throw AppError.badRequest('Only JPG, PNG, WEBP, and GIF images are allowed');
+    }
+
+    let avatarUrl;
+    try {
+      const result = await uploadToCloudinary(req.file.buffer, {
+        folder: 'lms/avatars',
+        resource_type: 'image',
+        transformation: [{ width: 300, height: 300, crop: 'fill', gravity: 'face' }],
+      });
+      avatarUrl = result.secure_url;
+    } catch (cloudinaryErr) {
+      // Local disk file fallback for offline/development environments without active Cloudinary credentials
+      const fs = require('fs');
+      const path = require('path');
+      const uploadsDir = path.join(__dirname, '../../../public/uploads/avatars');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      const ext = req.file.mimetype.split('/')[1] || 'png';
+      const filename = `avatar-${req.user._id}-${Date.now()}.${ext}`;
+      const filePath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filePath, req.file.buffer);
+      avatarUrl = `/uploads/avatars/${filename}`;
+    }
+
+    const user = await userService.updateAvatar(req.user._id, avatarUrl);
+    sendSuccess(res, { message: 'Avatar updated successfully', data: { user, avatarUrl } });
+  } catch (error) {
+    next(error);
   }
-  const user = await userService.updateAvatar(req.user._id, avatarUrl);
-  sendSuccess(res, { message: 'Avatar updated', data: { user, avatarUrl } });
 };
 
 module.exports = { listUsers, getUserById, updateUser, deleteUser, updateUserStatus, uploadAvatar, getProfile, updateProfile, updateSettings };

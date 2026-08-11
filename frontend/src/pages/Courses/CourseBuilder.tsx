@@ -129,9 +129,18 @@ const CourseBuilder: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{mode === 'create' ? 'Create New Course' : 'Edit Course'}</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{mode === 'create' ? 'Build your course step by step' : 'Update your course content'}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{mode === 'create' ? 'Create New Course' : 'Edit Course'}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{mode === 'create' ? 'Build your course step by step' : 'Update your course details, sections, and lessons'}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/instructor/courses')}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-sm w-fit"
+        >
+          ← Back to Course Catalog
+        </button>
       </div>
 
       {/* Course Details Form */}

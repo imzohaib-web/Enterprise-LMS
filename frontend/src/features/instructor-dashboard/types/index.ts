@@ -56,6 +56,23 @@ export interface StudentProgressItem {
   lastActive: string;
 }
 
+export interface QuizAnswerDetail {
+  questionId: string;
+  questionText: string;
+  type?: 'mcq' | 'true_false' | 'short_answer' | 'long_answer' | 'code' | string;
+  options?: string[] | any[];
+  correctAnswer?: string;
+  marks?: number;
+  explanation?: string;
+  selectedOption?: string;
+  textAnswer?: string;
+  codeAnswer?: string;
+  submittedAnswer?: string;
+  isCorrect?: boolean;
+  marksAwarded?: number;
+  feedback?: string;
+}
+
 export interface QuizResultItem {
   id: string;
   _id?: string;
@@ -69,7 +86,8 @@ export interface QuizResultItem {
   passed: boolean;
   status?: 'submitted' | 'reviewed' | 'pending_review';
   attemptDate: string;
-  answers?: any[];
+  feedback?: string;
+  answers?: QuizAnswerDetail[];
 }
 
 export interface ActivityItem {

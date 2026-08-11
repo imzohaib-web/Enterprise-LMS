@@ -4,7 +4,10 @@ const InstructorService = require('./instructor.service');
 const AppError = require('../../utils/appError');
 
 const getUserId = (req) => {
-  return req.user?.id || req.user?._id || '661000000000000000000001';
+  if (!req.user || (!req.user.id && !req.user._id)) {
+    throw AppError.unauthorized('Authentication required');
+  }
+  return req.user.id || req.user._id;
 };
 
 /**
@@ -105,7 +108,8 @@ class InstructorController {
   static async updateAssessment(req, res, next) {
     try {
       const instructorId = getUserId(req);
-      const assessment = await InstructorService.updateAssessment(instructorId, req.params.id, req.body);
+      const userRole = req.user?.role;
+      const assessment = await InstructorService.updateAssessment(instructorId, userRole, req.params.id, req.body);
       res.status(200).json({ success: true, message: 'Assessment updated successfully', data: assessment });
     } catch (error) {
       next(error);
@@ -115,7 +119,8 @@ class InstructorController {
   static async deleteAssessment(req, res, next) {
     try {
       const instructorId = getUserId(req);
-      await InstructorService.deleteAssessment(instructorId, req.params.id);
+      const userRole = req.user?.role;
+      await InstructorService.deleteAssessment(instructorId, userRole, req.params.id);
       res.status(200).json({ success: true, message: 'Assessment deleted successfully' });
     } catch (error) {
       next(error);
@@ -135,7 +140,8 @@ class InstructorController {
   static async reviewQuizAttempt(req, res, next) {
     try {
       const instructorId = getUserId(req);
-      const attempt = await InstructorService.reviewQuizAttempt(instructorId, req.params.id, req.body);
+      const userRole = req.user?.role;
+      const attempt = await InstructorService.reviewQuizAttempt(instructorId, userRole, req.params.id, req.body);
       res.status(200).json({ success: true, message: 'Quiz attempt review saved', data: attempt });
     } catch (error) {
       next(error);
@@ -205,7 +211,8 @@ class InstructorController {
   static async updateDiscussion(req, res, next) {
     try {
       const instructorId = getUserId(req);
-      const discussion = await InstructorService.updateDiscussion(instructorId, req.params.id, req.body);
+      const userRole = req.user?.role;
+      const discussion = await InstructorService.updateDiscussion(instructorId, userRole, req.params.id, req.body);
       res.status(200).json({ success: true, message: 'Discussion updated successfully', data: discussion });
     } catch (error) {
       next(error);
@@ -215,7 +222,8 @@ class InstructorController {
   static async deleteDiscussion(req, res, next) {
     try {
       const instructorId = getUserId(req);
-      await InstructorService.deleteDiscussion(instructorId, req.params.id);
+      const userRole = req.user?.role;
+      await InstructorService.deleteDiscussion(instructorId, userRole, req.params.id);
       res.status(200).json({ success: true, message: 'Discussion deleted successfully' });
     } catch (error) {
       next(error);
@@ -236,7 +244,8 @@ class InstructorController {
   static async updateDiscussionStatus(req, res, next) {
     try {
       const instructorId = getUserId(req);
-      const discussion = await InstructorService.updateDiscussionStatus(instructorId, req.params.id, req.body);
+      const userRole = req.user?.role;
+      const discussion = await InstructorService.updateDiscussionStatus(instructorId, userRole, req.params.id, req.body);
       res.status(200).json({ success: true, data: discussion });
     } catch (error) {
       next(error);

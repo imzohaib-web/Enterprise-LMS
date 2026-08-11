@@ -5,7 +5,12 @@ import StatCard from '../components/StatCard';
 import EnrollmentChart from '../components/EnrollmentChart';
 import QuizPerformanceChart from '../components/QuizPerformanceChart';
 import ActivityTable from '../components/ActivityTable';
-import { useInstructorStats, useInstructorProfile } from '../hooks/useInstructorDashboard';
+import {
+  useInstructorStats,
+  useInstructorProfile,
+  useInstructorDiscussions,
+  useInstructorNotifications,
+} from '../hooks/useInstructorDashboard';
 import { BoxCubeIcon, GridIcon, TaskIcon, ChatIcon, MailIcon } from '../../../icons';
 import { Link } from 'react-router-dom';
 import { INSTRUCTOR } from '../../../constants/routes';
@@ -13,8 +18,10 @@ import { INSTRUCTOR } from '../../../constants/routes';
 export const InstructorDashboard: React.FC = () => {
   const { data: stats, isLoading: isStatsLoading } = useInstructorStats();
   const { data: profile } = useInstructorProfile();
+  const { data: discussions, isLoading: isDiscussionsLoading, isError: isDiscussionsError } = useInstructorDiscussions();
+  const { data: notifications, isLoading: isNotificationsLoading, isError: isNotificationsError } = useInstructorNotifications();
 
-  const welcomeName = profile?.name || 'Dr. Sarah Jenkins';
+  const welcomeName = profile?.name || 'Instructor';
 
   return (
     <>
@@ -96,7 +103,7 @@ export const InstructorDashboard: React.FC = () => {
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-xl shadow-xs">
             <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Certificates Issued</div>
             <div className="text-xl font-bold text-gray-900 dark:text-white mt-1">
-              {stats?.certificatesIssued || 1}
+              {stats?.certificatesIssued || 0}
             </div>
           </div>
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-xl shadow-xs">
@@ -108,7 +115,7 @@ export const InstructorDashboard: React.FC = () => {
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-xl shadow-xs">
             <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Course Discussions</div>
             <div className="text-xl font-bold text-gray-900 dark:text-white mt-1">
-              {stats?.recentDiscussions || 1}
+              {stats?.recentDiscussions || 0}
             </div>
           </div>
         </div>
@@ -122,41 +129,70 @@ export const InstructorDashboard: React.FC = () => {
         {/* Widgets Row 2: Recent Discussions & Notifications */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ComponentCard title="Recent Discussions" desc="Student queries requiring response">
-            <div className="space-y-3">
-              <div className="p-3 border border-gray-100 dark:border-gray-800 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 flex items-start gap-3">
-                <ChatIcon className="w-5 h-5 text-brand-500 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-xs font-semibold text-gray-900 dark:text-white truncate">
-                    Question regarding Quiz #2 grading criteria
-                  </h4>
-                  <p className="text-2xs text-gray-500 mt-0.5">
-                    Posted by Sarah Jenkins • Course: Full Stack React
-                  </p>
-                </div>
-                <Link
-                  to={INSTRUCTOR.DISCUSSIONS}
-                  className="px-2.5 py-1 text-2xs font-semibold text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100"
-                >
-                  Reply
-                </Link>
+            {isDiscussionsLoading ? (
+              <div className="py-6 text-center text-xs text-gray-400">Loading discussions...</div>
+            ) : isDiscussionsError ? (
+              <div className="py-6 text-center text-xs text-rose-500">Failed to load discussions.</div>
+            ) : !discussions || discussions.length === 0 ? (
+              <div className="py-6 text-center text-xs text-gray-400 border border-dashed border-gray-200 dark:border-gray-800 rounded-xl">
+                No recent discussions found.
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                {discussions.slice(0, 4).map((d: any) => (
+                  <div
+                    key={d.id || d._id}
+                    className="p-3 border border-gray-100 dark:border-gray-800 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 flex items-start gap-3"
+                  >
+                    <ChatIcon className="w-5 h-5 text-brand-500 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                        {d.title}
+                      </h4>
+                      <p className="text-2xs text-gray-500 mt-0.5 truncate">
+                        Posted by {d.authorName || 'Student'} • Course: {d.courseName || 'General'}
+                      </p>
+                    </div>
+                    <Link
+                      to={INSTRUCTOR.DISCUSSIONS}
+                      className="px-2.5 py-1 text-2xs font-semibold text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 shrink-0"
+                    >
+                      Reply
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
           </ComponentCard>
 
           <ComponentCard title="Notifications" desc="System & course announcements">
-            <div className="space-y-3">
-              <div className="flex items-start gap-3 text-xs">
-                <div className="p-1.5 bg-blue-100 text-blue-600 dark:bg-blue-900/30 rounded-lg">
-                  <MailIcon className="w-4 h-4" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-800 dark:text-gray-200">
-                    Students enrolled in active courses.
-                  </p>
-                  <span className="text-gray-400 text-2xs">3 hours ago</span>
-                </div>
+            {isNotificationsLoading ? (
+              <div className="py-6 text-center text-xs text-gray-400">Loading notifications...</div>
+            ) : isNotificationsError ? (
+              <div className="py-6 text-center text-xs text-rose-500">Failed to load notifications.</div>
+            ) : !notifications || notifications.length === 0 ? (
+              <div className="py-6 text-center text-xs text-gray-400 border border-dashed border-gray-200 dark:border-gray-800 rounded-xl">
+                No recent notifications found.
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                {notifications.slice(0, 4).map((n: any) => (
+                  <div key={n.id || n._id} className="flex items-start gap-3 text-xs">
+                    <div className={`p-1.5 rounded-lg shrink-0 ${n.isRead ? 'bg-gray-100 text-gray-500 dark:bg-gray-800' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30'}`}>
+                      <MailIcon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 dark:text-gray-200 truncate">
+                        {n.message || n.title}
+                      </p>
+                      <span className="text-gray-400 text-2xs">
+                        {n.createdAt ? new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </ComponentCard>
         </div>
 

@@ -7,6 +7,8 @@ import {
   useUpdateInstructorProfile,
 } from '../hooks/useInstructorDashboard';
 
+import { userService } from '../../../services/user.service';
+
 export const InstructorProfilePage: React.FC = () => {
   const { data: profile, isLoading, isError, error, refetch } = useInstructorProfile();
   const updateProfileMutation = useUpdateInstructorProfile();
@@ -20,6 +22,8 @@ export const InstructorProfilePage: React.FC = () => {
   const [specialization, setSpecialization] = useState('');
   const [bio, setBio] = useState('');
   const [avatar, setAvatar] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
 
   const handleOpenEdit = () => {
     if (profile) {
@@ -32,17 +36,38 @@ export const InstructorProfilePage: React.FC = () => {
       setBio(profile.bio || '');
       setAvatar(profile.avatar || '');
     }
+    setAvatarError('');
     setIsEditing(true);
   };
 
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatar(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      setAvatarError('Only JPG, PNG, WEBP, and GIF images are allowed.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError('Image file size must be less than 5MB.');
+      return;
+    }
+
+    setAvatarError('');
+    setUploadingAvatar(true);
+
+    try {
+      const res = await userService.uploadAvatar(file);
+      const uploadedUrl = res.data?.data?.avatarUrl || res.data?.data?.user?.avatar;
+      if (uploadedUrl) {
+        setAvatar(uploadedUrl);
+      }
+    } catch (err: any) {
+      setAvatarError(err.response?.data?.message || 'Failed to upload avatar image.');
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -297,12 +322,13 @@ export const InstructorProfilePage: React.FC = () => {
 
                     <div>
                       <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Avatar Image Upload / URL</label>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          disabled={uploadingAvatar}
                           onChange={handleAvatarFileChange}
-                          className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-600 hover:file:bg-brand-100"
+                          className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-600 hover:file:bg-brand-100 disabled:opacity-50"
                         />
                         <span className="text-xs text-gray-400">or URL:</span>
                         <input
@@ -313,6 +339,12 @@ export const InstructorProfilePage: React.FC = () => {
                           className="flex-1 px-3 py-1.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs text-gray-900 dark:text-white"
                         />
                       </div>
+                      {uploadingAvatar && (
+                        <p className="text-xs text-brand-600 dark:text-brand-400 mt-1">Uploading image to server...</p>
+                      )}
+                      {avatarError && (
+                        <p className="text-xs text-rose-500 mt-1">{avatarError}</p>
+                      )}
                     </div>
 
                     <div>

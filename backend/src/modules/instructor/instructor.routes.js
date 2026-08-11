@@ -5,8 +5,8 @@ const router = express.Router();
 const InstructorController = require('./instructor.controller');
 const { authenticate, authorize } = require('../../middleware/auth.middleware');
 
-// Apply protection to all instructor routes
-router.use(authenticate);
+// Apply authentication and RBAC protection to all instructor routes
+router.use(authenticate, authorize('instructor', 'admin'));
 
 // Dashboard stats & activity
 router.get('/dashboard/stats', InstructorController.getDashboardStats);

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import PageMeta from '../../../components/common/PageMeta';
 import ComponentCard from '../../../components/common/ComponentCard';
 import Badge from '../../../components/ui/badge/Badge';
@@ -11,6 +12,7 @@ import {
 import { InstructorCourse } from '../types';
 
 export const CourseList: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft' | 'archived'>('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -88,11 +90,15 @@ export const CourseList: React.FC = () => {
         enrolledStudents: 0,
       },
       {
-        onSuccess: () => {
+        onSuccess: (data: any) => {
           setIsCreateModalOpen(false);
           setNewTitle('');
           setNewDescription('');
           setNewThumbnail('');
+          const createdId = data?.id || data?._id;
+          if (createdId) {
+            navigate(`/courses/${createdId}/builder`);
+          }
         },
       }
     );
@@ -367,6 +373,12 @@ export const CourseList: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <Link
+                            to={`/courses/${c.id || c._id}/builder`}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-md bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400"
+                          >
+                            Edit Content
+                          </Link>
                           <button
                             type="button"
                             onClick={() => handleTogglePublish(c)}
@@ -425,6 +437,12 @@ export const CourseList: React.FC = () => {
                   </div>
 
                   <div className="p-4 pt-0 flex items-center justify-between gap-2 border-t border-gray-100 dark:border-gray-700/50 mt-2">
+                    <Link
+                      to={`/courses/${c.id || c._id}/builder`}
+                      className="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400"
+                    >
+                      Edit Content
+                    </Link>
                     <button
                       type="button"
                       onClick={() => handleTogglePublish(c)}

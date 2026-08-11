@@ -10,6 +10,8 @@ const LearningPath = require('../../models/LearningPath');
 const { QuizModel, QuizAttemptModel } = require('../assessments/assessment.model');
 const CertificateModel = require('../certificates/certificate.model');
 const { StudentProgressModel } = require('../progress/progress.model');
+const AppError = require('../../utils/appError');
+const CourseService = require('../courses/course.service');
 
 class InstructorService {
   /**
@@ -110,6 +112,36 @@ class InstructorService {
 
     activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
+    // 8. Real Month-over-Month (MoM) Growth Rates
+    const now = new Date();
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+    const currentMonthCourses = await Course.countDocuments({ instructor: instructorObjectId, createdAt: { $gte: startOfCurrentMonth } });
+    const prevMonthCourses = await Course.countDocuments({ instructor: instructorObjectId, createdAt: { $gte: startOfPreviousMonth, $lte: endOfPreviousMonth } });
+    const coursesGrowth = prevMonthCourses > 0
+      ? Math.round(((currentMonthCourses - prevMonthCourses) / prevMonthCourses) * 100 * 10) / 10
+      : currentMonthCourses > 0 ? 100 : 0;
+
+    const currentMonthStudents = await Enrollment.countDocuments({ instructor: instructorObjectId, createdAt: { $gte: startOfCurrentMonth } });
+    const prevMonthStudents = await Enrollment.countDocuments({ instructor: instructorObjectId, createdAt: { $gte: startOfPreviousMonth, $lte: endOfPreviousMonth } });
+    const studentsGrowth = prevMonthStudents > 0
+      ? Math.round(((currentMonthStudents - prevMonthStudents) / prevMonthStudents) * 100 * 10) / 10
+      : currentMonthStudents > 0 ? 100 : 0;
+
+    const currentMonthPub = await Course.countDocuments({ instructor: instructorObjectId, status: 'published', createdAt: { $gte: startOfCurrentMonth } });
+    const prevMonthPub = await Course.countDocuments({ instructor: instructorObjectId, status: 'published', createdAt: { $gte: startOfPreviousMonth, $lte: endOfPreviousMonth } });
+    const publishedGrowth = prevMonthPub > 0
+      ? Math.round(((currentMonthPub - prevMonthPub) / prevMonthPub) * 100 * 10) / 10
+      : currentMonthPub > 0 ? 100 : 0;
+
+    const currentMonthPending = await QuizAttemptModel.countDocuments({ $or: [{ instructorId: instructorObjectId }, { courseId: { $in: courseIds } }], status: 'pending_review', createdAt: { $gte: startOfCurrentMonth } });
+    const prevMonthPending = await QuizAttemptModel.countDocuments({ $or: [{ instructorId: instructorObjectId }, { courseId: { $in: courseIds } }], status: 'pending_review', createdAt: { $gte: startOfPreviousMonth, $lte: endOfPreviousMonth } });
+    const pendingGrowth = prevMonthPending > 0
+      ? Math.round(((currentMonthPending - prevMonthPending) / prevMonthPending) * 100 * 10) / 10
+      : currentMonthPending > 0 ? 100 : 0;
+
     return {
       totalCourses: assignedCoursesCount,
       assignedCourses: assignedCoursesCount,
@@ -124,10 +156,10 @@ class InstructorService {
       learningPaths: learningPathsCount,
       recentDiscussions: recentDiscussionsCount,
       notifications: unreadNotificationsCount,
-      coursesGrowth: 12.5,
-      studentsGrowth: 18.2,
-      publishedGrowth: 8.0,
-      pendingGrowth: -4.5,
+      coursesGrowth,
+      studentsGrowth,
+      publishedGrowth,
+      pendingGrowth,
       recentActivity: activities.slice(0, 8),
     };
   }
@@ -197,74 +229,53 @@ class InstructorService {
   }
 
   /**
-   * Create a new course assigned to instructor.
+   * Create a new course assigned to instructor via CourseService.
    */
   static async createCourse(instructorId, courseData) {
-    const course = await Course.create({
-      ...courseData,
-      instructor: new mongoose.Types.ObjectId(instructorId),
-    });
+    const course = await CourseService.createCourse(courseData, instructorId);
     return course;
   }
 
   /**
-   * Get single course details.
+   * Get single course details with instructor authorization via CourseService.
    */
   static async getCourseById(instructorId, courseId) {
-    const course = await Course.findOne({
-      _id: courseId,
-      instructor: new mongoose.Types.ObjectId(instructorId),
-    }).lean();
-    if (!course) {
-      throw new Error('Course not found or unauthorized');
+    const course = await CourseService.getCourseById(courseId, true);
+    const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor ? course.instructor.toString() : '';
+    if (instIdStr && instIdStr !== instructorId.toString()) {
+      throw AppError.forbidden('Course not found or unauthorized');
     }
+    const plainCourse = typeof course.toObject === 'function' ? course.toObject() : course;
     return {
-      ...course,
-      id: course._id.toString(),
+      ...plainCourse,
+      id: plainCourse._id.toString(),
     };
   }
 
   /**
-   * Update course details or builder sections.
+   * Update course details via CourseService (includes ownership check & cache invalidation).
    */
   static async updateCourse(instructorId, courseId, updateData) {
-    const course = await Course.findOneAndUpdate(
-      { _id: courseId, instructor: new mongoose.Types.ObjectId(instructorId) },
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
-    if (!course) {
-      throw new Error('Course not found or unauthorized');
-    }
+    const user = { _id: instructorId, role: 'instructor' };
+    const course = await CourseService.updateCourse(courseId, updateData, user);
     return course;
   }
 
   /**
-   * Delete course.
+   * Delete course via CourseService (includes media cleanup, enrollment cleanup & cache invalidation).
    */
   static async deleteCourse(instructorId, courseId) {
-    const res = await Course.findOneAndDelete({
-      _id: courseId,
-      instructor: new mongoose.Types.ObjectId(instructorId),
-    });
-    if (!res) {
-      throw new Error('Course not found or unauthorized');
-    }
+    const user = { _id: instructorId, role: 'instructor' };
+    await CourseService.deleteCourse(courseId, user);
     return true;
   }
 
   /**
-   * Toggle publish / draft / archive status.
+   * Toggle publish / draft status via CourseService.
    */
   static async togglePublishCourse(instructorId, courseId, status) {
-    const course = await Course.findOneAndUpdate(
-      { _id: courseId, instructor: new mongoose.Types.ObjectId(instructorId) },
-      { $set: { status } },
-      { new: true }
-    );
-    if (!course) {
-      throw new Error('Course not found or unauthorized');
-    }
+    const user = { _id: instructorId, role: 'instructor' };
+    const course = await CourseService.updateCourse(courseId, { status }, user);
     return course;
   }
 
@@ -347,24 +358,50 @@ class InstructorService {
   }
 
   /**
-   * Update assessment.
+   * Update assessment with ownership check.
    */
-  static async updateAssessment(instructorId, assessmentId, updateData) {
-    const assessment = await QuizModel.findOneAndUpdate(
-      { _id: assessmentId },
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
+  static async updateAssessment(instructorId, userRole, assessmentId, updateData) {
+    const assessment = await QuizModel.findById(assessmentId);
     if (!assessment) {
-      throw new Error('Assessment not found');
+      throw AppError.notFound('Assessment');
     }
+
+    if (userRole !== 'admin') {
+      const isDirectOwner = assessment.instructorId && assessment.instructorId.toString() === instructorId.toString();
+      let isCourseOwner = false;
+      if (!isDirectOwner && assessment.courseId) {
+        isCourseOwner = Boolean(await Course.exists({ _id: assessment.courseId, instructor: new mongoose.Types.ObjectId(instructorId) }));
+      }
+      if (!isDirectOwner && !isCourseOwner) {
+        throw AppError.forbidden('You do not have permission to modify this assessment');
+      }
+    }
+
+    Object.assign(assessment, updateData);
+    await assessment.save();
     return assessment;
   }
 
   /**
-   * Delete assessment.
+   * Delete assessment with ownership check.
    */
-  static async deleteAssessment(instructorId, assessmentId) {
+  static async deleteAssessment(instructorId, userRole, assessmentId) {
+    const assessment = await QuizModel.findById(assessmentId);
+    if (!assessment) {
+      throw AppError.notFound('Assessment');
+    }
+
+    if (userRole !== 'admin') {
+      const isDirectOwner = assessment.instructorId && assessment.instructorId.toString() === instructorId.toString();
+      let isCourseOwner = false;
+      if (!isDirectOwner && assessment.courseId) {
+        isCourseOwner = Boolean(await Course.exists({ _id: assessment.courseId, instructor: new mongoose.Types.ObjectId(instructorId) }));
+      }
+      if (!isDirectOwner && !isCourseOwner) {
+        throw AppError.forbidden('You do not have permission to delete this assessment');
+      }
+    }
+
     await QuizModel.findByIdAndDelete(assessmentId);
     return true;
   }
@@ -382,48 +419,92 @@ class InstructorService {
     })
       .sort({ createdAt: -1 })
       .populate('studentId', 'name email avatar')
-      .populate('quizId', 'title')
+      .populate('quizId', 'title description questions passingScore totalMarks timeLimitMinutes')
       .populate('courseId', 'title')
       .lean();
 
-    return attempts.map((a) => ({
-      id: a._id.toString(),
-      _id: a._id.toString(),
-      quizTitle: a.quizId?.title || 'Quiz Assessment',
-      courseName: a.courseId?.title || 'Course',
-      studentName: a.studentId?.name || 'Student Name',
-      studentEmail: a.studentId?.email || '',
-      studentAvatar: a.studentId?.avatar || '',
-      score: a.percentage || a.score || 0,
-      totalQuestions: a.answers ? a.answers.length : 0,
-      passed: a.passed,
-      status: a.status || 'submitted',
-      attemptDate: a.createdAt ? new Date(a.createdAt).toISOString().replace('T', ' ').slice(0, 16) : '',
-      answers: a.answers || [],
-    }));
+    return attempts.map((a) => {
+      const questionsList = a.quizId?.questions || [];
+      const questionsMap = new Map();
+      questionsList.forEach((q) => {
+        if (q._id) questionsMap.set(q._id.toString(), q);
+      });
+
+      const detailedAnswers = (a.answers || []).map((ans, idx) => {
+        const qDetail = questionsMap.get(ans.questionId?.toString()) || questionsList[idx] || {};
+        return {
+          questionId: ans.questionId || qDetail._id?.toString() || `q-${idx + 1}`,
+          questionText: qDetail.question || `Question ${idx + 1}`,
+          type: qDetail.type || 'mcq',
+          options: qDetail.options || [],
+          correctAnswer: qDetail.correctAnswer || '',
+          marks: qDetail.marks || 1,
+          explanation: qDetail.explanation || '',
+          selectedOption: ans.selectedOption || '',
+          textAnswer: ans.textAnswer || '',
+          codeAnswer: ans.codeAnswer || '',
+          submittedAnswer: ans.selectedOption || ans.textAnswer || ans.codeAnswer || '',
+          isCorrect: ans.isCorrect ?? false,
+          marksAwarded: ans.marksAwarded ?? 0,
+          feedback: ans.feedback || '',
+        };
+      });
+
+      return {
+        id: a._id.toString(),
+        _id: a._id.toString(),
+        quizTitle: a.quizId?.title || 'Quiz Assessment',
+        courseName: a.courseId?.title || 'Course',
+        studentName: a.studentId?.name || 'Student Name',
+        studentEmail: a.studentId?.email || '',
+        studentAvatar: a.studentId?.avatar || '',
+        score: a.percentage || a.score || 0,
+        totalQuestions: detailedAnswers.length,
+        passed: a.passed,
+        status: a.status || 'submitted',
+        feedback: a.feedback || '',
+        attemptDate: a.createdAt ? new Date(a.createdAt).toISOString().replace('T', ' ').slice(0, 16) : '',
+        answers: detailedAnswers,
+      };
+    });
   }
 
   /**
-   * Submit manual review for open ended quiz questions.
+   * Submit manual review for open ended quiz questions with ownership check.
    */
-  static async reviewQuizAttempt(instructorId, attemptId, reviewData) {
+  static async reviewQuizAttempt(instructorId, userRole, attemptId, reviewData) {
     const { score, status = 'reviewed', feedback } = reviewData;
     const attempt = await QuizAttemptModel.findById(attemptId);
     if (!attempt) {
-      throw new Error('Quiz attempt not found');
+      throw AppError.notFound('Quiz attempt');
     }
+
+    if (userRole !== 'admin') {
+      const isDirectOwner = attempt.instructorId && attempt.instructorId.toString() === instructorId.toString();
+      let isCourseOwner = false;
+      if (!isDirectOwner && attempt.courseId) {
+        isCourseOwner = Boolean(await Course.exists({ _id: attempt.courseId, instructor: new mongoose.Types.ObjectId(instructorId) }));
+      }
+      if (!isDirectOwner && !isCourseOwner) {
+        throw AppError.forbidden('You do not have permission to review this quiz attempt');
+      }
+    }
+
     if (score !== undefined) {
       attempt.score = score;
       attempt.percentage = Math.round((score / (attempt.totalMarks || 100)) * 100);
       attempt.passed = attempt.percentage >= 70;
     }
     attempt.status = status;
+    if (feedback !== undefined) {
+      attempt.feedback = feedback;
+    }
     await attempt.save();
     return attempt;
   }
 
   /**
-   * Get enrolled students progress across instructor's courses.
+   * Get enrolled students progress across instructor's courses with real quiz scores.
    */
   static async getStudentProgressList(instructorId) {
     const instructorObjectId = new mongoose.Types.ObjectId(instructorId);
@@ -433,26 +514,39 @@ class InstructorService {
       .sort({ updatedAt: -1 })
       .lean();
 
-    return enrollments.map((e) => {
-      const totalMods = e.totalModules || (e.course?.sections ? e.course.sections.length : 8);
-      return {
-        id: e._id.toString(),
-        studentId: e.student?._id?.toString() || '',
-        studentName: e.student?.name || 'Enrolled Student',
-        studentEmail: e.student?.email || 'student@example.com',
-        avatar: e.student?.avatar || '',
-        courseName: e.course?.title || 'Assigned Course',
-        progressPercent: e.progressPercentage || 0,
-        completedModules: e.completedModules || 0,
-        totalModules: totalMods,
-        avgScore: e.averageQuizScore || 85,
-        lastActive: e.lastActive ? new Date(e.lastActive).toISOString() : new Date().toISOString(),
-      };
-    });
+    const result = await Promise.all(
+      enrollments.map(async (e) => {
+        const totalMods = e.totalModules || (e.course?.sections ? e.course.sections.length : 8);
+        let avgQuizScore = 0;
+        if (e.student?._id && e.course?._id) {
+          const attempts = await QuizAttemptModel.find({ studentId: e.student._id, courseId: e.course._id }).lean();
+          if (attempts.length > 0) {
+            const sum = attempts.reduce((acc, a) => acc + (a.percentage || a.score || 0), 0);
+            avgQuizScore = Math.round(sum / attempts.length);
+          }
+        }
+
+        return {
+          id: e._id.toString(),
+          studentId: e.student?._id?.toString() || '',
+          studentName: e.student?.name || 'Enrolled Student',
+          studentEmail: e.student?.email || '',
+          avatar: e.student?.avatar || '',
+          courseName: e.course?.title || 'Assigned Course',
+          progressPercent: e.progressPercentage || 0,
+          completedModules: e.completedModules || 0,
+          totalModules: totalMods,
+          avgScore: avgQuizScore,
+          lastActive: e.lastActive ? new Date(e.lastActive).toISOString() : e.updatedAt ? new Date(e.updatedAt).toISOString() : new Date().toISOString(),
+        };
+      })
+    );
+
+    return result;
   }
 
   /**
-   * Complete Instructor Analytics with MongoDB Aggregations.
+   * Complete Instructor Analytics with Authentic MongoDB Aggregations.
    */
   static async getInstructorAnalytics(instructorId) {
     const instructorObjId = new mongoose.Types.ObjectId(instructorId);
@@ -462,13 +556,19 @@ class InstructorService {
     const courseIds = courses.map((c) => c._id);
     const activeCourses = courses.filter((c) => c.status === 'published').length;
 
+    const courseCategoryMap = new Map();
+    courses.forEach((c) => {
+      const catName = typeof c.category === 'object' && c.category ? c.category.name : c.category || 'General';
+      courseCategoryMap.set(c._id.toString(), catName);
+    });
+
     // 2. Total Students & Enrollments & Course Completion Rate
     const enrollments = await Enrollment.find({ instructor: instructorObjId }).lean();
     const totalStudents = new Set(enrollments.map((e) => (e.student ? e.student.toString() : ''))).size;
     const completedEnrollments = enrollments.filter((e) => e.status === 'completed' || (e.progressPercentage && e.progressPercentage >= 100)).length;
     const courseCompletionRate = enrollments.length > 0
-      ? Math.round((completedEnrollments / enrollments.length) * 100) || 75
-      : 84;
+      ? Math.round((completedEnrollments / enrollments.length) * 100)
+      : 0;
 
     // 3. Quiz Attempts & Average Score
     const attempts = await QuizAttemptModel.find({
@@ -476,76 +576,101 @@ class InstructorService {
     }).lean();
     const assessmentAttempts = attempts.length;
     const avgScoreSum = attempts.reduce((acc, a) => acc + (a.percentage || a.score || 0), 0);
-    const averageQuizScore = assessmentAttempts > 0 ? Math.round(avgScoreSum / assessmentAttempts) : 88;
+    const averageQuizScore = assessmentAttempts > 0 ? Math.round(avgScoreSum / assessmentAttempts) : 0;
 
     // 4. Student Progress average
-    const progressList = await StudentProgressModel.find({
-      courseId: { $in: courseIds },
-    }).lean();
-    const avgProgress = progressList.length > 0
-      ? Math.round(progressList.reduce((acc, p) => acc + (p.progressPercentage || 0), 0) / progressList.length)
-      : (enrollments.length > 0 ? Math.round(enrollments.reduce((acc, e) => acc + (e.progressPercentage || 0), 0) / enrollments.length) : 78);
+    const avgProgress = enrollments.length > 0
+      ? Math.round(enrollments.reduce((acc, e) => acc + (e.progressPercentage || 0), 0) / enrollments.length)
+      : 0;
 
     // 5. Learning Path Completion
     const learningPaths = await LearningPath.find({
       $or: [{ createdBy: instructorObjId }, { assignedInstructors: instructorObjId }],
     }).lean();
     const totalLpEnrollments = learningPaths.reduce((acc, lp) => acc + (lp.enrollmentCount || 0), 0);
-    const lpCompletionRate = totalLpEnrollments > 0 ? Math.min(100, Math.round(totalLpEnrollments * 40)) : 82;
+    const totalLpCompleted = learningPaths.reduce((acc, lp) => acc + (lp.completedCount || 0), 0);
+    const lpCompletionRate = totalLpEnrollments > 0 ? Math.round((totalLpCompleted / totalLpEnrollments) * 100) : 0;
 
     // 6. Discussion Activity
     const discussionsCount = await Discussion.countDocuments({
       $or: [{ instructor: instructorObjId }, { course: { $in: courseIds } }],
     });
 
-    // 7. Monthly Enrollments Aggregation Pipeline
-    const monthlyEnrollmentsRaw = await Enrollment.aggregate([
-      { $match: { instructor: instructorObjId } },
-      {
-        $group: {
-          _id: { $month: '$createdAt' },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-
+    // 7. Monthly Enrollments & Completion Trend Aggregation (last 6 months, real counts)
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentMonthIdx = new Date().getMonth();
+    const now = new Date();
     const monthlyEnrollments = [];
-    for (let i = 0; i <= currentMonthIdx; i++) {
-      const monthObj = monthlyEnrollmentsRaw.find((m) => m._id === i + 1);
+    const completionTrend = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+      const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+      const monthLabel = months[d.getMonth()];
+
+      const monthEnrollments = enrollments.filter(
+        (e) => e.createdAt && new Date(e.createdAt) >= startOfMonth && new Date(e.createdAt) <= endOfMonth
+      );
+      const monthCompleted = monthEnrollments.filter((e) => e.status === 'completed' || (e.progressPercentage && e.progressPercentage >= 100)).length;
+      const monthInProgress = monthEnrollments.length - monthCompleted;
+
       monthlyEnrollments.push({
-        month: months[i],
-        count: monthObj ? monthObj.count * 12 + 15 : (i + 1) * 20 + 35,
+        month: monthLabel,
+        count: monthEnrollments.length,
+      });
+
+      completionTrend.push({
+        month: monthLabel,
+        completed: monthCompleted,
+        inProgress: monthInProgress,
       });
     }
 
-    // 8. Quiz Performance Aggregation Pipeline by Course Category
-    const quizPerformance = [
-      { category: 'Software Engineering', averageScore: averageQuizScore, passRate: 92 },
-      { category: 'Cloud & Architecture', averageScore: Math.min(100, averageQuizScore - 3), passRate: 88 },
-      { category: 'DevOps', averageScore: Math.min(100, averageQuizScore + 2), passRate: 94 },
-      { category: 'Databases', averageScore: Math.min(100, averageQuizScore - 1), passRate: 90 },
-    ];
+    // 8. Quiz Performance by Category (Real MongoDB aggregation)
+    const categoryQuizStats = new Map();
+    attempts.forEach((att) => {
+      const cid = att.courseId ? att.courseId.toString() : '';
+      const catName = courseCategoryMap.get(cid) || 'General';
+      if (!categoryQuizStats.has(catName)) {
+        categoryQuizStats.set(catName, { totalScore: 0, count: 0, passedCount: 0 });
+      }
+      const stat = categoryQuizStats.get(catName);
+      stat.totalScore += att.percentage || att.score || 0;
+      stat.count += 1;
+      if (att.passed) stat.passedCount += 1;
+    });
 
-    // 9. Course Completion Trend Aggregation Pipeline
-    const completionTrend = months.slice(0, currentMonthIdx + 1).map((month, idx) => ({
-      month,
-      completed: (idx + 1) * 8 + 10,
-      inProgress: (idx + 1) * 12 + 25,
+    const quizPerformance = [];
+    categoryQuizStats.forEach((stat, category) => {
+      quizPerformance.push({
+        category,
+        averageScore: stat.count > 0 ? Math.round(stat.totalScore / stat.count) : 0,
+        passRate: stat.count > 0 ? Math.round((stat.passedCount / stat.count) * 100) : 0,
+      });
+    });
+
+    // 9. Day of Week Student Activity Pipeline (Real aggregation over enrollments and attempts)
+    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+
+    enrollments.forEach((e) => {
+      if (e.updatedAt || e.createdAt) {
+        const dayIdx = new Date(e.updatedAt || e.createdAt).getDay();
+        dayCounts[dayIdx] += 1;
+      }
+    });
+
+    attempts.forEach((att) => {
+      if (att.createdAt) {
+        const dayIdx = new Date(att.createdAt).getDay();
+        dayCounts[dayIdx] += 1;
+      }
+    });
+
+    const studentActivity = [1, 2, 3, 4, 5, 6, 0].map((dayIdx) => ({
+      day: dayLabels[dayIdx],
+      active: dayCounts[dayIdx],
     }));
-
-    // 10. Student Activity Aggregation Pipeline
-    const studentActivity = [
-      { day: 'Mon', active: 54 },
-      { day: 'Tue', active: 82 },
-      { day: 'Wed', active: 110 },
-      { day: 'Thu', active: 96 },
-      { day: 'Fri', active: 88 },
-      { day: 'Sat', active: 62 },
-      { day: 'Sun', active: 45 },
-    ];
 
     return {
       metrics: {
@@ -568,62 +693,85 @@ class InstructorService {
   }
 
   /**
-   * Get enrollment trends by month (MongoDB aggregation).
+   * Get enrollment trends by month (Real MongoDB aggregation).
    */
   static async getEnrollmentTrends(instructorId) {
     const instructorObjectId = new mongoose.Types.ObjectId(instructorId);
-
-    const trends = await Enrollment.aggregate([
-      { $match: { instructor: instructorObjectId } },
-      {
-        $group: {
-          _id: { $month: '$createdAt' },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-
+    const now = new Date();
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentMonthIdx = new Date().getMonth();
     const result = [];
 
-    for (let i = 0; i <= currentMonthIdx; i++) {
-      const monthData = trends.find((t) => t._id === i + 1);
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+      const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+
+      const count = await Enrollment.countDocuments({
+        instructor: instructorObjectId,
+        createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+      });
+
       result.push({
-        month: months[i],
-        enrollments: monthData ? monthData.count * 15 + 40 : (i + 1) * 25 + 50,
+        month: months[d.getMonth()],
+        enrollments: count,
       });
     }
 
-    return result.length > 0 ? result : [
-      { month: 'Jan', enrollments: 45 },
-      { month: 'Feb', enrollments: 80 },
-      { month: 'Mar', enrollments: 120 },
-      { month: 'Apr', enrollments: 160 },
-      { month: 'May', enrollments: 210 },
-      { month: 'Jun', enrollments: 270 },
-      { month: 'Jul', enrollments: 340 },
-    ];
+    return result;
   }
 
   /**
-   * Get quiz performance trends by course category (MongoDB aggregation).
+   * Get quiz performance trends by course category (Real MongoDB aggregation).
    */
   static async getQuizPerformanceTrends(instructorId) {
     const instructorObjectId = new mongoose.Types.ObjectId(instructorId);
-    const courses = await Course.find({ instructor: instructorObjectId }, 'category').lean();
-    const categories = Array.from(new Set(courses.map((c) => c.category || 'General')));
+    const courses = await Course.find({ instructor: instructorObjectId }).lean();
+    if (courses.length === 0) return [];
 
-    if (categories.length === 0) {
-      categories.push('Software Engineering', 'Cloud & Architecture', 'DevOps', 'Databases');
+    const courseMap = new Map();
+    courses.forEach((c) => {
+      const catName = typeof c.category === 'object' && c.category ? c.category.name : c.category || 'General';
+      courseMap.set(c._id.toString(), catName);
+    });
+
+    const courseIds = courses.map((c) => c._id);
+    const attempts = await QuizAttemptModel.find({
+      $or: [{ instructorId: instructorObjectId }, { courseId: { $in: courseIds } }],
+    }).lean();
+
+    const categoryStats = new Map();
+    attempts.forEach((att) => {
+      const cid = att.courseId ? att.courseId.toString() : '';
+      const catName = courseMap.get(cid) || 'General';
+
+      if (!categoryStats.has(catName)) {
+        categoryStats.set(catName, { totalScore: 0, count: 0, passedCount: 0 });
+      }
+      const stat = categoryStats.get(catName);
+      stat.totalScore += att.percentage || att.score || 0;
+      stat.count += 1;
+      if (att.passed) stat.passedCount += 1;
+    });
+
+    const result = [];
+    categoryStats.forEach((stat, category) => {
+      result.push({
+        category,
+        averageScore: stat.count > 0 ? Math.round(stat.totalScore / stat.count) : 0,
+        passRate: stat.count > 0 ? Math.round((stat.passedCount / stat.count) * 100) : 0,
+      });
+    });
+
+    if (result.length === 0) {
+      const uniqueCats = Array.from(new Set(courses.map((c) => (typeof c.category === 'object' && c.category ? c.category.name : c.category || 'General'))));
+      return uniqueCats.map((cat) => ({
+        category: cat,
+        averageScore: 0,
+        passRate: 0,
+      }));
     }
 
-    return categories.map((cat) => ({
-      category: cat,
-      averageScore: Math.floor(Math.random() * 15) + 80,
-      passRate: Math.floor(Math.random() * 10) + 85,
-    }));
+    return result;
   }
 
   /**
@@ -768,21 +916,52 @@ class InstructorService {
   }
 
   /**
-   * Update discussion content/title/tags.
+   * Update discussion content/title/tags with ownership check.
    */
-  static async updateDiscussion(instructorId, discussionId, updateData) {
-    const discussion = await Discussion.findOneAndUpdate(
-      { _id: discussionId },
-      { $set: updateData },
-      { new: true }
-    );
+  static async updateDiscussion(instructorId, userRole, discussionId, updateData) {
+    const discussion = await Discussion.findById(discussionId);
+    if (!discussion) {
+      throw AppError.notFound('Discussion');
+    }
+
+    if (userRole !== 'admin') {
+      const authorIdStr = discussion.authorId ? discussion.authorId.toString() : discussion.author ? discussion.author.toString() : '';
+      const isAuthor = authorIdStr === instructorId.toString();
+      let isCourseInstructor = false;
+      if (!isAuthor && discussion.courseId) {
+        isCourseInstructor = Boolean(await Course.exists({ _id: discussion.courseId, instructor: new mongoose.Types.ObjectId(instructorId) }));
+      }
+      if (!isAuthor && !isCourseInstructor) {
+        throw AppError.forbidden('You do not have permission to update this discussion');
+      }
+    }
+
+    Object.assign(discussion, updateData);
+    await discussion.save();
     return discussion;
   }
 
   /**
-   * Delete discussion thread.
+   * Delete discussion thread with ownership check.
    */
-  static async deleteDiscussion(instructorId, discussionId) {
+  static async deleteDiscussion(instructorId, userRole, discussionId) {
+    const discussion = await Discussion.findById(discussionId);
+    if (!discussion) {
+      throw AppError.notFound('Discussion');
+    }
+
+    if (userRole !== 'admin') {
+      const authorIdStr = discussion.authorId ? discussion.authorId.toString() : discussion.author ? discussion.author.toString() : '';
+      const isAuthor = authorIdStr === instructorId.toString();
+      let isCourseInstructor = false;
+      if (!isAuthor && discussion.courseId) {
+        isCourseInstructor = Boolean(await Course.exists({ _id: discussion.courseId, instructor: new mongoose.Types.ObjectId(instructorId) }));
+      }
+      if (!isAuthor && !isCourseInstructor) {
+        throw AppError.forbidden('You do not have permission to delete this discussion');
+      }
+    }
+
     await Discussion.findByIdAndDelete(discussionId);
     try {
       const { emitDashboardRefresh } = require('../../sockets/socket');
@@ -794,11 +973,13 @@ class InstructorService {
   }
 
   /**
-   * Toggle pin, lock or like status.
+   * Toggle pin, lock or like status with authorization checks.
    */
-  static async updateDiscussionStatus(instructorId, discussionId, statusData) {
+  static async updateDiscussionStatus(instructorId, userRole, discussionId, statusData) {
     const discussion = await Discussion.findById(discussionId);
-    if (!discussion) throw new Error('Discussion not found');
+    if (!discussion) {
+      throw AppError.notFound('Discussion');
+    }
 
     if (statusData.toggleLike) {
       const instructorObjId = new mongoose.Types.ObjectId(instructorId);
@@ -814,6 +995,18 @@ class InstructorService {
       discussion.likes = likes;
       discussion.likesCount = likes.length;
     } else {
+      if (userRole !== 'admin') {
+        const authorIdStr = discussion.authorId ? discussion.authorId.toString() : discussion.author ? discussion.author.toString() : '';
+        const isAuthor = authorIdStr === instructorId.toString();
+        let isCourseInstructor = false;
+        if (!isAuthor && discussion.courseId) {
+          isCourseInstructor = Boolean(await Course.exists({ _id: discussion.courseId, instructor: new mongoose.Types.ObjectId(instructorId) }));
+        }
+        if (!isAuthor && !isCourseInstructor) {
+          throw AppError.forbidden('You do not have permission to modify status for this discussion');
+        }
+      }
+
       if (statusData.isPinned !== undefined) discussion.isPinned = statusData.isPinned;
       if (statusData.isLocked !== undefined) discussion.isLocked = statusData.isLocked;
     }
@@ -896,25 +1089,30 @@ class InstructorService {
 
     const joinedDate = user.createdAt
       ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-      : 'January 2024';
+      : '';
+
+    const ratings = courses.map((c) => c.rating || c.averageRating || 0).filter((r) => typeof r === 'number' && r > 0);
+    const avgRating = ratings.length > 0
+      ? Math.round((ratings.reduce((acc, r) => acc + r, 0) / ratings.length) * 10) / 10
+      : 0;
 
     return {
       id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar || '/images/user/owner.jpg',
-      phone: user.phone || '+1 (555) 234-5678',
-      department: user.department || 'Computer Science & Software Engineering',
-      qualification: user.qualification || 'Ph.D. in Computer Science',
-      specialization: user.specialization || 'Distributed Systems & Cloud Architecture',
-      experience: user.experience || '10+ Years Enterprise Experience',
-      bio: user.bio || 'Senior Architect and Enterprise LMS Instructor specializing in Enterprise Cloud Infrastructure and Full-Stack Engineering.',
+      name: user.name || '',
+      email: user.email || '',
+      avatar: user.avatar || '',
+      phone: user.phone || '',
+      department: user.department || '',
+      qualification: user.qualification || '',
+      specialization: user.specialization || '',
+      experience: user.experience || '',
+      bio: user.bio || '',
       joinedDate,
       stats: {
         totalCourses,
         totalStudents,
         totalAssessments,
-        avgRating: 4.9,
+        avgRating,
       },
       socialLinks: user.socialLinks || { linkedin: '', github: '', twitter: '', website: '' },
       settings: user.settings || {},
@@ -922,6 +1120,9 @@ class InstructorService {
   }
 
   static async updateInstructorProfile(instructorId, profileData) {
+    if (profileData.avatar && typeof profileData.avatar === 'string' && profileData.avatar.startsWith('data:image/')) {
+      throw AppError.badRequest('Base64 image data is not allowed. Please upload avatar images via the avatar upload service.');
+    }
     const user = await User.findByIdAndUpdate(
       instructorId,
       { $set: profileData },
