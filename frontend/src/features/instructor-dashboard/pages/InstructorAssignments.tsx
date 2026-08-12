@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import PageMeta from '../../../components/common/PageMeta';
 import ComponentCard from '../../../components/common/ComponentCard';
 import Badge from '../../../components/ui/badge/Badge';
+import { TableSkeleton } from '../components/SkeletonLoader';
 import {
   useInstructorAssignments,
   useInstructorCourses,
@@ -26,6 +27,35 @@ export const InstructorAssignmentsPage: React.FC = () => {
   const [selectedAssignmentForSubmissions, setSelectedAssignmentForSubmissions] = useState<InstructorAssignment | null>(null);
   const [gradingSubmission, setGradingSubmission] = useState<AssignmentSubmissionItem | null>(null);
 
+  // Bulk state & validation state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [formErrors, setFormErrors] = useState<{ title?: string; courseId?: string }>({});
+
+  const toggleSelectAll = () => {
+    if (!assignments) return;
+    if (selectedIds.length === assignments.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(assignments.map((a) => a.id));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((item) => item !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} selected assignment(s)?`)) {
+      selectedIds.forEach((id) => deleteMutation.mutate(id));
+      setSelectedIds([]);
+    }
+  };
+
   // Form state for creating/editing assignment
   const [title, setTitle] = useState('');
   const [courseId, setCourseId] = useState('');
@@ -33,7 +63,7 @@ export const InstructorAssignmentsPage: React.FC = () => {
   const [instructions, setInstructions] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [maxScore, setMaxScore] = useState(100);
-  const [status, setStatus] = useState<'published' | 'draft'>('published');
+  const [status, setStatus] = useState<'published' | 'draft' | 'archived'>('published');
 
   // Grade form state
   const [gradeScore, setGradeScore] = useState(0);
@@ -67,7 +97,7 @@ export const InstructorAssignmentsPage: React.FC = () => {
     setCourseId(item.courseId);
     setDescription(item.description || '');
     setInstructions(item.instructions || '');
-    setStatus(item.status || 'published');
+    setStatus((item.status === 'archived' ? 'archived' : item.status === 'draft' ? 'draft' : 'published'));
     setDueDate(new Date(item.dueDate).toISOString().split('T')[0]);
     setMaxScore(item.maxScore || 100);
     setIsCreateOpen(true);
@@ -80,7 +110,21 @@ export const InstructorAssignmentsPage: React.FC = () => {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!courseId) return;
+    const errors: { title?: string; courseId?: string } = {};
+
+    if (!title.trim()) {
+      errors.title = 'Assignment title is required';
+    }
+    if (!courseId) {
+      errors.courseId = 'Please select a course for this assignment';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setFormErrors({});
 
     if (editingId) {
       updateMutation.mutate(
@@ -184,8 +228,33 @@ export const InstructorAssignmentsPage: React.FC = () => {
 
         {/* Assignments Table / Card */}
         <ComponentCard title="Active Course Assignments" desc="All homework and project submissions assigned to your enrolled learners">
+          {/* Floating Bulk Action Bar */}
+          {selectedIds.length > 0 && (
+            <div className="mb-4 p-3 bg-brand-500 text-white rounded-xl flex items-center justify-between shadow-md">
+              <div className="text-xs font-semibold">
+                {selectedIds.length} assignment(s) selected
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleBulkDelete}
+                  className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition"
+                >
+                  Delete Selected ({selectedIds.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  className="px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white text-xs rounded-lg transition"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          )}
+
           {isLoading ? (
-            <div className="py-12 text-center text-sm text-gray-400">Loading assignments...</div>
+            <TableSkeleton rows={5} />
           ) : isError ? (
             <div className="py-12 text-center text-sm text-rose-500">Failed to load assignments.</div>
           ) : !assignments || assignments.length === 0 ? (
@@ -203,6 +272,14 @@ export const InstructorAssignmentsPage: React.FC = () => {
               <table className="w-full text-left text-xs text-gray-600 dark:text-gray-300">
                 <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-200 uppercase font-semibold">
                   <tr>
+                    <th className="py-3 px-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(assignments && assignments.length > 0 && selectedIds.length === assignments.length)}
+                        onChange={toggleSelectAll}
+                        className="rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                      />
+                    </th>
                     <th className="py-3 px-4">Title & Course</th>
                     <th className="py-3 px-4">Due Date</th>
                     <th className="py-3 px-4">Max Score</th>
@@ -212,8 +289,18 @@ export const InstructorAssignmentsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {assignments.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
+                  {assignments.map((item) => {
+                    const isSelected = selectedIds.includes(item.id);
+                    return (
+                      <tr key={item.id} className={`hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors ${isSelected ? 'bg-brand-50/40 dark:bg-brand-900/10' : ''}`}>
+                        <td className="py-3 px-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOne(item.id)}
+                            className="rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                          />
+                        </td>
                       <td className="py-3 px-4">
                         <div className="font-bold text-gray-900 dark:text-white text-sm">{item.title}</div>
                         <div className="text-2xs text-gray-400 mt-0.5">{item.courseTitle}</div>
@@ -261,7 +348,8 @@ export const InstructorAssignmentsPage: React.FC = () => {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
                 </tbody>
               </table>
             </div>
@@ -282,15 +370,24 @@ export const InstructorAssignmentsPage: React.FC = () => {
                 <select
                   required
                   value={courseId}
-                  onChange={(e) => setCourseId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  onChange={(e) => {
+                    setCourseId(e.target.value);
+                    if (formErrors.courseId) setFormErrors({ ...formErrors, courseId: undefined });
+                  }}
+                  className={`w-full px-3 py-2 rounded-xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+                    formErrors.courseId ? 'border-rose-500' : 'border-gray-300 dark:border-gray-700'
+                  }`}
                 >
+                  <option value="">Select a course</option>
                   {courses?.map((c) => (
                     <option key={c.id || c._id} value={c.id || c._id}>
                       {c.title}
                     </option>
                   ))}
                 </select>
+                {formErrors.courseId && (
+                  <p className="text-[11px] text-rose-500 font-medium mt-1">{formErrors.courseId}</p>
+                )}
               </div>
 
               <div>
@@ -300,9 +397,17 @@ export const InstructorAssignmentsPage: React.FC = () => {
                   required
                   placeholder="e.g. Build a RESTful API with Node.js & MongoDB"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    if (formErrors.title) setFormErrors({ ...formErrors, title: undefined });
+                  }}
+                  className={`w-full px-3 py-2 rounded-xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+                    formErrors.title ? 'border-rose-500' : 'border-gray-300 dark:border-gray-700'
+                  }`}
                 />
+                {formErrors.title && (
+                  <p className="text-[11px] text-rose-500 font-medium mt-1">{formErrors.title}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-3">

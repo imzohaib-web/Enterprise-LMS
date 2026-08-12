@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 
 const Assignment = require('./Assignment');
 const AssignmentSubmission = require('./AssignmentSubmission');
+const AuditLog = require('./AuditLog');
 const User = require('./User');
 const Course = require('./Course');
 const Category = require('./Category');
@@ -31,5 +32,6 @@ module.exports = {
   StudentProgress: StudentProgressModel,
   Assignment,
   AssignmentSubmission,
+  AuditLog,
   models: mongoose.models,
 };

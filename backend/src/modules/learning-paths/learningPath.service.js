@@ -1,6 +1,8 @@
 'use strict';
+const mongoose = require('mongoose');
 const LearningPath = require('../../models/LearningPath');
 const Enrollment = require('../../models/Enrollment');
+const Course = require('../../models/Course');
 const AppError = require('../../utils/AppError');
 const { paginationMeta } = require('../../utils/response');
 const { cacheGet, cacheSet, cacheDel, cacheDelPattern } = require('../../config/redis');
@@ -129,7 +131,12 @@ const enrollInLearningPath = async (pathId, studentId) => {
   for (const courseId of courseIds) {
     const existing = await Enrollment.findOne({ student: studentId, course: courseId });
     if (!existing) {
-      const enrollment = await Enrollment.create({ student: studentId, course: courseId });
+      const courseDoc = await Course.findById(courseId, 'instructor').lean();
+      const enrollment = await Enrollment.create({
+        student: studentId,
+        course: courseId,
+        instructor: courseDoc?.instructor || undefined,
+      });
       results.push(enrollment);
     }
   }

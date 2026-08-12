@@ -157,8 +157,12 @@ const enrollInCourse = async (courseId, studentId) => {
   const existing = await Enrollment.findOne({ student: studentId, course: courseId });
   if (existing) throw AppError.conflict('Already enrolled in this course');
 
-  const enrollment = await Enrollment.create({ student: studentId, course: courseId });
-  await Course.findByIdAndUpdate(courseId, { $inc: { enrollmentCount: 1 } });
+  const enrollment = await Enrollment.create({
+    student: studentId,
+    course: courseId,
+    instructor: course.instructor,
+  });
+  await Course.findByIdAndUpdate(courseId, { $inc: { enrollmentCount: 1, enrolledStudentsCount: 1 } });
 
   // Create initial StudentProgress record
   try {

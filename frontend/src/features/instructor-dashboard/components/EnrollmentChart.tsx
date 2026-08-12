@@ -4,10 +4,11 @@ import { ApexOptions } from 'apexcharts';
 import { useEnrollmentTrends } from '../hooks/useInstructorDashboard';
 
 export const EnrollmentChart: React.FC = () => {
-  const { data: trends, isLoading } = useEnrollmentTrends();
+  const { data: trends, isLoading, isError } = useEnrollmentTrends();
 
-  const categories = trends?.map((t) => t.month) || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
-  const seriesData = trends?.map((t) => t.enrollments) || [120, 185, 240, 310, 290, 380, 450];
+  const categories = trends?.map((t) => t.month) || [];
+  const seriesData = trends?.map((t) => t.enrollments) || [];
+  const hasData = seriesData.some((v) => v > 0);
 
   const options: ApexOptions = {
     colors: ['#465fff'],
@@ -79,6 +80,14 @@ export const EnrollmentChart: React.FC = () => {
       {isLoading ? (
         <div className="h-64 flex items-center justify-center text-sm text-gray-400">
           Loading chart data...
+        </div>
+      ) : isError ? (
+        <div className="h-64 flex items-center justify-center text-sm text-rose-500">
+          Failed to load enrollment trends.
+        </div>
+      ) : !hasData ? (
+        <div className="h-64 flex items-center justify-center text-sm text-gray-400 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+          No enrollment data available yet.
         </div>
       ) : (
         <div className="max-w-full overflow-x-auto custom-scrollbar">

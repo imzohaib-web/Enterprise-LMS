@@ -421,6 +421,74 @@ class InstructorController {
       next(error);
     }
   }
+
+  static async getCertificates(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const userRole = req.user?.role;
+      const certificates = await InstructorService.getInstructorCertificates(instructorId, userRole);
+      res.status(200).json({ success: true, data: certificates });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getStudentProgressReport(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const format = (req.query.format || 'csv').toLowerCase();
+      const { content, filename, contentType } = await InstructorService.generateStudentProgressReport(instructorId, format);
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.status(200).send(content);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getQuizResultsReport(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const format = (req.query.format || 'csv').toLowerCase();
+      const { content, filename, contentType } = await InstructorService.generateQuizResultsReport(instructorId, format);
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.status(200).send(content);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async revokeAllOtherSessions(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const result = await InstructorService.revokeAllOtherSessions(instructorId);
+      res.status(200).json({ success: true, message: result.message });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async generate2FA(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const data = await InstructorService.generate2FA(instructorId);
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async verify2FA(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const { token } = req.body;
+      const result = await InstructorService.verify2FA(instructorId, token);
+      res.status(200).json({ success: true, message: 'Two-Factor Authentication successfully enabled', data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = InstructorController;

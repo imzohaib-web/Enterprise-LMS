@@ -22,4 +22,14 @@ const authLimiter = rateLimit({
   message: { success: false, message: 'Too many authentication attempts, please try again in 15 minutes', code: 'TOO_MANY_REQUESTS' },
 });
 
-module.exports = { apiLimiter, authLimiter };
+/** Rate limiter for sensitive write endpoints */
+const writeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'development',
+  message: { success: false, message: 'Too many write operations, please try again in a few minutes', code: 'TOO_MANY_WRITE_REQUESTS' },
+});
+
+module.exports = { apiLimiter, authLimiter, writeLimiter };

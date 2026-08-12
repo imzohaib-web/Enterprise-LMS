@@ -70,6 +70,7 @@ export const STUDENT = {
 export const INSTRUCTOR = {
   DASHBOARD:     '/instructor/dashboard',
   COURSES:       '/instructor/courses',
+  LEARNING_PATHS: '/instructor/learning-paths',
   STUDENTS:      '/instructor/students',
   ASSESSMENTS:   '/instructor/assessments',
   ASSIGNMENTS:   '/instructor/assignments',

@@ -3,6 +3,7 @@ export * from './api/instructorDashboardApi';
 export * from './hooks/useInstructorDashboard';
 
 export * from './components/StatCard';
+export * from './components/SkeletonLoader';
 export * from './components/EnrollmentChart';
 export * from './components/QuizPerformanceChart';
 export * from './components/ActivityTable';
@@ -16,3 +17,5 @@ export * from './pages/InstructorSettings';
 export * from './pages/InstructorAssessments';
 export { InstructorProfilePage } from './pages/InstructorProfile';
 export { InstructorAssignmentsPage } from './pages/InstructorAssignments';
+export { InstructorCertificatesPage } from './pages/InstructorCertificates';
+export { InstructorLearningPaths } from './pages/InstructorLearningPaths';

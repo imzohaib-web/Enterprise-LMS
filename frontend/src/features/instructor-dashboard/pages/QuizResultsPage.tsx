@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import PageMeta from '../../../components/common/PageMeta';
 import ComponentCard from '../../../components/common/ComponentCard';
 import Badge from '../../../components/ui/badge/Badge';
+import { TableSkeleton } from '../components/SkeletonLoader';
 import { useQuizResultsList, useReviewQuizAttempt } from '../hooks/useInstructorDashboard';
 import { QuizResultItem } from '../types';
 
@@ -15,6 +16,9 @@ export const QuizResultsPage: React.FC = () => {
   const [reviewScore, setReviewScore] = useState<number>(90);
   const [reviewFeedback, setReviewFeedback] = useState('');
 
+  // Bulk state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
   const filteredResults = results?.filter((r) => {
     const matchesSearch =
       r.quizTitle.toLowerCase().includes(search.toLowerCase()) ||
@@ -27,6 +31,46 @@ export const QuizResultsPage: React.FC = () => {
       (filterPassed === 'pending' && r.status === 'pending_review');
     return matchesSearch && matchesPassed;
   });
+
+  const toggleSelectAll = () => {
+    if (!filteredResults) return;
+    if (selectedIds.length === filteredResults.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredResults.map((r) => r.id || r._id || ''));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((item) => item !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const handleBulkExport = () => {
+    if (!filteredResults || selectedIds.length === 0) return;
+    const selectedItems = filteredResults.filter((r) => selectedIds.includes(r.id || r._id || ''));
+    const headers = ['Student Name', 'Student Email', 'Quiz Title', 'Course Name', 'Score %', 'Passed', 'Status'];
+    const rows = selectedItems.map((r) => [
+      `"${r.studentName}"`,
+      `"${r.studentEmail || ''}"`,
+      `"${r.quizTitle}"`,
+      `"${r.courseName}"`,
+      `${r.score}%`,
+      r.passed ? 'Yes' : 'No',
+      `"${r.status}"`,
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `selected-quiz-results-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleOpenReviewModal = (attempt: QuizResultItem) => {
     setSelectedAttempt(attempt);
@@ -121,8 +165,33 @@ export const QuizResultsPage: React.FC = () => {
 
         {/* Table Card */}
         <ComponentCard title="Student Quiz Submissions" desc="Real-time quiz evaluation history from MongoDB">
+          {/* Floating Bulk Action Bar */}
+          {selectedIds.length > 0 && (
+            <div className="mb-4 p-3 bg-brand-500 text-white rounded-xl flex items-center justify-between shadow-md">
+              <div className="text-xs font-semibold">
+                {selectedIds.length} submission(s) selected
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleBulkExport}
+                  className="px-3 py-1 bg-white text-brand-600 hover:bg-gray-100 text-xs font-bold rounded-lg transition shadow-xs"
+                >
+                  Export Selected ({selectedIds.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  className="px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white text-xs rounded-lg transition"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          )}
+
           {isLoading ? (
-            <div className="py-12 text-center text-sm text-gray-400">Loading quiz results...</div>
+            <TableSkeleton rows={5} />
           ) : isError ? (
             <div className="py-12 text-center text-sm text-rose-500">Failed to load quiz results.</div>
           ) : (
@@ -130,6 +199,14 @@ export const QuizResultsPage: React.FC = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-800 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <th className="py-3 px-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(filteredResults && filteredResults.length > 0 && selectedIds.length === filteredResults.length)}
+                        onChange={toggleSelectAll}
+                        className="rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                      />
+                    </th>
                     <th className="py-3 px-4">Student</th>
                     <th className="py-3 px-4">Quiz Title</th>
                     <th className="py-3 px-4">Course</th>
@@ -140,9 +217,20 @@ export const QuizResultsPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
                   {filteredResults && filteredResults.length > 0 ? (
-                    filteredResults.map((r) => (
-                      <tr key={r.id || r._id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3.5 px-4 font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+                    filteredResults.map((r) => {
+                      const rid = r.id || r._id || '';
+                      const isSelected = selectedIds.includes(rid);
+                      return (
+                        <tr key={rid} className={`hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors ${isSelected ? 'bg-brand-50/40 dark:bg-brand-900/10' : ''}`}>
+                          <td className="py-3.5 px-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectOne(rid)}
+                              className="rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                            />
+                          </td>
+                          <td className="py-3.5 px-4 font-semibold text-gray-900 dark:text-white flex items-center gap-3">
                           <img
                             src={r.studentAvatar || '/images/user/owner.jpg'}
                             alt={r.studentName}
@@ -177,7 +265,8 @@ export const QuizResultsPage: React.FC = () => {
                           </button>
                         </td>
                       </tr>
-                    ))
+                    );
+                  })
                   ) : (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-gray-400">

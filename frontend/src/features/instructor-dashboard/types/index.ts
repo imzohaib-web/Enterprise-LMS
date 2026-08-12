@@ -48,12 +48,32 @@ export interface StudentProgressItem {
   studentName: string;
   studentEmail: string;
   avatar?: string;
+  courseId?: string;
   courseName: string;
   progressPercent: number;
   completedModules: number;
   totalModules: number;
+  status?: 'active' | 'completed' | 'in_progress' | string;
   avgScore: number;
   lastActive: string;
+  enrolledAt?: string;
+  quizAttempts?: {
+    id: string;
+    quizTitle: string;
+    percentage: number;
+    passed: boolean;
+    attemptDate: string;
+  }[];
+  assignmentSubmissions?: {
+    id: string;
+    assignmentTitle: string;
+    fileName?: string;
+    fileUrl?: string;
+    score: number;
+    maxScore: number;
+    status: string;
+    submittedAt: string;
+  }[];
 }
 
 export interface QuizAnswerDetail {
@@ -200,4 +220,20 @@ export interface AssignmentSubmissionItem {
   feedback?: string;
   submittedAt: string;
   gradedAt?: string | null;
+}
+
+export interface InstructorCertificate {
+  id: string;
+  certificateId: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  studentAvatar?: string;
+  courseId: string;
+  courseTitle: string;
+  verificationCode: string;
+  certificateUrl: string;
+  qrCode?: string;
+  issuedAt: string;
+  status: string;
 }

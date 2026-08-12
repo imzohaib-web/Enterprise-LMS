@@ -65,6 +65,7 @@ const studentNavItems: NavItem[] = [
 const instructorNavItems: NavItem[] = [
   { name: "Dashboard", icon: <GridIcon />, path: INSTRUCTOR.DASHBOARD },
   { name: "Courses", icon: <ListIcon />, path: INSTRUCTOR.COURSES },
+  { name: "Learning Paths", icon: <ShootingStarIcon />, path: INSTRUCTOR.LEARNING_PATHS },
   { name: "Students", icon: <GroupIcon />, path: INSTRUCTOR.STUDENTS },
   { name: "Assessments", icon: <TaskIcon />, path: INSTRUCTOR.ASSESSMENTS },
   { name: "Assignments", icon: <DocsIcon />, path: INSTRUCTOR.ASSIGNMENTS },

@@ -12,6 +12,7 @@ import {
   NotificationItem,
   InstructorAssignment,
   AssignmentSubmissionItem,
+  InstructorCertificate,
 } from '../types';
 
 export const getInstructorStats = async (): Promise<InstructorStats> => {
@@ -214,4 +215,24 @@ export const gradeAssignmentSubmission = async (
 ): Promise<AssignmentSubmissionItem> => {
   const res = await axiosInstance.patch(`/instructor/submissions/${submissionId}/grade`, gradeData);
   return res.data?.data;
+};
+
+export const getInstructorCertificates = async (): Promise<InstructorCertificate[]> => {
+  const res = await axiosInstance.get('/instructor/certificates');
+  return res.data?.data || [];
+};
+
+export const revokeAllSessions = async (): Promise<{ message: string }> => {
+  const res = await axiosInstance.post('/instructor/sessions/revoke-all');
+  return res.data;
+};
+
+export const generate2FA = async (): Promise<{ secret: string; otpauthUrl: string; qrCode: string }> => {
+  const res = await axiosInstance.post('/instructor/2fa/generate');
+  return res.data?.data;
+};
+
+export const verify2FA = async (token: string): Promise<any> => {
+  const res = await axiosInstance.post('/instructor/2fa/verify', { token });
+  return res.data;
 };

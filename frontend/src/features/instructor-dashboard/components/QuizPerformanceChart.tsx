@@ -4,11 +4,12 @@ import { ApexOptions } from 'apexcharts';
 import { useQuizPerformanceTrends } from '../hooks/useInstructorDashboard';
 
 export const QuizPerformanceChart: React.FC = () => {
-  const { data: trends, isLoading } = useQuizPerformanceTrends();
+  const { data: trends, isLoading, isError } = useQuizPerformanceTrends();
 
-  const categories = trends?.map((t) => t.category) || ['Full-Stack', 'Architecture', 'DevOps', 'Databases', 'Security'];
-  const avgScores = trends?.map((t) => t.averageScore) || [88, 82, 91, 76, 84];
-  const passRates = trends?.map((t) => t.passRate) || [92, 85, 95, 78, 88];
+  const categories = trends?.map((t) => t.category) || [];
+  const avgScores = trends?.map((t) => t.averageScore) || [];
+  const passRates = trends?.map((t) => t.passRate) || [];
+  const hasData = categories.length > 0;
 
   const options: ApexOptions = {
     colors: ['#465fff', '#10b981'],
@@ -89,6 +90,14 @@ export const QuizPerformanceChart: React.FC = () => {
       {isLoading ? (
         <div className="h-64 flex items-center justify-center text-sm text-gray-400">
           Loading performance data...
+        </div>
+      ) : isError ? (
+        <div className="h-64 flex items-center justify-center text-sm text-rose-500">
+          Failed to load quiz performance data.
+        </div>
+      ) : !hasData ? (
+        <div className="h-64 flex items-center justify-center text-sm text-gray-400 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+          No quiz performance data available yet.
         </div>
       ) : (
         <div className="max-w-full overflow-x-auto custom-scrollbar">

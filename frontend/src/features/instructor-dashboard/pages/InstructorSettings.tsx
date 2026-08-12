@@ -2,11 +2,23 @@ import React, { useState, useEffect } from 'react';
 import PageMeta from '../../../components/common/PageMeta';
 import ComponentCard from '../../../components/common/ComponentCard';
 import Badge from '../../../components/ui/badge/Badge';
-import { useInstructorProfile, useUpdateInstructorSettings } from '../hooks/useInstructorDashboard';
+import {
+  useInstructorProfile,
+  useUpdateInstructorSettings,
+  useRevokeAllSessions,
+  useGenerate2FA,
+  useVerify2FA,
+} from '../hooks/useInstructorDashboard';
 
 export const InstructorSettings: React.FC = () => {
   const { data: profile, isLoading, isError, refetch } = useInstructorProfile();
   const updateSettingsMutation = useUpdateInstructorSettings();
+  const revokeSessionsMutation = useRevokeAllSessions();
+  const generate2FAMutation = useGenerate2FA();
+  const verify2FAMutation = useVerify2FA();
+
+  const [twoFactorData, setTwoFactorData] = useState<{ secret: string; qrCode: string } | null>(null);
+  const [totpToken, setTotpToken] = useState('');
 
   const [activeTab, setActiveTab] = useState<
     'account' | 'password' | 'notifications' | 'appearance' | 'language' | 'timezone' | 'privacy' | 'security' | 'sessions'
@@ -122,10 +134,46 @@ export const InstructorSettings: React.FC = () => {
   };
 
   const handleRevokeSessions = () => {
-    if (window.confirm('Are you sure you want to revoke all other active sessions?')) {
-      setFeedbackMsg({ type: 'success', text: 'All other active sessions have been revoked.' });
-      setTimeout(() => setFeedbackMsg(null), 4000);
+    if (window.confirm('Are you sure you want to revoke all other active sessions across devices?')) {
+      revokeSessionsMutation.mutate(undefined, {
+        onSuccess: (data: any) => {
+          setFeedbackMsg({ type: 'success', text: data.message || 'All other active sessions have been revoked.' });
+          setTimeout(() => setFeedbackMsg(null), 4000);
+        },
+        onError: (err: any) => {
+          setFeedbackMsg({ type: 'error', text: err?.response?.data?.message || 'Failed to revoke active sessions.' });
+        },
+      });
     }
+  };
+
+  const handleGenerate2FA = () => {
+    generate2FAMutation.mutate(undefined, {
+      onSuccess: (data: any) => {
+        setTwoFactorData(data);
+      },
+      onError: (err: any) => {
+        setFeedbackMsg({ type: 'error', text: err?.response?.data?.message || 'Failed to generate 2FA key.' });
+      },
+    });
+  };
+
+  const handleVerify2FA = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!totpToken || totpToken.length < 6) return;
+
+    verify2FAMutation.mutate(totpToken, {
+      onSuccess: () => {
+        setFeedbackMsg({ type: 'success', text: 'Two-Factor Authentication successfully enabled for your account!' });
+        setTwoFactorData(null);
+        setTotpToken('');
+        setEnable2FA(true);
+        setTimeout(() => setFeedbackMsg(null), 4000);
+      },
+      onError: (err: any) => {
+        setFeedbackMsg({ type: 'error', text: err?.response?.data?.message || 'Invalid 2FA code. Please try again.' });
+      },
+    });
   };
 
   const tabs = [
@@ -448,10 +496,43 @@ export const InstructorSettings: React.FC = () => {
                       <input
                         type="checkbox"
                         checked={enable2FA}
-                        onChange={(e) => setEnable2FA(e.target.checked)}
-                        className="w-5 h-5 rounded text-brand-600 focus:ring-brand-500"
+                        onChange={(e) => {
+                          setEnable2FA(e.target.checked);
+                          if (e.target.checked && !twoFactorData) {
+                            handleGenerate2FA();
+                          }
+                        }}
+                        className="w-5 h-5 rounded text-brand-600 focus:ring-brand-500 cursor-pointer"
                       />
                     </div>
+
+                    {twoFactorData && (
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          Scan QR Code with Authenticator App (Google Authenticator / Authy):
+                        </p>
+                        {twoFactorData.qrCode && (
+                          <img src={twoFactorData.qrCode} alt="2FA QR Code" className="w-32 h-32 border p-1 bg-white rounded-lg" />
+                        )}
+                        <p className="text-2xs text-gray-500 font-mono">Secret Key: {twoFactorData.secret}</p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <input
+                            type="text"
+                            placeholder="Enter 6-digit code..."
+                            value={totpToken}
+                            onChange={(e) => setTotpToken(e.target.value)}
+                            className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 text-xs font-mono w-40"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleVerify2FA}
+                            className="px-3 py-1.5 bg-brand-600 text-white text-xs font-bold rounded-lg hover:bg-brand-700"
+                          >
+                            Verify & Activate
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div>

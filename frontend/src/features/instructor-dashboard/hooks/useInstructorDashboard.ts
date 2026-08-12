@@ -36,6 +36,10 @@ import {
   deleteInstructorAssignment,
   getAssignmentSubmissions,
   gradeAssignmentSubmission,
+  getInstructorCertificates,
+  revokeAllSessions,
+  generate2FA,
+  verify2FA,
 } from '../api/instructorDashboardApi';
 import { InstructorCourse, InstructorProfile, InstructorAssignment } from '../types';
 
@@ -62,6 +66,7 @@ export const useCreateCourse = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructor', 'courses'] });
       queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
     },
   });
 };
@@ -73,6 +78,7 @@ export const useUpdateCourse = () => {
       updateCourse(id, courseData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructor', 'courses'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
     },
   });
 };
@@ -84,6 +90,7 @@ export const useDeleteCourse = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructor', 'courses'] });
       queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
     },
   });
 };
@@ -95,6 +102,7 @@ export const useTogglePublishCourse = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructor', 'courses'] });
       queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
     },
   });
 };
@@ -398,10 +406,40 @@ export const useGradeSubmission = () => {
   return useMutation({
     mutationFn: ({ submissionId, gradeData }: { submissionId: string; gradeData: { score: number; feedback?: string } }) =>
       gradeAssignmentSubmission(submissionId, gradeData),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructor', 'assignment-submissions'] });
       queryClient.invalidateQueries({ queryKey: ['instructor', 'assignments'] });
       queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
+    },
+  });
+};
+
+export const useInstructorCertificates = () => {
+  return useQuery({
+    queryKey: ['instructor', 'certificates'],
+    queryFn: getInstructorCertificates,
+    staleTime: 30 * 1000,
+  });
+};
+
+export const useRevokeAllSessions = () => {
+  return useMutation({
+    mutationFn: () => revokeAllSessions(),
+  });
+};
+
+export const useGenerate2FA = () => {
+  return useMutation({
+    mutationFn: () => generate2FA(),
+  });
+};
+
+export const useVerify2FA = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (token: string) => verify2FA(token),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'profile'] });
     },
   });
 };

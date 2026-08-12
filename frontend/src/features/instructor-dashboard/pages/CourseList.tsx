@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import PageMeta from '../../../components/common/PageMeta';
 import ComponentCard from '../../../components/common/ComponentCard';
 import Badge from '../../../components/ui/badge/Badge';
+import { TableSkeleton } from '../components/SkeletonLoader';
 import {
   useInstructorCourses,
   useCreateCourse,
@@ -31,16 +32,43 @@ export const CourseList: React.FC = () => {
   const togglePublishMutation = useTogglePublishCourse();
   const deleteCourseMutation = useDeleteCourse();
 
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  // Multi-select bulk state & form validation state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [formErrors, setFormErrors] = useState<{ title?: string; price?: string }>({});
 
-  // New course form state
+  // Create course modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('Software Engineering');
   const [newDescription, setNewDescription] = useState('');
-  const [newPrice, setNewPrice] = useState(199);
+  const [newPrice, setNewPrice] = useState(0);
   const [newThumbnail, setNewThumbnail] = useState('');
   const [newDifficulty, setNewDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
-  const [newStatus, setNewStatus] = useState<'published' | 'draft'>('published');
+  const [newStatus, setNewStatus] = useState<'published' | 'draft'>('draft');
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === paginatedCourses.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(paginatedCourses.map((c) => c.id || c._id || ''));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((item) => item !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} selected course(s)?`)) {
+      selectedIds.forEach((id) => deleteCourseMutation.mutate(id));
+      setSelectedIds([]);
+    }
+  };
 
   const coursesList = useMemo(() => {
     const dataObj = coursesData as any;
@@ -75,7 +103,24 @@ export const CourseList: React.FC = () => {
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    const errors: { title?: string; price?: string } = {};
+
+    if (!newTitle.trim()) {
+      errors.title = 'Course title is required';
+    } else if (newTitle.trim().length < 5) {
+      errors.title = 'Title must be at least 5 characters long';
+    }
+
+    if (newPrice < 0) {
+      errors.price = 'Price cannot be negative';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setFormErrors({});
 
     createCourseMutation.mutate(
       {
@@ -283,11 +328,33 @@ export const CourseList: React.FC = () => {
 
         {/* Content Section */}
         <ComponentCard title="MongoDB Synchronized Catalog" desc={`Showing ${paginatedCourses.length} of ${coursesList.length} total authored courses`}>
-          {isLoading ? (
-            <div className="py-16 text-center space-y-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">Loading courses from MongoDB...</p>
+          {/* Floating Bulk Action Bar */}
+          {selectedIds.length > 0 && (
+            <div className="mb-4 p-3 bg-brand-500 text-white rounded-xl flex items-center justify-between shadow-md">
+              <div className="text-xs font-semibold">
+                {selectedIds.length} course(s) selected
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleBulkDelete}
+                  className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition"
+                >
+                  Delete Selected ({selectedIds.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  className="px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white text-xs rounded-lg transition"
+                >
+                  Clear Selection
+                </button>
+              </div>
             </div>
+          )}
+
+          {isLoading ? (
+            <TableSkeleton rows={6} />
           ) : isError ? (
             <div className="py-12 text-center space-y-3 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 rounded-2xl">
               <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">
@@ -325,6 +392,14 @@ export const CourseList: React.FC = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-800 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <th className="py-3 px-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={paginatedCourses.length > 0 && selectedIds.length === paginatedCourses.length}
+                        onChange={toggleSelectAll}
+                        className="rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                      />
+                    </th>
                     <th className="py-3 px-4">Thumbnail & Title</th>
                     <th className="py-3 px-4">Category</th>
                     <th className="py-3 px-4">Status</th>
@@ -336,8 +411,19 @@ export const CourseList: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
-                  {paginatedCourses.map((c) => (
-                    <tr key={c.id || c._id} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                  {paginatedCourses.map((c) => {
+                    const cid = c.id || c._id || '';
+                    const isSelected = selectedIds.includes(cid);
+                    return (
+                      <tr key={cid} className={`hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors ${isSelected ? 'bg-brand-50/40 dark:bg-brand-900/10' : ''}`}>
+                        <td className="py-3.5 px-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOne(cid)}
+                            className="rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                          />
+                        </td>
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <img
@@ -396,7 +482,8 @@ export const CourseList: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
                 </tbody>
               </table>
             </div>
@@ -499,15 +586,24 @@ export const CourseList: React.FC = () => {
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create New Course</h2>
             <form onSubmit={handleCreateSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Course Title</label>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Course Title <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
-                  required
                   placeholder="e.g. Advanced Microservices Architecture"
                   value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
+                  onChange={(e) => {
+                    setNewTitle(e.target.value);
+                    if (formErrors.title) setFormErrors({ ...formErrors, title: undefined });
+                  }}
+                  className={`w-full px-3 py-2 rounded-xl border bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white ${
+                    formErrors.title ? 'border-rose-500 focus:ring-rose-500' : 'border-gray-300 dark:border-gray-700 focus:ring-brand-500'
+                  }`}
                 />
+                {formErrors.title && (
+                  <p className="text-[11px] text-rose-500 font-medium mt-1">{formErrors.title}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
