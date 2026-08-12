@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useSelector } from 'react-redux';
 import { courseService } from '../../services/course.service';
 import CourseCard from '../../components/lms/CourseCard';
+import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 import { selectUserRole, selectCurrentUser } from '../../features/auth/authSlice';
 
 const LEVELS = ['', 'beginner', 'intermediate', 'advanced'];
@@ -55,6 +56,13 @@ const CourseList: React.FC = () => {
     )
   );
 
+  const enrolledProgressMap = new Map<string, number>(
+    myEnrollments.map((e: any) => [
+      typeof e.course === 'object' ? e.course?._id : e.course,
+      e.progressPercentage || 0,
+    ])
+  );
+
   // ── 3. Enrollment Mutation ──────────────────────────────────────────────────
   const enrollMutation = useMutation({
     mutationFn: async (courseId: string) => {
@@ -62,11 +70,13 @@ const CourseList: React.FC = () => {
       const res = await courseService.enrollInCourse(courseId);
       return res.data;
     },
-    onSuccess: (data, _courseId) => {
+    onSuccess: (data, courseId) => {
       toast.success(data?.message || 'Enrolled successfully!');
       queryClient.invalidateQueries({ queryKey: ['myEnrollments'] });
       queryClient.invalidateQueries({ queryKey: ['courses'] });
       queryClient.invalidateQueries({ queryKey: ['studentDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['courseProgress', courseId] });
+      queryClient.invalidateQueries({ queryKey: ['studentProgressPage'] });
     },
     onError: (err: any) => {
       const msg = err.response?.data?.message || 'Enrollment failed';
@@ -86,20 +96,15 @@ const CourseList: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Course Catalog
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {meta?.total ?? courses.length} published courses available
-          </p>
+      {/* Header with Breadcrumb and Action */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex-1">
+          <PageBreadcrumb pageTitle="Course Catalog" />
         </div>
         {canCreate && (
           <Link
             to="/courses/new"
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition shadow-xs -mt-6"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -180,6 +185,7 @@ const CourseList: React.FC = () => {
               showActions={canCreate}
               isEnrolled={enrolledCourseIds.has(course._id)}
               isEnrolling={enrollingCourseId === course._id}
+              progressPercentage={enrolledProgressMap.get(course._id)}
               onEnroll={handleEnroll}
             />
           ))}

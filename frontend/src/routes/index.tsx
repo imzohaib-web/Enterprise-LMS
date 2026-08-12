@@ -1,10 +1,11 @@
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import AppLayout from '../layout/AppLayout';
 import PublicLayout from '../layout/PublicLayout';
 import NotFound from '../pages/OtherPage/NotFound';
 import ProtectedRoute from './ProtectedRoute';
-import LMSPlaceholderPage from '../components/common/LMSPlaceholderPage';
+import { selectCurrentUser } from '../features/auth/authSlice';
 import {
   PUBLIC,
   STUDENT,
@@ -65,16 +66,30 @@ import StudentSettings from '../features/student-dashboard/pages/StudentSettings
 const AdminDashboard     = lazy(() => import('../pages/Admin/Dashboard'));
 const AdminUsers         = lazy(() => import('../pages/Admin/Users'));
 const AdminReports       = lazy(() => import('../pages/Admin/Reports'));
+const AdminAnalytics     = lazy(() => import('../pages/Admin/Analytics'));
+const AdminAuditLogs     = lazy(() => import('../pages/Admin/AuditLogs'));
+const AdminSettings      = lazy(() => import('../pages/Admin/SystemSettings'));
+const AdminProfile       = lazy(() => import('../pages/Admin/AdminProfile'));
+const AdminCourses       = lazy(() => import('../pages/Admin/AdminCourses'));
 const CourseList         = lazy(() => import('../pages/Courses/CourseList'));
 const CourseBuilder      = lazy(() => import('../pages/Courses/CourseBuilder'));
+const CoursePlayer       = lazy(() => import('../features/course-player/CoursePlayer'));
 const LearningPathList   = lazy(() => import('../pages/LearningPaths/LearningPathList'));
 const LearningPathDetail = lazy(() => import('../pages/LearningPaths/LearningPathDetail'));
+const StudentCertificates= lazy(() => import('../features/student-dashboard/pages/StudentCertificates'));
 
 const Loader = () => (
   <div className="flex items-center justify-center h-64">
     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500" />
   </div>
 );
+
+const RootRedirect: React.FC = () => {
+  const user = useSelector(selectCurrentUser);
+  if (user?.role === 'admin') return <Navigate to={ADMIN.DASHBOARD} replace />;
+  if (user?.role === 'student') return <Navigate to={STUDENT.DASHBOARD} replace />;
+  return <Navigate to={INSTRUCTOR.DASHBOARD} replace />;
+};
 
 const AppRoutes: React.FC = () => {
   return (
@@ -89,73 +104,74 @@ const AppRoutes: React.FC = () => {
         <Route path={PUBLIC.ABOUT} element={<PublicAboutPage />} />
         <Route path={PUBLIC.VERIFY} element={<PublicVerifyCertificatePage />} />
         <Route path={PUBLIC.VERIFY_CODE} element={<PublicVerifyCertificatePage />} />
+        <Route path="/verify/:verificationCode" element={<CertificateVerification />} />
         <Route path={PUBLIC.CONTACT} element={<PublicContactPage />} />
         <Route path={PUBLIC.PRIVACY} element={<PublicPrivacyPage />} />
         <Route path={PUBLIC.TERMS} element={<PublicTermsPage />} />
       </Route>
 
       {/* ── Protected Application Routes ───────────────────────────────── */}
-      <Route element={<ProtectedRoute isAllowed={true} />}>
+      <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          {/* Main Root Redirect to Instructor Dashboard */}
-          <Route path="/" element={<InstructorDashboard />} />
+          {/* Main Root Role-Aware Redirect */}
+          <Route path="/" element={<RootRedirect />} />
 
-          {/* Admin Feature Routes */}
-          <Route path={ADMIN.DASHBOARD} element={<Suspense fallback={<Loader />}><AdminDashboard /></Suspense>} />
-          <Route path={ADMIN.USERS}     element={<Suspense fallback={<Loader />}><AdminUsers /></Suspense>} />
-          <Route path={ADMIN.REPORTS}   element={<Suspense fallback={<Loader />}><AdminReports /></Suspense>} />
-          <Route path={ADMIN.COURSES}   element={<Suspense fallback={<Loader />}><CourseList /></Suspense>} />
-          <Route
-            path={ADMIN.ANALYTICS}
-            element={
-              <LMSPlaceholderPage
-                title="Platform Analytics"
-                description="System-wide usage analytics, storage monitoring, and engagement tracking."
-                category="Admin Module"
-              />
-            }
-          />
-          <Route path={ADMIN.NOTIFICATIONS} element={<Notifications />} />
+          {/* Admin Feature Routes (Admin Only) */}
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path={ADMIN.DASHBOARD} element={<Suspense fallback={<Loader />}><AdminDashboard /></Suspense>} />
+            <Route path={ADMIN.USERS}     element={<Suspense fallback={<Loader />}><AdminUsers /></Suspense>} />
+            <Route path={ADMIN.REPORTS}   element={<Suspense fallback={<Loader />}><AdminReports /></Suspense>} />
+            <Route path={ADMIN.COURSES}   element={<Suspense fallback={<Loader />}><AdminCourses /></Suspense>} />
+            <Route path={ADMIN.ANALYTICS} element={<Suspense fallback={<Loader />}><AdminAnalytics /></Suspense>} />
+            <Route path={ADMIN.AUDIT_LOGS} element={<Suspense fallback={<Loader />}><AdminAuditLogs /></Suspense>} />
+            <Route path={ADMIN.SETTINGS}  element={<Suspense fallback={<Loader />}><AdminSettings /></Suspense>} />
+            <Route path={ADMIN.NOTIFICATIONS} element={<Notifications />} />
+            <Route path={ADMIN.PROFILE} element={<Suspense fallback={<Loader />}><AdminProfile /></Suspense>} />
+          </Route>
 
-          {/* Courses & Learning Paths */}
+          {/* Instructor Feature Routes (Instructor & Admin) */}
+          <Route element={<ProtectedRoute allowedRoles={['instructor']} />}>
+            <Route path={INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
+            <Route path={INSTRUCTOR.COURSES} element={<InstructorCourseList />} />
+            <Route path={INSTRUCTOR.LEARNING_PATHS} element={<InstructorLearningPaths />} />
+            <Route path={INSTRUCTOR.STUDENTS} element={<StudentProgressPage />} />
+            <Route path={INSTRUCTOR.ASSESSMENTS} element={<InstructorAssessments />} />
+            <Route path={INSTRUCTOR.ASSIGNMENTS} element={<InstructorAssignmentsPage />} />
+            <Route path={INSTRUCTOR.CERTIFICATES} element={<InstructorCertificatesPage />} />
+            <Route path={INSTRUCTOR.DISCUSSIONS} element={<Discussions />} />
+            <Route path={INSTRUCTOR.NOTIFICATIONS} element={<Notifications />} />
+            <Route path={INSTRUCTOR.QUIZ_RESULTS} element={<QuizResultsPage />} />
+            <Route path={INSTRUCTOR.STATISTICS} element={<StatisticsPage />} />
+            <Route path={INSTRUCTOR.ANALYTICS} element={<StatisticsPage />} />
+            <Route path={INSTRUCTOR.SETTINGS} element={<InstructorSettings />} />
+            <Route path={INSTRUCTOR.PROFILE} element={<InstructorProfilePage />} />
+            <Route path={COURSES.NEW} element={<Suspense fallback={<Loader />}><CourseBuilder /></Suspense>} />
+            <Route path="/courses/:id/builder" element={<Suspense fallback={<Loader />}><CourseBuilder /></Suspense>} />
+          </Route>
+
+          {/* Student Feature Routes (Student & Admin) */}
+          <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+            <Route path={STUDENT.DASHBOARD} element={<StudentDashboard />} />
+            <Route path={STUDENT.COURSES} element={<Suspense fallback={<Loader />}><CourseList /></Suspense>} />
+            <Route path={STUDENT.LEARNING_PATHS} element={<Suspense fallback={<Loader />}><LearningPathList /></Suspense>} />
+            <Route path="/learning-paths/:id" element={<Suspense fallback={<Loader />}><LearningPathDetail /></Suspense>} />
+            <Route path={STUDENT.ASSESSMENTS} element={<QuizList />} />
+            <Route path={`${STUDENT.ASSESSMENTS}/:id`} element={<QuizDetailsRouteWrapper />} />
+            <Route path={`${STUDENT.ASSESSMENTS}/:id/take`} element={<TakeQuizRouteWrapper />} />
+            <Route path={`${STUDENT.ASSESSMENTS}/:id/result`} element={<QuizResultRouteWrapper />} />
+            <Route path={STUDENT.PROGRESS} element={<StudentProgress />} />
+            <Route path={STUDENT.CERTIFICATES} element={<Suspense fallback={<Loader />}><StudentCertificates /></Suspense>} />
+            <Route path={STUDENT.DISCUSSIONS} element={<Discussions />} />
+            <Route path={STUDENT.NOTIFICATIONS} element={<Notifications />} />
+            <Route path={STUDENT.PROFILE} element={<StudentProfile />} />
+            <Route path={STUDENT.SETTINGS} element={<StudentSettings />} />
+            <Route path="/courses/:id" element={<Suspense fallback={<Loader />}><CoursePlayer /></Suspense>} />
+            <Route path="/courses/:id/learn" element={<Suspense fallback={<Loader />}><CoursePlayer /></Suspense>} />
+          </Route>
+
+          {/* Shared Authenticated Routes */}
           <Route path={COURSES.LIST} element={<Suspense fallback={<Loader />}><CourseList /></Suspense>} />
-          <Route path={COURSES.NEW} element={<Suspense fallback={<Loader />}><CourseBuilder /></Suspense>} />
-          <Route path="/courses/:id/builder" element={<Suspense fallback={<Loader />}><CourseBuilder /></Suspense>} />
           <Route path={LEARNING_PATHS.LIST} element={<Suspense fallback={<Loader />}><LearningPathList /></Suspense>} />
-
-          {/* Student Feature Routes */}
-          <Route path={STUDENT.DASHBOARD} element={<StudentDashboard />} />
-          <Route path={STUDENT.COURSES} element={<Suspense fallback={<Loader />}><CourseList /></Suspense>} />
-          <Route path={STUDENT.LEARNING_PATHS} element={<Suspense fallback={<Loader />}><LearningPathList /></Suspense>} />
-          <Route path="/learning-paths/:id" element={<Suspense fallback={<Loader />}><LearningPathDetail /></Suspense>} />
-          <Route path={STUDENT.ASSESSMENTS} element={<QuizList />} />
-          <Route path={`${STUDENT.ASSESSMENTS}/:id`} element={<QuizDetailsRouteWrapper />} />
-          <Route path={`${STUDENT.ASSESSMENTS}/:id/take`} element={<TakeQuizRouteWrapper />} />
-          <Route path={`${STUDENT.ASSESSMENTS}/:id/result`} element={<QuizResultRouteWrapper />} />
-          <Route path={STUDENT.PROGRESS} element={<StudentProgress />} />
-          <Route path={STUDENT.CERTIFICATES} element={<CertificateVerification />} />
-          <Route path={STUDENT.DISCUSSIONS} element={<Discussions />} />
-          <Route path={STUDENT.NOTIFICATIONS} element={<Notifications />} />
-          <Route path={STUDENT.PROFILE} element={<StudentProfile />} />
-          <Route path={STUDENT.SETTINGS} element={<StudentSettings />} />
-
-          {/* Instructor Feature Routes */}
-          <Route path={INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
-          <Route path={INSTRUCTOR.COURSES} element={<InstructorCourseList />} />
-          <Route path={INSTRUCTOR.LEARNING_PATHS} element={<InstructorLearningPaths />} />
-          <Route path={INSTRUCTOR.STUDENTS} element={<StudentProgressPage />} />
-          <Route path={INSTRUCTOR.ASSESSMENTS} element={<InstructorAssessments />} />
-          <Route path={INSTRUCTOR.ASSIGNMENTS} element={<InstructorAssignmentsPage />} />
-          <Route path={INSTRUCTOR.CERTIFICATES} element={<InstructorCertificatesPage />} />
-          <Route path={INSTRUCTOR.DISCUSSIONS} element={<Discussions />} />
-          <Route path={INSTRUCTOR.NOTIFICATIONS} element={<Notifications />} />
-          <Route path={INSTRUCTOR.QUIZ_RESULTS} element={<QuizResultsPage />} />
-          <Route path={INSTRUCTOR.STATISTICS} element={<StatisticsPage />} />
-          <Route path={INSTRUCTOR.ANALYTICS} element={<StatisticsPage />} />
-          <Route path={INSTRUCTOR.SETTINGS} element={<InstructorSettings />} />
-          <Route path={INSTRUCTOR.PROFILE} element={<InstructorProfilePage />} />
-
-          {/* Module Top-Level Aliases */}
           <Route path={ASSESSMENTS} element={<QuizList />} />
           <Route path={`${ASSESSMENTS}/:id`} element={<QuizDetailsRouteWrapper />} />
           <Route path={`${ASSESSMENTS}/:id/take`} element={<TakeQuizRouteWrapper />} />

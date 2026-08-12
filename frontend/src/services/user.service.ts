@@ -16,6 +16,9 @@ export const userService = {
   listUsers: (params: ListUsersParams = {}) =>
     api.get<ApiResponse<{ users: User[] }>>('/users', { params }),
 
+  createUser: (payload: { firstName: string; lastName: string; email: string; password: string; role?: string }) =>
+    api.post<ApiResponse<{ user: User }>>('/auth/register', payload),
+
   getUserById: (id: string) =>
     api.get<ApiResponse<{ user: User }>>(`/users/${id}`),
 

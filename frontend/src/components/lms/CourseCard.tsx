@@ -1,12 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import type { Course } from '../../types/course';
+import { getCourseLearnRoute } from '../../constants/routes';
 
 interface CourseCardProps {
   course: Course;
   showActions?: boolean;
   isEnrolled?: boolean;
   isEnrolling?: boolean;
+  progressPercentage?: number;
   onEnroll?: (courseId: string) => void;
   onDelete?: (id: string) => void;
 }
@@ -17,10 +19,12 @@ const levelColors = {
   advanced:     'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
 };
 
-const statusColors = {
-  published: 'bg-emerald-100 text-emerald-700',
-  draft:     'bg-gray-100 text-gray-600',
-  archived:  'bg-red-100 text-red-600',
+const statusColors: Record<string, string> = {
+  published:        'bg-emerald-100 text-emerald-700',
+  draft:            'bg-gray-100 text-gray-600',
+  archived:         'bg-red-100 text-red-600',
+  pending_approval: 'bg-amber-100 text-amber-700',
+  rejected:         'bg-rose-100 text-rose-700',
 };
 
 const CourseCard: React.FC<CourseCardProps> = ({
@@ -28,14 +32,24 @@ const CourseCard: React.FC<CourseCardProps> = ({
   showActions = false,
   isEnrolled = false,
   isEnrolling = false,
+  progressPercentage,
   onEnroll,
   onDelete,
 }) => {
+  const courseLearnUrl = getCourseLearnRoute(course._id);
+  const pct = progressPercentage ?? 0;
+
+  const getEnrolledCtaText = () => {
+    if (pct === 100) return 'Review Course';
+    if (pct > 0) return 'Continue Learning';
+    return 'Start Learning';
+  };
+
   return (
     <div className="group relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 flex flex-col justify-between">
       <div>
-        {/* Thumbnail */}
-        <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-indigo-900 to-purple-900">
+        {/* Clickable Thumbnail */}
+        <Link to={courseLearnUrl} className="block relative aspect-video overflow-hidden bg-gradient-to-br from-indigo-900 to-purple-900">
           {course.thumbnail ? (
             <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           ) : (
@@ -46,7 +60,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
             </div>
           )}
           {/* Badges */}
-          <div className="absolute top-3 left-3 flex gap-2">
+          <div className="absolute top-3 left-3 flex gap-2 pointer-events-none">
             <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${levelColors[course.level] || 'bg-gray-100 text-gray-700'}`}>
               {course.level}
             </span>
@@ -57,14 +71,14 @@ const CourseCard: React.FC<CourseCardProps> = ({
             )}
           </div>
           {course.isFree && (
-            <div className="absolute top-3 right-3 px-2 py-0.5 bg-indigo-600 text-white text-xs font-bold rounded-full">FREE</div>
+            <div className="absolute top-3 right-3 px-2 py-0.5 bg-indigo-600 text-white text-xs font-bold rounded-full pointer-events-none">FREE</div>
           )}
-        </div>
+        </Link>
 
         {/* Content */}
         <div className="p-5">
           <div className="flex items-start justify-between gap-2">
-            <Link to={`/courses/${course._id}`} className="group-hover:text-indigo-600 transition-colors">
+            <Link to={courseLearnUrl} className="group-hover:text-indigo-600 transition-colors">
               <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 text-sm leading-5">{course.title}</h3>
             </Link>
           </div>
@@ -110,22 +124,22 @@ const CourseCard: React.FC<CourseCardProps> = ({
             )}
           </div>
         ) : isEnrolled ? (
-          <div className="mt-2 flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded-xl">
-              ✓ Enrolled
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded-xl whitespace-nowrap">
+              ✓ {pct === 100 ? 'Completed' : `${pct}% Done`}
             </span>
             <Link
-              to={`/student/dashboard`}
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+              to={courseLearnUrl}
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5 whitespace-nowrap"
             >
-              Go to Dashboard &rarr;
+              {getEnrolledCtaText()} &rarr;
             </Link>
           </div>
         ) : onEnroll ? (
           <button
             onClick={() => onEnroll(course._id)}
             disabled={isEnrolling}
-            className="w-full mt-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xs"
+            className="w-full mt-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xs cursor-pointer"
           >
             {isEnrolling ? (
               <>

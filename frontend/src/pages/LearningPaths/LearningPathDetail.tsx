@@ -122,7 +122,7 @@ export const LearningPathDetail: React.FC = () => {
                   </div>
                   {course && (
                     <Link
-                      to={`/courses/${course._id}`}
+                      to={`/courses/${course._id}/learn`}
                       className="px-4 py-2 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       View Course

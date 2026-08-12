@@ -13,7 +13,7 @@ const discussionService = new DiscussionService();
 class DiscussionController {
   async getDiscussionsByCourse(req, res, next) {
     try {
-      const { courseId } = req.params;
+      const courseId = req.params.courseId || req.query.courseId || 'all';
       const result = await discussionService.getDiscussionsByCourse(courseId, req.query);
       return sendSuccess(res, 200, 'Discussions retrieved successfully', result);
     } catch (error) {

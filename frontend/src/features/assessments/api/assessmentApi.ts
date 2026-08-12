@@ -20,4 +20,11 @@ export const assessmentApi = {
     );
     return response.data.data;
   },
+
+  getQuizResult: async (quizId: string): Promise<QuizEvaluationResult> => {
+    const response = await axiosInstance.get<ApiResponse<QuizEvaluationResult>>(
+      `/assessments/${quizId}/result`
+    );
+    return response.data.data;
+  },
 };

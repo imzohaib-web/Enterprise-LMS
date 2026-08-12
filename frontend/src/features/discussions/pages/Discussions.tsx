@@ -1,445 +1,571 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { io, Socket } from 'socket.io-client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
 import PageMeta from '../../../components/common/PageMeta';
-import ComponentCard from '../../../components/common/ComponentCard';
-import Badge from '../../../components/ui/badge/Badge';
+import PageBreadCrumb from '../../../components/common/PageBreadCrumb';
+import DiscussionHeader from '../components/DiscussionHeader';
+import DiscussionFilters from '../components/DiscussionFilters';
+import DiscussionSearch from '../components/DiscussionSearch';
+import DiscussionList from '../components/DiscussionList';
+import DiscussionComposer from '../components/DiscussionComposer';
+import ReplyCard from '../components/ReplyCard';
+import ReplyComposer from '../components/ReplyComposer';
+import PinnedBadge from '../components/PinnedBadge';
+import LockedBadge from '../components/LockedBadge';
+import { selectCurrentUser } from '../../auth/authSlice';
+import { progressService } from '../../../services/progress.service';
 import {
-  useInstructorDiscussions,
-  useInstructorCourses,
+  useDiscussions,
+  useDiscussion,
   useCreateDiscussion,
   useUpdateDiscussion,
   useDeleteDiscussion,
-  useToggleLikeDiscussion,
-  useReplyDiscussion,
-  useUpdateDiscussionStatus,
-} from '../../instructor-dashboard/hooks/useInstructorDashboard';
+  useCreateReply,
+  useUpdateReply,
+  useDeleteReply,
+  useLikeDiscussion,
+  useLikeReply,
+  usePinDiscussion,
+  useLockDiscussion,
+} from '../hooks/useDiscussions';
+import { useInstructorCourses } from '../../instructor-dashboard/hooks/useInstructorDashboard';
+import { DiscussionFilter, DiscussionSort, IDiscussion, CreateDiscussionInput } from '../types';
+import { Heart, MessageSquare, ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export const Discussions: React.FC = () => {
-  const { data: discussions, isLoading, isError, error, refetch } = useInstructorDiscussions();
-  const { data: courses } = useInstructorCourses();
+  const queryClient = useQueryClient();
+  const currentUser = useSelector(selectCurrentUser);
+  const currentUserId = currentUser?._id || (currentUser as any)?.id || '';
+  const currentUserRole = currentUser?.role || 'student';
 
-  const createMutation = useCreateDiscussion();
-  const updateMutation = useUpdateDiscussion();
-  const deleteMutation = useDeleteDiscussion();
-  const likeMutation = useToggleLikeDiscussion();
-  const replyMutation = useReplyDiscussion();
-  const updateStatusMutation = useUpdateDiscussionStatus();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const threadParam = searchParams.get('thread');
 
-  const [search, setSearch] = useState('');
-  const [activeDiscussionId, setActiveDiscussionId] = useState<string | null>(null);
-  const [replyText, setReplyText] = useState('');
+  // Course Selector State ('all' by default)
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState<DiscussionFilter>('all');
+  const [sort, setSort] = useState<DiscussionSort>('latest');
+  const [page, setPage] = useState(1);
 
-  // Modal State for Start/Edit Discussion
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDiscussion, setEditingDiscussion] = useState<any | null>(null);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [courseId, setCourseId] = useState('');
-  const [tagsInput, setTagsInput] = useState('');
+  // Composer Modal State
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [editingDiscussion, setEditingDiscussion] = useState<IDiscussion | null>(null);
 
-  const courseList = Array.isArray(courses) ? courses : (courses as any)?.courses || [];
+  // Active Discussion Detail State
+  const [activeDiscussionId, setActiveDiscussionId] = useState<string | null>(threadParam);
 
-  const handleOpenCreateModal = () => {
-    setEditingDiscussion(null);
-    setTitle('');
-    setContent('');
-    setCourseId(courseList[0]?.id || courseList[0]?._id || '');
-    setTagsInput('');
-    setIsModalOpen(true);
-  };
-
-  const handleOpenEditModal = (d: any) => {
-    setEditingDiscussion(d);
-    setTitle(d.title || '');
-    setContent(d.content || '');
-    setCourseId(d.courseId || '');
-    setTagsInput(d.tags ? d.tags.join(', ') : '');
-    setIsModalOpen(true);
-  };
-
-  const handleSubmitModal = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
-
-    const tags = tagsInput
-      .split(',')
-      .map((t) => t.trim().replace(/^#/, ''))
-      .filter(Boolean);
-
-    const payload = {
-      title,
-      content,
-      courseId: courseId || undefined,
-      tags,
-    };
-
-    if (editingDiscussion) {
-      updateMutation.mutate(
-        { id: editingDiscussion.id || editingDiscussion._id, discussionData: payload },
-        { onSuccess: () => setIsModalOpen(false) }
-      );
-    } else {
-      createMutation.mutate(payload, { onSuccess: () => setIsModalOpen(false) });
+  // Synchronize state with URL search param
+  useEffect(() => {
+    if (threadParam) {
+      setActiveDiscussionId(threadParam);
     }
-  };
+  }, [threadParam]);
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this discussion thread from MongoDB?')) {
-      deleteMutation.mutate(id);
+  // Fetch courses for dropdown (enrolled courses for students, taught courses for instructors)
+  const { data: enrollmentsData = [] } = useQuery({
+    queryKey: ['studentEnrolledCoursesForDiscussions', currentUserId],
+    queryFn: async () => {
+      const res: any = await progressService.getStudentProgress();
+      return res.data?.enrollments || res.enrollments || [];
+    },
+    enabled: !!currentUserId && currentUserRole === 'student',
+  });
+
+  const { data: instructorCoursesData } = useInstructorCourses();
+
+  const availableCourses = currentUserRole === 'student'
+    ? enrollmentsData.map((e: any) => ({
+        id: e.courseId?._id || e.courseId || e.course,
+        title: e.courseId?.title || e.courseTitle || 'Enrolled Course',
+      }))
+    : (Array.isArray(instructorCoursesData) ? instructorCoursesData : (instructorCoursesData as any)?.courses || []).map((c: any) => ({
+        id: c._id || c.id,
+        title: c.title || 'Course',
+      }));
+
+  // Discussions Query
+  const { data: discussionsData, isLoading, isError, refetch } = useDiscussions(
+    selectedCourseId,
+    {
+      search: searchQuery,
+      filter,
+      sort,
+      page,
+      limit: 10,
     }
-  };
-
-  const handleToggleLike = (id: string) => {
-    likeMutation.mutate(id);
-  };
-
-  const handleReplySubmit = (e: React.FormEvent, discussionId: string) => {
-    e.preventDefault();
-    if (!replyText.trim()) return;
-
-    replyMutation.mutate(
-      { discussionId, content: replyText },
-      {
-        onSuccess: () => {
-          setReplyText('');
-        },
-      }
-    );
-  };
-
-  const handleTogglePin = (discussionId: string, currentPinned: boolean) => {
-    updateStatusMutation.mutate({
-      discussionId,
-      statusData: { isPinned: !currentPinned },
-    });
-  };
-
-  const handleToggleLock = (discussionId: string, currentLocked: boolean) => {
-    updateStatusMutation.mutate({
-      discussionId,
-      statusData: { isLocked: !currentLocked },
-    });
-  };
-
-  const filtered = (discussions || []).filter(
-    (d: any) =>
-      d.title.toLowerCase().includes(search.toLowerCase()) ||
-      d.courseName.toLowerCase().includes(search.toLowerCase()) ||
-      d.content.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Single Discussion Thread Query
+  const {
+    data: activeDiscussionData,
+    isLoading: isDiscussionLoading,
+    isError: isDiscussionError,
+  } = useDiscussion(activeDiscussionId || '');
+
+  // Mutations
+  const createDiscussionMutation = useCreateDiscussion();
+  const updateDiscussionMutation = useUpdateDiscussion();
+  const deleteDiscussionMutation = useDeleteDiscussion();
+  const createReplyMutation = useCreateReply();
+  const updateReplyMutation = useUpdateReply();
+  const deleteReplyMutation = useDeleteReply();
+  const likeDiscussionMutation = useLikeDiscussion();
+  const likeReplyMutation = useLikeReply();
+  const pinDiscussionMutation = usePinDiscussion();
+  const lockDiscussionMutation = useLockDiscussion();
+
+  // Socket.IO Real-time Connection
+  useEffect(() => {
+    const socket: Socket = io(
+      import.meta.env?.VITE_WS_URL || import.meta.env?.VITE_API_BASE_URL || 'http://localhost:5000'
+    );
+
+    if (activeDiscussionId) {
+      socket.emit('join-discussion', activeDiscussionId);
+    }
+
+    socket.on('discussion:created', () => {
+      queryClient.invalidateQueries({ queryKey: ['discussions'] });
+    });
+
+    socket.on('reply:created', (data) => {
+      queryClient.invalidateQueries({ queryKey: ['discussions'] });
+      if (data.discussionId === activeDiscussionId) {
+        queryClient.invalidateQueries({ queryKey: ['discussion', activeDiscussionId] });
+      }
+    });
+
+    socket.on('discussion:liked', (data) => {
+      queryClient.invalidateQueries({ queryKey: ['discussions'] });
+      if (data.discussionId === activeDiscussionId) {
+        queryClient.invalidateQueries({ queryKey: ['discussion', activeDiscussionId] });
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [activeDiscussionId, queryClient]);
+
+  // Handlers
+  const handleOpenDiscussion = (discussion: IDiscussion) => {
+    const discId = discussion._id || discussion.id;
+    if (discId) {
+      setActiveDiscussionId(discId);
+      setSearchParams({ thread: discId });
+    }
+  };
+
+  const handleBackToList = () => {
+    setActiveDiscussionId(null);
+    setSearchParams({});
+  };
+
+  const handleComposerSubmit = async (data: CreateDiscussionInput) => {
+    try {
+      if (editingDiscussion) {
+        const id = editingDiscussion._id || editingDiscussion.id || '';
+        await updateDiscussionMutation.mutateAsync({
+          id,
+          data: {
+            title: data.title,
+            content: data.content,
+            tags: data.tags,
+            attachments: data.attachments,
+          },
+        });
+        toast.success('Discussion post updated!');
+      } else {
+        await createDiscussionMutation.mutateAsync(data);
+        toast.success('Discussion published successfully!');
+      }
+      setIsComposerOpen(false);
+      setEditingDiscussion(null);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to save discussion');
+    }
+  };
+
+  const handleEditClick = (discussion: IDiscussion) => {
+    setEditingDiscussion(discussion);
+    setIsComposerOpen(true);
+  };
+
+  const handleDeleteClick = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this discussion thread?')) return;
+    try {
+      await deleteDiscussionMutation.mutateAsync(id);
+      toast.success('Discussion deleted');
+      if (activeDiscussionId === id) {
+        handleBackToList();
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to delete discussion');
+    }
+  };
+
+  const handleLikeDiscussion = async (id: string) => {
+    try {
+      await likeDiscussionMutation.mutateAsync(id);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to like discussion');
+    }
+  };
+
+  const handlePinDiscussion = async (id: string) => {
+    try {
+      await pinDiscussionMutation.mutateAsync(id);
+      toast.success('Pin status toggled');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Only instructors can pin discussions');
+    }
+  };
+
+  const handleLockDiscussion = async (id: string) => {
+    try {
+      await lockDiscussionMutation.mutateAsync(id);
+      toast.success('Lock status toggled');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Only instructors can lock discussions');
+    }
+  };
+
+  const handleReplySubmit = async (content: string, parentReplyId?: string | null) => {
+    if (!activeDiscussionId) return;
+    try {
+      await createReplyMutation.mutateAsync({
+        discussionId: activeDiscussionId,
+        data: { content, parentReplyId: parentReplyId || undefined },
+      });
+      toast.success('Reply posted!');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to post reply');
+    }
+  };
+
+  const handleDeleteReply = async (replyId: string) => {
+    if (!window.confirm('Are you sure you want to delete your reply?')) return;
+    try {
+      await deleteReplyMutation.mutateAsync({
+        replyId,
+        discussionId: activeDiscussionId || undefined,
+      });
+      toast.success('Reply removed');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to delete reply');
+    }
+  };
+
+  const handleLikeReply = async (replyId: string) => {
+    try {
+      await likeReplyMutation.mutateAsync({
+        replyId,
+        discussionId: activeDiscussionId || undefined,
+      });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to like reply');
+    }
+  };
+
+  const handleEditReply = async (replyId: string, newContent: string) => {
+    try {
+      await updateReplyMutation.mutateAsync({
+        replyId,
+        data: { content: newContent },
+        discussionId: activeDiscussionId || undefined,
+      });
+      toast.success('Reply updated!');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to update reply');
+    }
+  };
+
+  const discussion = activeDiscussionData;
+  const isAuthor =
+    discussion &&
+    (discussion.authorId === currentUserId ||
+      (typeof discussion.authorId === 'object' && (discussion.authorId as any)?._id === currentUserId));
+  const isInstructorOrAdmin = currentUserRole === 'instructor' || currentUserRole === 'admin';
 
   return (
     <>
       <PageMeta
-        title="Discussion Board & Community | Instructor Portal"
-        description="Course discussion forums and student interactions"
+        title="Discussion Forum | Enterprise LMS"
+        description="Collaborate with peers and instructors, ask questions, and engage in technical course discussions."
       />
 
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-2xl shadow-sm">
-          <div>
-            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">
-              Course Discussion Forums
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Start new discussion topics, answer student queries, pin announcements, and moderate your classes in real time.
-            </p>
-          </div>
+        <PageBreadCrumb pageTitle="Discussion Forum" />
 
-          <div className="flex items-center gap-3">
-            <div className="w-full sm:w-64">
-              <input
-                type="text"
-                placeholder="Search topics or tags..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500"
-              />
-            </div>
+        {/* ── Active Discussion Detail Thread View ─────────────────────── */}
+        {activeDiscussionId ? (
+          <div className="space-y-6">
             <button
-              type="button"
-              onClick={handleOpenCreateModal}
-              className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold rounded-xl transition whitespace-nowrap cursor-pointer shadow-sm"
+              onClick={handleBackToList}
+              className="inline-flex items-center text-xs font-bold text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition cursor-pointer"
             >
-              + Start Discussion
+              <ArrowLeft className="w-4 h-4 mr-1" /> Back to all discussions
             </button>
-          </div>
-        </div>
 
-        {/* Discussion List */}
-        <ComponentCard title="Active Course Threads" desc="Connected to MongoDB backend database">
-          {isLoading ? (
-            <div className="py-16 text-center space-y-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto" />
-              <p className="text-sm text-gray-500">Loading discussions from MongoDB...</p>
-            </div>
-          ) : isError ? (
-            <div className="py-12 text-center space-y-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-2xl">
-              <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">
-                Failed to load discussions: {(error as any)?.message || 'Server error'}
-              </p>
-              <button
-                onClick={() => refetch()}
-                className="px-4 py-1.5 text-xs font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700"
-              >
-                Retry Loading
-              </button>
-            </div>
-          ) : filtered && filtered.length > 0 ? (
-            <div className="space-y-4">
-              {filtered.map((d: any) => (
-                <div
-                  key={d.id || d._id}
-                  className="p-5 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xs space-y-3"
+            {isDiscussionLoading ? (
+              <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-8 space-y-4 animate-pulse">
+                <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-2/3" />
+                <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
+                <div className="h-32 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+              </div>
+            ) : isDiscussionError || !discussion ? (
+              <div className="bg-rose-50/40 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-3xl p-8 text-center space-y-3">
+                <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400">Discussion Not Found</h3>
+                <p className="text-xs text-gray-500">The discussion thread does not exist or may have been deleted.</p>
+                <button
+                  onClick={handleBackToList}
+                  className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl cursor-pointer"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={d.authorAvatar || '/images/user/owner.jpg'}
-                        alt={d.authorName}
-                        className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700"
-                      />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-gray-900 dark:text-white text-base">{d.title}</h3>
-                          {d.isPinned && <Badge color="warning">Pinned</Badge>}
-                          {d.isLocked && <Badge color="error">Locked</Badge>}
-                        </div>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          Posted by <span className="font-medium text-gray-700 dark:text-gray-300">{d.authorName}</span> in{' '}
-                          <span className="text-brand-600 dark:text-brand-400 font-medium">{d.courseName}</span> • {d.createdAt}
-                        </p>
-                      </div>
+                  Return to Discussions
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Thread Card */}
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
+                  {/* Badges & Meta */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-800 pb-4">
+                    <div className="flex items-center gap-2">
+                      {discussion.isPinned && <PinnedBadge />}
+                      {discussion.isLocked && <LockedBadge />}
                     </div>
 
+                    {/* Actions (Edit/Delete/Pin/Lock) */}
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleLike(d.id || d._id)}
-                        className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border transition ${
-                          d.isLikedByMe
-                            ? 'bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/40 dark:border-rose-900'
-                            : 'border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300'
-                        }`}
-                      >
-                        ❤️ {d.likesCount || 0}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleTogglePin(d.id || d._id, d.isPinned)}
-                        className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                      >
-                        {d.isPinned ? 'Unpin' : 'Pin'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleLock(d.id || d._id, d.isLocked)}
-                        className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
-                      >
-                        {d.isLocked ? 'Unlock' : 'Lock'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditModal(d)}
-                        className="px-2 py-1 text-xs font-semibold rounded-lg border border-brand-300 text-brand-600 hover:bg-brand-50"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(d.id || d._id)}
-                        className="px-2 py-1 text-xs font-semibold rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100"
-                      >
-                        Delete
-                      </button>
+                      {isInstructorOrAdmin && (
+                        <>
+                          <button
+                            onClick={() => handlePinDiscussion(discussion._id || discussion.id || '')}
+                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 transition cursor-pointer"
+                          >
+                            {discussion.isPinned ? 'Unpin' : 'Pin'}
+                          </button>
+                          <button
+                            onClick={() => handleLockDiscussion(discussion._id || discussion.id || '')}
+                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 transition cursor-pointer"
+                          >
+                            {discussion.isLocked ? 'Unlock' : 'Lock'}
+                          </button>
+                        </>
+                      )}
+
+                      {(isAuthor || isInstructorOrAdmin) && (
+                        <>
+                          <button
+                            onClick={() => handleEditClick(discussion)}
+                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(discussion._id || discussion.id || '')}
+                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">{d.content}</p>
+                  {/* Discussion Title */}
+                  <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-tight">
+                    {discussion.title}
+                  </h1>
+
+                  {/* Author Header */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-sm">
+                      {discussion.authorName ? discussion.authorName[0].toUpperCase() : 'U'}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-900 dark:text-white">
+                          {discussion.authorName || 'User'}
+                        </span>
+                        {discussion.authorRole === 'instructor' && (
+                          <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded-full bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                            Instructor
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-gray-400 block">
+                        {new Date(discussion.createdAt || Date.now()).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Content Body */}
+                  <div className="prose dark:prose-invert max-w-none text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                    {discussion.content}
+                  </div>
 
                   {/* Tags */}
-                  {d.tags && d.tags.length > 0 && (
-                    <div className="flex items-center gap-1.5 pt-1">
-                      {d.tags.map((tag: string, idx: number) => (
+                  {discussion.tags && discussion.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-2">
+                      {discussion.tags.map((t) => (
                         <span
-                          key={idx}
-                          className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                          key={t}
+                          className="text-[11px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2.5 py-1 rounded-full"
                         >
-                          #{tag}
+                          #{t}
                         </span>
                       ))}
                     </div>
                   )}
 
-                  {/* Reply Section Toggle */}
-                  <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-500">
-                      {d.repliesCount || (d.replies ? d.replies.length : 0)} Instructor & Peer Replies
-                    </span>
+                  {/* Footer Actions */}
+                  <div className="flex items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                     <button
-                      type="button"
-                      onClick={() => setActiveDiscussionId(activeDiscussionId === (d.id || d._id) ? null : (d.id || d._id))}
-                      className="text-xs font-bold text-brand-600 hover:underline cursor-pointer"
+                      onClick={() => handleLikeDiscussion(discussion._id || discussion.id || '')}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-rose-500 transition cursor-pointer"
                     >
-                      {activeDiscussionId === (d.id || d._id) ? 'Hide Replies' : 'View & Reply'}
+                      <Heart
+                        className={`w-4 h-4 ${
+                          discussion.likes?.includes(currentUserId)
+                            ? 'fill-rose-500 text-rose-500'
+                            : ''
+                        }`}
+                      />
+                      <span>{discussion.likesCount || 0} Likes</span>
                     </button>
+
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400">
+                      <MessageSquare className="w-4 h-4" />
+                      <span>{discussion.repliesCount || discussion.replies?.length || 0} Replies</span>
+                    </div>
                   </div>
+                </div>
 
-                  {/* Thread Replies */}
-                  {activeDiscussionId === (d.id || d._id) && (
-                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 space-y-3">
-                      {d.replies && d.replies.length > 0 ? (
-                        <div className="space-y-2 pl-4 border-l-2 border-brand-500">
-                          {d.replies.map((r: any, idx: number) => (
-                            <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl space-y-1">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                                  {r.authorName}
-                                  {r.isInstructor && (
-                                    <span className="px-2 py-0.5 rounded bg-brand-500 text-white text-[10px] uppercase font-extrabold">
-                                      Instructor
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-                              <p className="text-xs text-gray-700 dark:text-gray-300">{r.content}</p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-gray-400 italic py-1">No replies yet. Be the first to answer!</div>
-                      )}
+                {/* Replies Section */}
+                <div className="space-y-4">
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                    Replies ({discussion.replies?.length || 0})
+                  </h3>
 
-                      {!d.isLocked ? (
-                        <form onSubmit={(e) => handleReplySubmit(e, d.id || d._id)} className="flex items-center gap-2 pt-2">
-                          <input
-                            type="text"
-                            placeholder="Write an official instructor reply..."
-                            value={replyText}
-                            onChange={(e) => setReplyText(e.target.value)}
-                            className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs text-gray-900 dark:text-white"
-                          />
-                          <button
-                            type="submit"
-                            disabled={replyMutation.isPending}
-                            className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl whitespace-nowrap cursor-pointer disabled:opacity-50"
-                          >
-                            {replyMutation.isPending ? 'Posting...' : 'Reply'}
-                          </button>
-                        </form>
-                      ) : (
-                        <div className="text-xs font-semibold text-rose-500 pt-1">
-                          🔒 This discussion thread has been locked by the instructor.
-                        </div>
-                      )}
+                  {/* Reply Composer */}
+                  {!discussion.isLocked ? (
+                    <ReplyComposer onSubmit={(content, parentReplyId) => handleReplySubmit(content, parentReplyId || undefined)} />
+                  ) : (
+                    <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-2xl text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                      🔒 This discussion thread has been locked by an instructor. New replies are disabled.
                     </div>
                   )}
+
+                  {/* Replies List */}
+                  <div className="space-y-3 pt-2">
+                    {discussion.replies && discussion.replies.length > 0 ? (
+                      discussion.replies.map((reply) => (
+                        <ReplyCard
+                          key={reply._id || reply.id}
+                          reply={reply}
+                          currentUserId={currentUserId}
+                          currentUserRole={currentUserRole}
+                          onLike={() => handleLikeReply(reply._id || reply.id || '')}
+                          onDelete={() => handleDeleteReply(reply._id || reply.id || '')}
+                          onEdit={(replyId, newContent) => handleEditReply(replyId, newContent)}
+                          onReplyNested={(content, parentReplyId) => handleReplySubmit(content, parentReplyId)}
+                        />
+                      ))
+                    ) : (
+                      <p className="text-xs text-gray-400 italic text-center py-4">
+                        No replies yet. Be the first to answer!
+                      </p>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-16 text-center space-y-4 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
-              <div className="w-12 h-12 rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto text-xl font-bold">
-                💬
               </div>
-              <div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">No Discussion Topics</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm mx-auto">
-                  Start a new topic to interact with students enrolled in your courses.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleOpenCreateModal}
-                className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl"
-              >
-                + Start Discussion
-              </button>
-            </div>
-          )}
-        </ComponentCard>
-      </div>
-
-      {/* Start / Edit Discussion Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 w-full max-w-lg rounded-2xl shadow-xl p-6 space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              {editingDiscussion ? 'Edit Discussion Thread' : 'Start New Discussion'}
-            </h2>
-
-            <form onSubmit={handleSubmitModal} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Topic Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Guidance on Module 3 Microservices Architecture"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Course</label>
-                <select
-                  value={courseId}
-                  onChange={(e) => setCourseId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
-                >
-                  <option value="">General (All Assigned Courses)</option>
-                  {courseList.map((c: any) => (
-                    <option key={c.id || c._id} value={c.id || c._id}>
-                      {c.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Content / Announcement</label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="Explain the topic or ask your students a question..."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tags (Comma-separated)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Nodejs, Express, Architecture"
-                  value={tagsInput}
-                  onChange={(e) => setTagsInput(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                  className="px-4 py-2 text-xs font-semibold bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-50"
-                >
-                  {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Publish to MongoDB'}
-                </button>
-              </div>
-            </form>
+            )}
           </div>
-        </div>
-      )}
+        ) : (
+          /* ── Main Discussion List View ───────────────────────────────── */
+          <div className="space-y-6">
+            <DiscussionHeader
+              selectedCourseId={selectedCourseId}
+              onCourseChange={setSelectedCourseId}
+              onOpenComposer={() => setIsComposerOpen(true)}
+              courses={availableCourses}
+            />
+
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <DiscussionSearch
+                value={searchQuery}
+                onChange={setSearchQuery}
+              />
+              <DiscussionFilters
+                activeFilter={filter}
+                activeSort={sort}
+                onFilterChange={setFilter}
+                onSortChange={setSort}
+              />
+            </div>
+
+            {/* Discussion Cards Grid / List */}
+            {isLoading ? (
+              <div className="space-y-4 animate-pulse">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-28 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+                ))}
+              </div>
+            ) : isError ? (
+              <div className="p-8 border border-rose-200 dark:border-rose-900/40 rounded-3xl bg-rose-50/40 text-center space-y-3">
+                <p className="text-xs font-bold text-rose-600">Unable to load discussion posts.</p>
+                <button
+                  onClick={() => refetch()}
+                  className="px-4 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <DiscussionList
+                discussions={discussionsData?.discussions || []}
+                isLoading={isLoading}
+                currentUserId={currentUserId}
+                currentUserRole={currentUserRole}
+                onSelectDiscussion={handleOpenDiscussion}
+                onLikeDiscussion={handleLikeDiscussion}
+                onPinDiscussion={handlePinDiscussion}
+                onLockDiscussion={handleLockDiscussion}
+                onEditDiscussion={handleEditClick}
+                onDeleteDiscussion={handleDeleteClick}
+                pagination={discussionsData?.pagination}
+                onPageChange={setPage}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Create / Edit Discussion Composer Modal */}
+        <DiscussionComposer
+          isOpen={isComposerOpen}
+          onClose={() => {
+            setIsComposerOpen(false);
+            setEditingDiscussion(null);
+          }}
+          onSubmit={handleComposerSubmit}
+          initialData={editingDiscussion}
+          courseId={selectedCourseId === 'all' ? availableCourses[0]?.id || 'general' : selectedCourseId}
+          isSubmitting={
+            createDiscussionMutation.isPending || updateDiscussionMutation.isPending
+          }
+        />
+      </div>
     </>
   );
 };

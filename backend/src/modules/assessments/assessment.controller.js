@@ -40,6 +40,16 @@ const submitQuiz = async (req, res) => {
   sendSuccess(res, { message: 'Quiz submitted successfully', data: result });
 };
 
+const getQuizResult = async (req, res) => {
+  const studentId = req.user._id;
+  const quizId = req.params.quizId || req.params.id;
+  const result = await assessmentService.getLatestQuizAttempt(quizId, studentId);
+  if (!result) {
+    return res.status(404).json({ success: false, message: 'No attempt found for this quiz' });
+  }
+  sendSuccess(res, { data: result });
+};
+
 module.exports = {
   getAllQuizzes,
   getQuizById,
@@ -47,4 +57,5 @@ module.exports = {
   updateQuiz,
   deleteQuiz,
   submitQuiz,
+  getQuizResult,
 };

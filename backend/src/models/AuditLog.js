@@ -9,32 +9,34 @@ const auditLogSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    category: {
+      type: String,
+      enum: ['auth', 'user', 'course', 'certificate', 'report', 'system', 'instructor', 'assessment', 'assignment', 'discussion'],
+      default: 'system',
+      index: true,
+    },
+    severity: {
+      type: String,
+      enum: ['info', 'warning', 'critical'],
+      default: 'info',
+      index: true,
+    },
     performedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
       index: true,
     },
-    targetModel: {
-      type: String,
-      required: false,
-    },
-    targetId: {
-      type: String,
-      required: false,
-    },
-    details: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {},
-    },
-    ipAddress: {
-      type: String,
-      default: '',
-    },
+    performedByName: { type: String },
+    performedByEmail: { type: String },
+    targetModel: { type: String },
+    targetId: { type: String },
+    affectedResource: { type: String },
+    resourceId: { type: String },
+    ipAddress: { type: String, default: '' },
+    userAgent: { type: String },
+    details: { type: mongoose.Schema.Types.Mixed, default: {} },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 auditLogSchema.index({ createdAt: -1 });

@@ -18,11 +18,12 @@ export interface ApiResponse<T> {
 
 export const discussionApi = {
   getDiscussions: async (
-    courseId: string,
+    courseId?: string,
     params?: { search?: string; filter?: string; sort?: string; page?: number; limit?: number }
   ): Promise<DiscussionPaginatedResponse> => {
+    const url = courseId && courseId !== 'all' ? `/discussions/course/${courseId}` : `/discussions`;
     const response = await axiosInstance.get<ApiResponse<DiscussionPaginatedResponse>>(
-      `/discussions/course/${courseId}`,
+      url,
       { params }
     );
     return response.data.data;

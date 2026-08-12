@@ -30,17 +30,25 @@ export const ADMIN = {
   COURSES:    '/admin/courses',
   REPORTS:    '/admin/reports',
   ANALYTICS:  '/admin/analytics',
+  AUDIT_LOGS: '/admin/audit-logs',
+  SETTINGS:   '/admin/settings',
   NOTIFICATIONS: '/admin/notifications',
   PROFILE:    '/admin/profile',
 } as const;
 
 // ── Courses ───────────────────────────────────────────────────────────────────
+export const getCourseLearnRoute = (id: string) => `/courses/${id}/learn`;
+export const getCourseDetailRoute = (id: string) => `/courses/${id}`;
+
 export const COURSES = {
   LIST:    '/courses',
   NEW:     '/courses/new',
   DETAIL:  (id: string) => `/courses/${id}`,
+  LEARN:   (id: string) => `/courses/${id}/learn`,
   BUILDER: (id: string) => `/courses/${id}/builder`,
 } as const;
+
+
 
 // ── Learning Paths ────────────────────────────────────────────────────────────
 export const LEARNING_PATHS = {
