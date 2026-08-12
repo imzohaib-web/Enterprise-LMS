@@ -2,7 +2,7 @@ import type { User } from './user';
 
 export type CourseLevel = 'beginner' | 'intermediate' | 'advanced';
 export type CourseStatus = 'draft' | 'published' | 'archived' | 'pending_approval' | 'rejected';
-export type LessonType = 'video' | 'pdf' | 'text' | 'assignment';
+export type LessonType = 'video' | 'pdf' | 'text' | 'assignment' | 'article' | 'quiz';
 
 export interface Resource {
   name: string;
@@ -93,6 +93,7 @@ export interface CreateCoursePayload {
   title: string;
   description: string;
   shortDesc?: string;
+  thumbnail?: string;
   level: CourseLevel;
   language?: string;
   price?: number;

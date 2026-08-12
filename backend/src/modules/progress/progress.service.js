@@ -116,6 +116,20 @@ class ProgressService {
   }
 
   async markLessonComplete(studentId, courseId, lessonId) {
+    const Enrollment = require('../../models/Enrollment');
+    const User = require('../../models/User');
+    const AppError = require('../../utils/AppError');
+
+    const user = await User.findById(studentId).lean();
+    if (!user) throw AppError.unauthorized('User not found');
+
+    if (user.role !== 'admin' && user.role !== 'instructor') {
+      const enrollment = await Enrollment.findOne({ student: studentId, course: courseId }).lean();
+      if (!enrollment) {
+        throw AppError.forbidden('You are not enrolled in this course');
+      }
+    }
+
     const progress = await this.getOrCreateProgress(studentId, courseId);
     if (!progress.completedLessons.includes(lessonId)) {
       progress.completedLessons.push(lessonId);
@@ -206,6 +220,20 @@ class ProgressService {
   }
 
   async getCourseProgressDTO(studentId, courseId) {
+    const Enrollment = require('../../models/Enrollment');
+    const User = require('../../models/User');
+    const AppError = require('../../utils/AppError');
+
+    const user = await User.findById(studentId).lean();
+    if (!user) throw AppError.unauthorized('User not found');
+
+    if (user.role !== 'admin' && user.role !== 'instructor') {
+      const enrollment = await Enrollment.findOne({ student: studentId, course: courseId }).lean();
+      if (!enrollment) {
+        throw AppError.forbidden('You are not enrolled in this course');
+      }
+    }
+
     const progress = await this.getOrCreateProgress(studentId, courseId);
     return this.toResponseDTO(progress);
   }

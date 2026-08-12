@@ -162,8 +162,10 @@ export const CoursePlayer: React.FC = () => {
     onSuccess: () => {
       toast.success('Successfully enrolled in course!');
       queryClient.invalidateQueries({ queryKey: ['myEnrollments'] });
+      queryClient.invalidateQueries({ queryKey: ['courseDetail', courseId] });
       queryClient.invalidateQueries({ queryKey: ['courseProgress', courseId] });
       queryClient.invalidateQueries({ queryKey: ['studentDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || 'Enrollment failed');

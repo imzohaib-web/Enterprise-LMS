@@ -65,7 +65,29 @@ const getCourseById = async (id, requestingUser = null) => {
   if (!isOwnerOrAdmin && course.status !== 'published') {
     throw AppError.notFound('Course');
   }
-  return course;
+
+  let isEnrolled = false;
+  if (requestingUser && requestingUser._id) {
+    const enc = await Enrollment.findOne({ student: requestingUser._id, course: id }).lean();
+    if (enc) isEnrolled = true;
+  }
+
+  const courseObj = course.toObject ? course.toObject({ virtuals: true }) : { ...course };
+  courseObj.isEnrolled = isEnrolled;
+
+  // Sanitize protected lesson content if user is not enrolled and not course owner/admin
+  if (!isOwnerOrAdmin && !isEnrolled && courseObj.sections) {
+    courseObj.sections = courseObj.sections.map((section) => ({
+      ...section,
+      lessons: (section.lessons || []).map((lesson) => {
+        if (lesson.isPreview) return lesson;
+        const { videoUrl, videoPublicId, documentUrl, documentPublicId, content, ...publicLesson } = lesson;
+        return publicLesson;
+      }),
+    }));
+  }
+
+  return courseObj;
 };
 
 const getCourseBySlug = async (slug) => {
@@ -165,15 +187,19 @@ const enrollInCourse = async (courseId, studentId) => {
   if (!course) throw AppError.notFound('Course');
   if (course.status !== 'published') throw AppError.badRequest('Course is not available for enrollment');
 
-  // Check prerequisites
-  if (course.prerequisites.length > 0) {
+  // Check prerequisites (normalize Objects or ObjectIds)
+  const prereqIds = (course.prerequisites || []).map((p) =>
+    p && typeof p === 'object' && p._id ? p._id.toString() : String(p)
+  );
+
+  if (prereqIds.length > 0) {
     const completedEnrollments = await Enrollment.find({
       student: studentId,
-      course: { $in: course.prerequisites },
+      course: { $in: prereqIds },
       status: 'completed',
     }).lean();
 
-    if (completedEnrollments.length < course.prerequisites.length) {
+    if (completedEnrollments.length < prereqIds.length) {
       throw AppError.badRequest('You must complete the prerequisite courses before enrolling in this course');
     }
   }
@@ -185,6 +211,8 @@ const enrollInCourse = async (courseId, studentId) => {
     student: studentId,
     course: courseId,
     instructor: course.instructor,
+    status: 'active',
+    enrolledAt: new Date(),
   });
   await Course.findByIdAndUpdate(courseId, { $inc: { enrollmentCount: 1, enrolledStudentsCount: 1 } });
 
@@ -194,12 +222,25 @@ const enrollInCourse = async (courseId, studentId) => {
     if (StudentProgressModel) {
       await StudentProgressModel.updateOne(
         { studentId, courseId },
-        { $setOnInsert: { studentId, courseId, completedLessons: [], completedQuizzes: [], quizScores: [], progressPercentage: 0 } },
+        {
+          $setOnInsert: {
+            studentId,
+            courseId,
+            completedLessons: [],
+            completedQuizzes: [],
+            quizScores: [],
+            overallScore: 0,
+            progressPercentage: 0,
+            completed: false,
+            startedAt: new Date(),
+            lastActivity: new Date(),
+          },
+        },
         { upsert: true }
       );
     }
   } catch (err) {
-    // Non-blocking progress creation fallback
+    console.error('Progress record creation warning:', err.message);
   }
 
   // Send confirmation email
@@ -214,7 +255,7 @@ const enrollInCourse = async (courseId, studentId) => {
 
 const getEnrolledCourses = async (studentId, page = 1, limit = 12) => {
   const skip = (page - 1) * limit;
-  const [enrollments, total] = await Promise.all([
+  const [rawEnrollments, total] = await Promise.all([
     Enrollment.find({ student: studentId })
       .populate({ path: 'course', select: '-sections', populate: [{ path: 'instructor', select: 'firstName lastName avatar' }] })
       .sort({ enrolledAt: -1 })
@@ -223,6 +264,7 @@ const getEnrolledCourses = async (studentId, page = 1, limit = 12) => {
       .lean(),
     Enrollment.countDocuments({ student: studentId }),
   ]);
+  const enrollments = rawEnrollments.filter((e) => e.course != null);
   return { enrollments, meta: paginationMeta(page, limit, total) };
 };
 

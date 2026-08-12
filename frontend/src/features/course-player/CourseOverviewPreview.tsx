@@ -65,6 +65,11 @@ export const CourseOverviewPreview: React.FC<CourseOverviewPreviewProps> = ({
               <span className="px-2.5 py-0.5 text-xs font-bold uppercase rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
                 {course.level} Level
               </span>
+              {course.category && (
+                <span className="px-2.5 py-0.5 text-xs font-bold uppercase rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300">
+                  {typeof course.category === 'object' ? course.category.name : course.category}
+                </span>
+              )}
               {course.isFree && (
                 <span className="px-2.5 py-0.5 text-xs font-bold uppercase rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
                   FREE

@@ -91,8 +91,14 @@ const CourseList: React.FC = () => {
     enrollMutation.mutate(courseId);
   };
 
-  const courses = (data?.data as any)?.courses ?? [];
+  const [activeTab, setActiveTab] = useState<'all' | 'enrolled'>('all');
+
+  const allCourses = (data?.data as any)?.courses ?? [];
   const meta = data?.meta;
+
+  const displayedCourses = activeTab === 'enrolled'
+    ? allCourses.filter((course: any) => enrolledCourseIds.has(course._id))
+    : allCourses;
 
   return (
     <div className="space-y-6">
@@ -114,37 +120,65 @@ const CourseList: React.FC = () => {
         )}
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex flex-wrap gap-3 shadow-sm">
-        <div className="flex-1 min-w-[200px] relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search courses by title or topic..."
-            value={search}
+      {/* Tabs and Filters */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+        {/* Tab switcher for students */}
+        {!canCreate && (
+          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${
+                activeTab === 'all'
+                  ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900'
+              }`}
+            >
+              All Courses ({allCourses.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('enrolled')}
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${
+                activeTab === 'enrolled'
+                  ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900'
+              }`}
+            >
+              My Courses ({myEnrollments.length})
+            </button>
+          </div>
+        )}
+
+        <div className="flex flex-1 flex-wrap items-center gap-3 min-w-[240px]">
+          <div className="flex-1 min-w-[180px] relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search courses by title or topic..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            />
+          </div>
+          <select
+            value={level}
             onChange={(e) => {
-              setSearch(e.target.value);
+              setLevel(e.target.value);
               setPage(1);
             }}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-          />
+            className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          >
+            {LEVELS.map((l) => (
+              <option key={l} value={l}>
+                {l ? l.charAt(0).toUpperCase() + l.slice(1) : 'All Levels'}
+              </option>
+            ))}
+          </select>
         </div>
-        <select
-          value={level}
-          onChange={(e) => {
-            setLevel(e.target.value);
-            setPage(1);
-          }}
-          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-        >
-          {LEVELS.map((l) => (
-            <option key={l} value={l}>
-              {l ? l.charAt(0).toUpperCase() + l.slice(1) : 'All Levels'}
-            </option>
-          ))}
-        </select>
       </div>
 
       {/* Content States */}
@@ -165,20 +199,27 @@ const CourseList: React.FC = () => {
             Retry Loading
           </button>
         </div>
-      ) : courses.length === 0 ? (
+      ) : displayedCourses.length === 0 ? (
         <div className="text-center py-16 text-gray-400 space-y-2 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
           <p className="text-base font-semibold text-gray-700 dark:text-gray-300">
-            No courses found matching criteria.
+            {activeTab === 'enrolled' ? 'You have not enrolled in any courses yet.' : 'No courses found matching criteria.'}
           </p>
-          {canCreate && (
+          {activeTab === 'enrolled' ? (
+            <button
+              onClick={() => setActiveTab('all')}
+              className="inline-block text-xs font-semibold text-indigo-500 hover:underline"
+            >
+              Browse Course Catalog &rarr;
+            </button>
+          ) : canCreate ? (
             <Link to="/courses/new" className="inline-block text-xs font-semibold text-indigo-500 hover:underline">
               Create the first course &rarr;
             </Link>
-          )}
+          ) : null}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {courses.map((course: any) => (
+          {displayedCourses.map((course: any) => (
             <CourseCard
               key={course._id}
               course={course}

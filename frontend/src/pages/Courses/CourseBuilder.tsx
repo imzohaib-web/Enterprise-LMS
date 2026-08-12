@@ -30,7 +30,7 @@ const CourseBuilder: React.FC = () => {
     enabled: !!id,
   });
 
-  const { data: categoriesData } = useQuery({
+  const { data: _categoriesData } = useQuery({
     queryKey: ['categories'],
     queryFn: () => courseService.listCategories().then((r) => r.data.data!.categories || []),
   });
@@ -221,7 +221,7 @@ const CourseBuilder: React.FC = () => {
       {/* Course Details Form */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-xs">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-5">Course Details</h2>
-        <form onSubmit={handleSubmit((d) => saveCourse.mutate(d))} className="space-y-5">
+        <form onSubmit={handleSubmit((d) => saveCourse.mutate(d as any))} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Course Title *</label>
             <input

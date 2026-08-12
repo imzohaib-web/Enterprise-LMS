@@ -35,7 +35,7 @@ router.get('/:id', optionalAuth, courseController.getCourse);
 router.put('/:id', authenticate, authorize('admin', 'instructor'), validate(schemas.updateCourse), courseController.updateCourse);
 router.delete('/:id', authenticate, authorize('admin', 'instructor'), courseController.deleteCourse);
 router.post('/:id/thumbnail', authenticate, authorize('admin', 'instructor'), imageUpload.single('thumbnail'), courseController.uploadThumbnail);
-router.post('/:id/enroll', authenticate, authorize('student'), courseController.enrollInCourse);
+router.post('/:id/enroll', authenticate, authorize('student', 'admin'), courseController.enrollInCourse);
 
 /* ── Sections (nested under courses) ────────────────────────────────────── */
 router.get('/:courseId/sections', authenticate, sectionController.listSections);
