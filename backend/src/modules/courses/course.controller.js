@@ -14,8 +14,7 @@ const listCourses = async (req, res) => {
 };
 
 const getCourse = async (req, res) => {
-  const includeUnpublished = req.user && ['admin', 'instructor'].includes(req.user.role);
-  const course = await courseService.getCourseById(req.params.id, includeUnpublished);
+  const course = await courseService.getCourseById(req.params.id, req.user);
   sendSuccess(res, { data: { course } });
 };
 

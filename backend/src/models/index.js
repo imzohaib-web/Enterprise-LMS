@@ -16,8 +16,6 @@ const { QuizModel, QuizAttemptModel } = require('../modules/assessments/assessme
 const { DiscussionModel, ReplyModel } = require('../modules/discussions/discussion.model');
 const { StudentProgressModel } = require('../modules/progress/progress.model');
 
-const AuditLog = require('./AuditLog');
-
 module.exports = {
   User,
   Course,
@@ -35,6 +33,5 @@ module.exports = {
   StudentProgress: StudentProgressModel,
   Assignment,
   AssignmentSubmission,
-  AuditLog,
   models: mongoose.models,
 };

@@ -41,18 +41,71 @@ const imageUpload = multer({
   },
 });
 
+const fs = require('fs');
+const path = require('path');
+const config = require('../config/env');
+
+const UPLOADS_DIR = path.join(__dirname, '../../uploads');
+
 /**
- * Upload a buffer to Cloudinary
+ * Upload a buffer to Cloudinary with automatic local disk fallback
  * @param {Buffer} buffer
  * @param {object} options - Cloudinary upload options
- * @returns {Promise<object>} Cloudinary result
+ * @returns {Promise<object>} Cloudinary or local file upload result
  */
 const uploadToCloudinary = (buffer, options = {}) => {
   return new Promise((resolve, reject) => {
+    // Fall back to local disk storage if Cloudinary cloud_name is not configured
+    if (!config.cloudinary.cloudName) {
+      try {
+        if (!fs.existsSync(UPLOADS_DIR)) {
+          fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+        }
+        const ext = options.resource_type === 'image' ? '.png' : options.resource_type === 'video' ? '.mp4' : '.pdf';
+        const filename = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}${ext}`;
+        const filePath = path.join(UPLOADS_DIR, filename);
+
+        fs.writeFileSync(filePath, buffer);
+        const fileUrl = `/uploads/${filename}`;
+        return resolve({
+          secure_url: fileUrl,
+          url: fileUrl,
+          public_id: filename,
+          duration: 0,
+          format: ext.replace('.', ''),
+        });
+      } catch (err) {
+        return reject(new AppError(`Local file save failed: ${err.message}`, 500));
+      }
+    }
+
     const stream = cloudinary.uploader.upload_stream(
       { resource_type: 'auto', ...options },
       (error, result) => {
-        if (error) return reject(new AppError(`Cloudinary upload failed: ${error.message}`, 500));
+        if (error) {
+          // Fallback to local storage if Cloudinary fails
+          console.warn('⚠️ Cloudinary upload error, saving locally fallback:', error.message);
+          try {
+            if (!fs.existsSync(UPLOADS_DIR)) {
+              fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+            }
+            const ext = options.resource_type === 'image' ? '.png' : options.resource_type === 'video' ? '.mp4' : '.pdf';
+            const filename = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}${ext}`;
+            const filePath = path.join(UPLOADS_DIR, filename);
+
+            fs.writeFileSync(filePath, buffer);
+            const fileUrl = `/uploads/${filename}`;
+            return resolve({
+              secure_url: fileUrl,
+              url: fileUrl,
+              public_id: filename,
+              duration: 0,
+              format: ext.replace('.', ''),
+            });
+          } catch (localErr) {
+            return reject(new AppError(`Cloudinary & local upload failed: ${localErr.message}`, 500));
+          }
+        }
         resolve(result);
       }
     );
@@ -61,15 +114,24 @@ const uploadToCloudinary = (buffer, options = {}) => {
 };
 
 /**
- * Delete a file from Cloudinary
+ * Delete a file from Cloudinary or local disk
  * @param {string} publicId
  * @param {string} resourceType
  */
 const deleteFromCloudinary = async (publicId, resourceType = 'video') => {
   try {
-    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+    if (publicId && publicId.startsWith('file_')) {
+      const localPath = path.join(UPLOADS_DIR, publicId);
+      if (fs.existsSync(localPath)) {
+        fs.unlinkSync(localPath);
+      }
+      return;
+    }
+    if (config.cloudinary.cloudName) {
+      await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+    }
   } catch (err) {
-    console.warn('⚠️  Cloudinary delete failed:', err.message);
+    console.warn('⚠️ File delete failed:', err.message);
   }
 };
 
@@ -80,3 +142,4 @@ module.exports = {
   uploadToCloudinary,
   deleteFromCloudinary,
 };
+

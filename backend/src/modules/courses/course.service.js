@@ -49,14 +49,20 @@ const listCourses = async (query) => {
   return { courses, meta: paginationMeta(page, limit, total) };
 };
 
-const getCourseById = async (id, includeUnpublished = false) => {
+const getCourseById = async (id, requestingUser = null) => {
   const course = await Course.findById(id)
     .populate('instructor', 'firstName lastName avatar bio expertise')
     .populate('category', 'name slug')
     .populate('prerequisites', 'title slug thumbnail level');
 
   if (!course) throw AppError.notFound('Course');
-  if (!includeUnpublished && course.status !== 'published') {
+
+  const isOwnerOrAdmin = requestingUser && (
+    requestingUser.role === 'admin' ||
+    (course.instructor && (course.instructor._id || course.instructor).toString() === requestingUser._id.toString())
+  );
+
+  if (!isOwnerOrAdmin && course.status !== 'published') {
     throw AppError.notFound('Course');
   }
   return course;
@@ -87,6 +93,18 @@ const updateCourse = async (id, updates, requestingUser) => {
   // Instructors can only update their own courses
   if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
     throw AppError.forbidden('You can only update your own courses');
+  }
+
+  // Validate publishing requirements
+  if (updates.status === 'published' && course.status !== 'published') {
+    const finalTitle = updates.title || course.title;
+    const finalDesc = updates.description || course.description;
+    if (!finalTitle || finalTitle.length < 5) {
+      throw AppError.badRequest('Course must have a title with at least 5 characters before publishing');
+    }
+    if (!finalDesc || finalDesc.length < 10) {
+      throw AppError.badRequest('Course must have a valid description before publishing');
+    }
   }
 
   // Handle category change

@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import PageMeta from '../../../components/common/PageMeta';
 import ComponentCard from '../../../components/common/ComponentCard';
 import Badge from '../../../components/ui/badge/Badge';
+import ThumbnailUploader from '../../../components/lms/ThumbnailUploader';
+import { courseService } from '../../../services/course.service';
 import { TableSkeleton } from '../components/SkeletonLoader';
 import {
   useInstructorCourses,
@@ -43,6 +45,7 @@ export const CourseList: React.FC = () => {
   const [newDescription, setNewDescription] = useState('');
   const [newPrice, setNewPrice] = useState(0);
   const [newThumbnail, setNewThumbnail] = useState('');
+  const [newThumbnailFile, setNewThumbnailFile] = useState<File | undefined>();
   const [newDifficulty, setNewDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
   const [newStatus, setNewStatus] = useState<'published' | 'draft'>('draft');
 
@@ -135,12 +138,19 @@ export const CourseList: React.FC = () => {
         enrolledStudents: 0,
       },
       {
-        onSuccess: (data: any) => {
+        onSuccess: async (data: any) => {
           setIsCreateModalOpen(false);
           setNewTitle('');
           setNewDescription('');
           setNewThumbnail('');
           const createdId = data?.id || data?._id;
+          if (createdId && newThumbnailFile) {
+            try {
+              await courseService.uploadThumbnail(createdId, newThumbnailFile);
+            } catch {
+              /* ignore thumbnail upload error */
+            }
+          }
           if (createdId) {
             navigate(`/courses/${createdId}/builder`);
           }
@@ -670,14 +680,13 @@ export const CourseList: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Thumbnail Image URL</label>
-                <input
-                  type="text"
-                  placeholder="https://images.unsplash.com/..."
+              <div className="pt-1">
+                <ThumbnailUploader
                   value={newThumbnail}
-                  onChange={(e) => setNewThumbnail(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
+                  onChange={(url, file) => {
+                    setNewThumbnail(url);
+                    setNewThumbnailFile(file);
+                  }}
                 />
               </div>
 
