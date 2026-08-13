@@ -255,7 +255,7 @@ export const PublicHomePage: React.FC = () => {
       <HeroSection />
 
       {/* Features Infinite Horizontal Marquee Section (Compact Spacing) */}
-      <section className="py-12 lg:py-16 relative z-10 border-y border-white/10 bg-[#0C101A] backdrop-blur-2xl overflow-hidden">
+      <section className="py-12 lg:py-16 relative z-10 border-y border-white/[0.08] bg-[#0E1322]/80 backdrop-blur-2xl overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
           {/* Section Header */}
           <motion.div

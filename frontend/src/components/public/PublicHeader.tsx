@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Flame, GraduationCap, Menu, X, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { GraduationCap, Menu, X, ArrowRight } from 'lucide-react';
 import { PUBLIC } from '../../constants/routes';
 
 export const PublicHeader: React.FC = () => {
@@ -11,7 +11,8 @@ export const PublicHeader: React.FC = () => {
 
   const isActive = (path: string) => {
     if (path === PUBLIC.HOME && location.pathname === PUBLIC.HOME && !location.hash) return true;
-    if (path !== PUBLIC.HOME && location.pathname.startsWith(path)) return true;
+    if (path !== PUBLIC.HOME && location.pathname.startsWith(path) && path !== `${PUBLIC.HOME}#paths`) return true;
+    if (path === `${PUBLIC.HOME}#paths` && location.hash === '#paths') return true;
     return false;
   };
 
@@ -35,60 +36,52 @@ export const PublicHeader: React.FC = () => {
 
   return (
     <motion.header
-      initial={{ y: -20, opacity: 0 }}
+      initial={{ y: -15, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-[#090D16]/85 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/40 py-0'
-          : 'bg-transparent border-b border-transparent py-1.5'
+          ? 'bg-[#0B0E17]/90 backdrop-blur-2xl border-b border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.5)] py-3'
+          : 'bg-transparent border-b border-white/[0.04] py-4.5'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between">
           
-          {/* SkillForge LMS Brand Logo */}
-          <Link to="/" className="flex items-center gap-3.5 group">
-            <motion.div
-              whileHover={{ scale: 1.08, rotate: 3 }}
-              whileTap={{ scale: 0.95 }}
-              className="relative flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 via-brand-500 to-indigo-500 text-white shadow-[0_0_20px_rgba(70,95,255,0.4)]"
-            >
-              <Flame className="w-5 h-5 text-amber-300 absolute -top-1 -right-1 animate-pulse" />
-              <GraduationCap className="w-6 h-6 text-white group-hover:rotate-12 transition-transform" />
-              <div className="absolute inset-0 rounded-2xl bg-brand-400 blur-md opacity-40 group-hover:opacity-80 transition-opacity" />
-            </motion.div>
+          {/* Distinctive Brand Identity */}
+          <Link to={PUBLIC.HOME} className="flex items-center gap-2.5 group">
+            <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.04] border border-white/15 group-hover:border-brand-500/50 transition-colors shadow-sm">
+              <GraduationCap className="w-4.5 h-4.5 text-white group-hover:text-brand-400 transition-colors" />
+            </div>
             
-            <div className="flex flex-col">
-              <span className="font-black text-white text-xl tracking-tight leading-none group-hover:text-brand-300 transition-colors">
-                SkillForge <span className="text-brand-400 font-bold">LMS</span>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-white text-base tracking-tight leading-none">
+                SkillForge
               </span>
-              <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mt-1">
-                Enterprise Academy
+              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md uppercase tracking-wide">
+                LMS
               </span>
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-7">
+          {/* Minimalist Navigation Bar */}
+          <nav className="hidden lg:flex items-center gap-1 bg-white/[0.02] border border-white/[0.08] px-3 py-1 rounded-full backdrop-blur-xl">
             {navLinks.map((link) => {
               const active = isActive(link.path);
               return (
                 <Link
                   key={link.name}
                   to={link.path}
-                  className={`relative text-sm font-semibold transition-all py-1.5 ${
-                    active
-                      ? 'text-white'
-                      : 'text-gray-400 hover:text-white'
+                  className={`relative px-3.5 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                    active ? 'text-white font-semibold' : 'text-gray-400 hover:text-gray-200'
                   }`}
                 >
                   {link.name}
                   {active && (
-                    <motion.span
-                      layoutId="activeNavIndicator"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-500 via-indigo-400 to-purple-400 rounded-full shadow-[0_0_10px_rgba(70,95,255,0.8)]"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    <motion.div
+                      layoutId="headerActiveIndicator"
+                      className="absolute inset-0 bg-white/[0.08] border border-white/10 rounded-full z-[-1]"
+                      transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                     />
                   )}
                 </Link>
@@ -96,83 +89,82 @@ export const PublicHeader: React.FC = () => {
             })}
           </nav>
 
-          {/* Desktop Actions: Login & Register */}
-          <div className="hidden lg:flex items-center gap-4">
+          {/* Restrained Actions */}
+          <div className="hidden lg:flex items-center gap-3">
             <Link
               to={PUBLIC.LOGIN}
-              className="px-5 py-2.5 text-sm font-semibold text-gray-300 hover:text-white transition-colors rounded-xl hover:bg-white/5"
+              className="px-3.5 py-1.5 text-xs font-medium text-gray-300 hover:text-white transition-colors"
             >
-              Login
+              Sign In
             </Link>
-            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-              <Link
-                to={PUBLIC.REGISTER}
-                className="group relative inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl overflow-hidden transition-all shadow-[0_0_20px_rgba(70,95,255,0.35)] hover:shadow-[0_0_35px_rgba(70,95,255,0.7)]"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 group-hover:scale-105 transition-transform" />
-                <span className="relative z-10">Register</span>
-                <ArrowRight className="relative z-10 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </motion.div>
+            <Link
+              to={PUBLIC.REGISTER}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-white/[0.06] hover:bg-white/10 border border-white/15 hover:border-white/30 rounded-lg backdrop-blur-xl transition-all shadow-sm group"
+            >
+              <span>Get Started</span>
+              <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+            </Link>
           </div>
 
-          {/* Mobile Hamburger Menu Button */}
+          {/* Mobile Hamburger Button */}
           <div className="flex lg:hidden items-center">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2.5 text-gray-300 hover:text-white focus:outline-none rounded-xl bg-white/5 border border-white/10"
-              aria-label="Toggle menu"
+              className="p-2 text-gray-300 hover:text-white focus:outline-none rounded-lg bg-white/[0.04] border border-white/10"
+              aria-label="Toggle Navigation Menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
       </div>
 
       {/* Mobile Menu Drawer */}
-      {mobileMenuOpen && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.3 }}
-          className="lg:hidden border-b border-white/10 bg-[#090D16]/95 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-4 shadow-2xl"
-        >
-          <div className="flex flex-col space-y-2">
-            {navLinks.map((link) => (
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="lg:hidden border-b border-white/10 bg-[#0B0E17]/95 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-4 shadow-2xl overflow-hidden"
+          >
+            <div className="flex flex-col space-y-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  to={link.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive(link.path)
+                      ? 'bg-white/[0.08] text-white border border-white/10'
+                      : 'text-gray-300 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
+            <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
               <Link
-                key={link.name}
-                to={link.path}
+                to={PUBLIC.LOGIN}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`px-4 py-2.5 rounded-xl text-base font-semibold transition-colors ${
-                  isActive(link.path)
-                    ? 'bg-brand-500/20 text-white border border-brand-500/40'
-                    : 'text-gray-300 hover:bg-white/5'
-                }`}
+                className="w-full text-center py-2 text-xs font-semibold text-gray-300 border border-white/10 rounded-lg bg-white/[0.04]"
               >
-                {link.name}
+                Sign In
               </Link>
-            ))}
-          </div>
-          <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
-            <Link
-              to={PUBLIC.LOGIN}
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 text-sm font-semibold text-gray-200 border border-white/10 rounded-xl bg-white/5 hover:bg-white/10"
-            >
-              Login
-            </Link>
-            <Link
-              to={PUBLIC.REGISTER}
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 text-sm font-bold text-white bg-gradient-to-r from-brand-600 to-indigo-600 rounded-xl shadow-md"
-            >
-              Register
-            </Link>
-          </div>
-        </motion.div>
-      )}
+              <Link
+                to={PUBLIC.REGISTER}
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center py-2 text-xs font-bold text-white bg-brand-600 rounded-lg shadow-sm"
+              >
+                Get Started
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.header>
   );
 };
