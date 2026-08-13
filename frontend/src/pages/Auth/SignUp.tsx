@@ -3,9 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+import { Eye, EyeOff, Lock, Mail, User, ShieldCheck, ArrowRight } from 'lucide-react';
 import { registerThunk, selectIsAuthenticated, selectCurrentUser } from '../../features/auth/authSlice';
 import type { AppDispatch } from '../../app/store';
 import type { RegisterPayload } from '../../types/user';
+import AuthLayout from '../../layout/AuthLayout';
+import PageMeta from '../../components/common/PageMeta';
+import { PUBLIC } from '../../constants/routes';
 
 const SignUp: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -55,103 +59,124 @@ const SignUp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 shadow-2xl">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-white">Enterprise LMS</h1>
-          <p className="text-gray-400 mt-1">Create your account</p>
-        </div>
+    <>
+      <PageMeta
+        title="Create Account | SkillForge LMS"
+        description="Create your SkillForge LMS account to join production-grade software development cohorts and earn credentials."
+      />
 
-        {/* Card */}
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-2xl">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Name row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">First Name</label>
+      <AuthLayout
+        type="signup"
+        title="Create your account."
+        subtitle="Start learning with production-grade courses and verified credentials."
+      >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
+          {/* Name Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-mono text-gray-300 uppercase tracking-wider mb-1">
+                First Name
+              </label>
+              <div className="relative flex items-center">
                 <input
                   id="signup-firstname"
                   type="text"
                   {...register('firstName', { required: 'Required', minLength: { value: 2, message: 'Min 2 chars' } })}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                  placeholder="John"
+                  className="w-full px-3 py-2 pl-9 text-xs sm:text-sm bg-white/[0.03] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 font-mono transition-colors"
+                  placeholder="Alex"
                 />
-                {errors.firstName && <p className="mt-1 text-xs text-red-400">{errors.firstName.message}</p>}
+                <User className="absolute left-3 text-gray-400 w-3.5 h-3.5" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Last Name</label>
-                <input
-                  id="signup-lastname"
-                  type="text"
-                  {...register('lastName', { required: 'Required', minLength: { value: 2, message: 'Min 2 chars' } })}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                  placeholder="Doe"
-                />
-                {errors.lastName && <p className="mt-1 text-xs text-red-400">{errors.lastName.message}</p>}
-              </div>
+              {errors.firstName && <p className="mt-1 text-[11px] text-rose-400 font-mono">{errors.firstName.message}</p>}
             </div>
 
-            {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Email address</label>
+              <label className="block text-[11px] font-mono text-gray-300 uppercase tracking-wider mb-1">
+                Last Name
+              </label>
+              <input
+                id="signup-lastname"
+                type="text"
+                {...register('lastName', { required: 'Required', minLength: { value: 2, message: 'Min 2 chars' } })}
+                className="w-full px-3 py-2 text-xs sm:text-sm bg-white/[0.03] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 font-mono transition-colors"
+                placeholder="Mercer"
+              />
+              {errors.lastName && <p className="mt-1 text-[11px] text-rose-400 font-mono">{errors.lastName.message}</p>}
+            </div>
+          </div>
+
+          {/* Email Field */}
+          <div>
+            <label className="block text-[11px] font-mono text-gray-300 uppercase tracking-wider mb-1">
+              Email Address
+            </label>
+            <div className="relative flex items-center">
               <input
                 id="signup-email"
                 type="email"
                 {...register('email', { required: 'Required', pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email' } })}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                placeholder="you@company.com"
+                className="w-full px-3 py-2 pl-9 text-xs sm:text-sm bg-white/[0.03] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 font-mono transition-colors"
+                placeholder="alex@company.com"
               />
-              {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>}
+              <Mail className="absolute left-3 text-gray-400 w-3.5 h-3.5" />
             </div>
+            {errors.email && <p className="mt-1 text-[11px] text-rose-400 font-mono">{errors.email.message}</p>}
+          </div>
 
-            {/* Role */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Account Type</label>
+          {/* Account Role Dropdown */}
+          <div>
+            <label className="block text-[11px] font-mono text-gray-300 uppercase tracking-wider mb-1">
+              Account Type / Role
+            </label>
+            <div className="relative flex items-center">
               <select
                 id="signup-role"
                 {...register('role')}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition appearance-none"
+                className="w-full px-3 py-2 pl-9 text-xs sm:text-sm bg-white/[0.03] border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/30 font-mono transition-colors appearance-none"
               >
-                <option value="student" className="bg-gray-800">Student</option>
-                <option value="instructor" className="bg-gray-800">Instructor</option>
+                <option value="student" className="bg-[#090C15] text-white">Student / Developer</option>
+                <option value="instructor" className="bg-[#090C15] text-white">Instructor / Author</option>
               </select>
+              <ShieldCheck className="absolute left-3 text-gray-400 w-3.5 h-3.5" />
             </div>
+          </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Password</label>
-              <div className="relative">
-                <input
-                  id="signup-password"
-                  type={showPw ? 'text' : 'password'}
-                  {...register('password', {
-                    required: 'Required',
-                    minLength: { value: 8, message: 'Min 8 characters' },
-                    pattern: { value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, message: 'Must have uppercase, lowercase, and number' },
-                  })}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition pr-12"
-                  placeholder="Min 8 chars"
-                />
-                <button type="button" onClick={() => setShowPw(!showPw)} tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </button>
-              </div>
-              {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>}
+          {/* Password Field */}
+          <div>
+            <label className="block text-[11px] font-mono text-gray-300 uppercase tracking-wider mb-1">
+              Password
+            </label>
+            <div className="relative flex items-center">
+              <input
+                id="signup-password"
+                type={showPw ? 'text' : 'password'}
+                {...register('password', {
+                  required: 'Required',
+                  minLength: { value: 8, message: 'Min 8 characters' },
+                  pattern: { value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, message: 'Must include uppercase, lowercase & number' },
+                })}
+                className="w-full px-3 py-2 pl-9 pr-9 text-xs sm:text-sm bg-white/[0.03] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 font-mono transition-colors"
+                placeholder="Min 8 chars (A-z, 0-9)"
+              />
+              <Lock className="absolute left-3 text-gray-400 w-3.5 h-3.5" />
+              <button
+                type="button"
+                onClick={() => setShowPw(!showPw)}
+                tabIndex={-1}
+                className="absolute right-3 text-gray-400 hover:text-white transition-colors"
+              >
+                {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
             </div>
+            {errors.password && <p className="mt-1 text-[11px] text-rose-400 font-mono">{errors.password.message}</p>}
+          </div>
 
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Confirm Password</label>
+          {/* Confirm Password Field */}
+          <div>
+            <label className="block text-[11px] font-mono text-gray-300 uppercase tracking-wider mb-1">
+              Confirm Password
+            </label>
+            <div className="relative flex items-center">
               <input
                 id="signup-confirm-password"
                 type={showPw ? 'text' : 'password'}
@@ -159,38 +184,42 @@ const SignUp: React.FC = () => {
                   required: 'Required',
                   validate: (v) => v === password || 'Passwords do not match',
                 })}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                className="w-full px-3 py-2 pl-9 text-xs sm:text-sm bg-white/[0.03] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-white/30 font-mono transition-colors"
                 placeholder="Repeat password"
               />
-              {errors.confirmPassword && <p className="mt-1 text-xs text-red-400">{errors.confirmPassword.message}</p>}
+              <Lock className="absolute left-3 text-gray-400 w-3.5 h-3.5" />
             </div>
+            {errors.confirmPassword && <p className="mt-1 text-[11px] text-rose-400 font-mono">{errors.confirmPassword.message}</p>}
+          </div>
 
-            {/* Submit */}
-            <button
-              id="signup-submit"
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Creating account...
-                </>
-              ) : 'Create Account'}
-            </button>
-          </form>
+          {/* Submit Button */}
+          <button
+            id="signup-submit"
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-2.5 px-4 mt-2 bg-white hover:bg-gray-100 text-gray-950 font-bold text-xs sm:text-sm rounded-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md active:scale-[0.99]"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center gap-2 font-mono">
+                <span className="animate-spin w-3.5 h-3.5 border-2 border-gray-950 border-t-transparent rounded-full" />
+                Creating Account...
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                Create Account <ArrowRight className="w-3.5 h-3.5 text-gray-950" />
+              </span>
+            )}
+          </button>
+        </form>
 
-          <p className="mt-6 text-center text-sm text-gray-400">
-            Already have an account?{' '}
-            <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-medium transition">Sign in</Link>
-          </p>
-        </div>
-      </div>
-    </div>
+        <p className="mt-4 text-center text-xs text-gray-400">
+          Already have an account?{' '}
+          <Link to={PUBLIC.LOGIN} className="text-emerald-400 hover:text-emerald-300 font-mono font-bold transition-colors">
+            Sign In →
+          </Link>
+        </p>
+      </AuthLayout>
+    </>
   );
 };
 
