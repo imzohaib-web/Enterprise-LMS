@@ -11,33 +11,39 @@ export interface FAQItem {
 const defaultFAQs: FAQItem[] = [
   {
     id: '1',
-    question: 'How do I enroll in a course or learning path?',
+    question: 'How do self-paced interactive coding labs work?',
     answer:
-      'Click the "Get Started" or "Enroll Now" button on any course card. Create a free account or sign in to immediately access self-paced modules, interactive quizzes, and downloadable course resources.',
+      'Each course module includes embedded interactive code sandboxes with live test runners. You write and execute code directly in your browser, receiving immediate feedback on test assertions before advancing to the next lesson.',
   },
   {
     id: '2',
-    question: 'How are certificates verified by employers and incubators?',
+    question: 'How are cryptographic verification codes validated by employers?',
     answer:
-      'Every certificate issued by Enterprise LMS includes a unique verification code and QR link. Employers and incubators can enter this code on our public Certificate Verification page (/verify) to instantly confirm authenticity, student identity, and completion grade.',
+      'Every certificate issued by SkillForge features a unique cryptographic code (e.g. SF-2026-8921-VERIFIED). Employers and incubators can input this code on our public Certificate Verification page (/verify) to instantly confirm authenticity, student identity, and syllabus score.',
   },
   {
     id: '3',
-    question: 'Can I access courses and take assessments on mobile devices?',
+    question: 'Are course assessments and quizzes timed?',
     answer:
-      'Yes! The platform is 100% responsive across mobile phones, tablets, and desktops. You can watch video lessons, inspect code examples, and submit quizzes seamlessly on any modern mobile browser.',
+      'Final certification exams and milestone assessments feature live countdown timers to simulate technical interviewing environments. Practice lesson quizzes allow unlimited untimed retries to ensure concept mastery.',
   },
   {
     id: '4',
-    question: 'Are quizzes and assessments timed?',
+    question: 'What happens after completing a career roadmap path?',
     answer:
-      'Certain course assessments and final certification exams feature live countdown timers to simulate real-world technical interview assessments. Practice quizzes allow untimed retries to solidify mastery.',
+      'Upon finishing all required courses in a Guided Learning Path, you receive a master Career Path Credential, a comprehensive syllabus transcript, and access to incubator hiring partner networks.',
   },
   {
     id: '5',
-    question: 'Can instructors and incubators create custom courses?',
+    question: 'Can organizational admins track team progress via Admin Analytics?',
     answer:
-      'Approved instructors and organizational admins have access to the Instructor Dashboard where they can author modules, create quizzes, track student performance analytics, and issue credentials.',
+      'Yes! Approved enterprise administrators and team managers gain access to the Admin Analytics panel, allowing real-time monitoring of team study hours, assessment scores, and completion metrics.',
+  },
+  {
+    id: '6',
+    question: 'Is SkillForge LMS optimized for mobile study sessions?',
+    answer:
+      'SkillForge LMS is 100% responsive across mobile phones, tablets, and desktop workstations. You can stream video lessons, review code snippets, and take practice quizzes on any mobile browser.',
   },
 ];
 
@@ -49,41 +55,41 @@ export const FAQAccordion: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto">
+    <div className="space-y-3.5 max-w-3xl mx-auto">
       {defaultFAQs.map((faq, idx) => {
         const isOpen = openId === faq.id;
         return (
           <motion.div
             key={faq.id}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: idx * 0.1 }}
-            className={`rounded-2xl border transition-colors duration-300 overflow-hidden ${
+            transition={{ duration: 0.4, delay: idx * 0.08 }}
+            className={`rounded-xl border transition-all duration-300 overflow-hidden ${
               isOpen
-                ? 'bg-white/[0.04] border-brand-500/50 shadow-[0_0_25px_rgba(70,95,255,0.15)]'
-                : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+                ? 'bg-[#0C101D] border-white/25 shadow-lg'
+                : 'bg-[#090C15] border-white/10 hover:border-white/20'
             }`}
           >
             <button
               type="button"
               onClick={() => toggle(faq.id)}
-              className="w-full px-6 py-5 text-left flex items-center justify-between font-bold text-white hover:text-brand-300 transition-colors focus:outline-none"
+              className="w-full px-5 py-4 text-left flex items-center justify-between font-bold text-white hover:text-brand-300 transition-colors focus:outline-none"
             >
-              <span className="text-base sm:text-lg flex items-center gap-3">
-                <HelpCircle className="w-5 h-5 text-brand-400 shrink-0" />
+              <span className="text-sm sm:text-base flex items-center gap-3 tracking-tight">
+                <HelpCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                 {faq.question}
               </span>
               <motion.span
                 animate={{ rotate: isOpen ? 180 : 0 }}
-                transition={{ duration: 0.3 }}
-                className={`ml-4 flex items-center justify-center w-8 h-8 rounded-full border text-sm font-black ${
+                transition={{ duration: 0.25 }}
+                className={`ml-3 flex items-center justify-center w-6 h-6 rounded-md border text-xs ${
                   isOpen
-                    ? 'bg-brand-500 text-white border-brand-400'
-                    : 'bg-white/5 text-gray-300 border-white/10'
+                    ? 'bg-white/10 text-white border-white/20'
+                    : 'bg-white/[0.04] text-gray-400 border-white/10'
                 }`}
               >
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-3.5 h-3.5" />
               </motion.span>
             </button>
 
@@ -93,9 +99,9 @@ export const FAQAccordion: React.FC = () => {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  transition={{ duration: 0.25, ease: 'easeInOut' }}
                 >
-                  <div className="px-6 pb-6 pt-2 text-sm text-gray-300 leading-relaxed border-t border-white/5">
+                  <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-gray-300 leading-relaxed font-normal border-t border-white/5">
                     {faq.answer}
                   </div>
                 </motion.div>

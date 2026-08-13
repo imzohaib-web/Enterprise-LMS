@@ -10,45 +10,39 @@ export const CTASection: React.FC = () => {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="relative overflow-hidden rounded-2xl bg-[#10141F] p-10 sm:p-14 lg:p-16 text-white border border-white/[0.08] shadow-xl"
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="relative overflow-hidden rounded-3xl bg-[#090C15] border border-white/15 p-10 sm:p-14 lg:p-16 text-white shadow-2xl backdrop-blur-2xl"
     >
-      {/* Subtle Grid Overlay for depth */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none z-0" />
+      {/* Background ambient lighting */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative z-10 max-w-3xl mx-auto text-center space-y-6">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-300 bg-brand-500/10 rounded-md border border-brand-500/20">
-          <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-          Accelerate Your Engineering Career
+        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-md text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+          <span>CAREER TRANSFORMATION</span>
         </span>
-        
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.15]">
+        <h2 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
           Ready to Master Production Software Development?
         </h2>
-        
-        <p className="text-base sm:text-lg text-gray-300 max-w-xl mx-auto leading-relaxed font-normal">
-          Join thousands of software engineers, cloud architects, and tech incubators enrolled in Enterprise LMS today.
+        <p className="text-sm sm:text-base text-gray-300 max-w-2xl mx-auto leading-relaxed font-normal">
+          Join thousands of software engineers, cloud architects, and tech incubators enrolled in SkillForge LMS today.
         </p>
-
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
-            <Link
-              to={PUBLIC.REGISTER}
-              className="ds-public-btn-primary group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 text-base font-semibold text-white rounded-lg transition-all"
-            >
-              <span>Create Free Account</span>
-              <ArrowRight className="w-4.5 h-4.5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </motion.div>
+        <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            to={PUBLIC.REGISTER}
+            className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 text-sm font-bold text-gray-950 bg-white hover:bg-gray-100 rounded-xl shadow-lg transition-all"
+          >
+            <span>Create Free Account</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </Link>
           
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
-            <Link
-              to={PUBLIC.COURSES}
-              className="ds-public-btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 text-base font-semibold text-gray-300 hover:text-white rounded-lg transition-all"
-            >
-              Browse All Courses
-            </Link>
-          </motion.div>
+          <Link
+            to={PUBLIC.COURSES}
+            className="w-full sm:w-auto px-7 py-3.5 text-sm font-semibold text-white bg-white/[0.06] hover:bg-white/10 border border-white/15 rounded-xl transition-all block text-center"
+          >
+            Browse All Courses
+          </Link>
         </div>
       </div>
     </motion.section>
