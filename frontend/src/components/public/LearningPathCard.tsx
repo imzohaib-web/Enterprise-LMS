@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Clock, Layers, Compass } from 'lucide-react';
+import { Clock, Layers, Compass, Code, ArrowRight } from 'lucide-react';
 import { PUBLIC } from '../../constants/routes';
 
 export interface LearningPathData {
@@ -12,7 +12,8 @@ export interface LearningPathData {
   duration: string;
   description: string;
   skills: string[];
-  color: string;
+  color?: string;
+  thumbnailUrl?: string;
   progress?: number;
 }
 
@@ -22,81 +23,107 @@ interface LearningPathCardProps {
 }
 
 export const LearningPathCard: React.FC<LearningPathCardProps> = ({ path, index = 0 }) => {
-  const xOffset = index % 2 === 0 ? -30 : 30;
+  const [imgError, setImgError] = useState(false);
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: xOffset }}
-      whileInView={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.6, ease: 'easeOut', delay: (index % 3) * 0.1 }}
-      whileHover={{ y: -6, scale: 1.01 }}
-      className="group flex flex-col h-full p-8 rounded-3xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-brand-500/40 backdrop-blur-xl shadow-xl transition-colors duration-300 justify-between space-y-6"
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay: (index % 3) * 0.08 }}
+      whileHover={{ y: -5 }}
+      className="group flex flex-col h-full overflow-hidden rounded-2xl bg-[#090C15] hover:bg-[#0C101D] border border-white/10 hover:border-white/25 backdrop-blur-2xl shadow-xl transition-all duration-300 justify-between"
     >
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <span className="px-3.5 py-1 text-2xs font-extrabold uppercase tracking-wider text-brand-300 bg-brand-500/20 border border-brand-500/30 rounded-full">
+      {/* Compact Widescreen Visual Header */}
+      <div className="relative h-32 w-full bg-[#06080F] overflow-hidden">
+        {path.thumbnailUrl && !imgError ? (
+          <img
+            src={path.thumbnailUrl}
+            alt={path.title}
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[#0D1322] via-[#090C15] to-[#12182B] flex items-center justify-center p-4 relative">
+            <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 400 130" fill="none">
+              <line x1="0" y1="65" x2="400" y2="65" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
+              <circle cx="200" cy="65" r="40" stroke="white" strokeWidth="1" />
+            </svg>
+            <Code className="w-8 h-8 text-emerald-400 opacity-60" />
+          </div>
+        )}
+
+        {/* Dark Gradient Mask Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#090C15] via-black/30 to-transparent pointer-events-none" />
+
+        {/* Top Badges (Difficulty & Duration) */}
+        <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-auto">
+          <span className="text-[10px] font-mono font-semibold uppercase px-2.5 py-0.5 bg-black/70 backdrop-blur-md rounded-md text-emerald-400 border border-emerald-500/30">
             {path.difficulty}
           </span>
-          <span className="text-xs font-semibold text-gray-400 flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-brand-400" />
+          <span className="text-[10px] font-mono text-gray-300 bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/15 flex items-center gap-1">
+            <Clock className="w-3 h-3 text-gray-400" />
             {path.duration}
           </span>
         </div>
-
-        <h3 className="text-xl font-extrabold text-white group-hover:text-brand-300 transition-colors leading-snug">
-          {path.title}
-        </h3>
-
-        <p className="text-xs text-gray-300 mt-3 leading-relaxed">
-          {path.description}
-        </p>
-
-        {/* Technology Skill Tag Pills */}
-        <div className="flex flex-wrap gap-1.5 mt-5">
-          {path.skills.map((skill) => (
-            <span
-              key={skill}
-              className="px-2.5 py-1 text-2xs font-semibold bg-white/5 border border-white/10 text-gray-300 rounded-lg flex items-center gap-1"
-            >
-              <Compass className="w-3 h-3 text-brand-400" />
-              {skill}
-            </span>
-          ))}
-        </div>
       </div>
 
-      {/* Progress Preview */}
-      <div className="space-y-4">
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-[11px] font-semibold text-gray-400">
-            <span>Career Path Completion</span>
-            <span className="text-brand-400">{path.progress || 60}%</span>
-          </div>
-          <div className="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: '0%' }}
-              whileInView={{ width: `${path.progress || 60}%` }}
-              viewport={{ once: true }}
-              transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
-              className="bg-gradient-to-r from-brand-500 via-indigo-500 to-purple-500 h-1.5 rounded-full"
-            />
+      {/* Card Body Content */}
+      <div className="flex flex-col flex-1 p-5 justify-between space-y-4">
+        <div>
+          <h3 className="text-base sm:text-lg font-bold text-white tracking-tight group-hover:text-brand-300 transition-colors leading-snug">
+            {path.title}
+          </h3>
+
+          <p className="text-xs text-gray-400 mt-2 leading-relaxed font-normal line-clamp-2">
+            {path.description}
+          </p>
+
+          {/* Monospace Technology Skill Tags */}
+          <div className="flex flex-wrap gap-1.5 mt-4">
+            {path.skills.map((skill) => (
+              <span
+                key={skill}
+                className="px-2 py-0.5 text-[10px] font-mono text-gray-300 bg-white/[0.04] border border-white/10 rounded-md flex items-center gap-1"
+              >
+                <Compass className="w-3 h-3 text-emerald-400" />
+                {skill}
+              </span>
+            ))}
           </div>
         </div>
 
-        <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-          <span className="text-xs font-semibold text-gray-400 flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-purple-400" />
-            {path.coursesCount} Courses
-          </span>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        {/* Career Milestone Progress Bar */}
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[11px] font-mono text-gray-400">
+              <span>Career Milestone Completion</span>
+              <span className="text-emerald-400 font-bold">{path.progress || 60}%</span>
+            </div>
+            <div className="w-full bg-gray-800/80 h-1.5 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: '0%' }}
+                whileInView={{ width: `${path.progress || 60}%` }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
+                className="bg-gradient-to-r from-brand-500 via-indigo-500 to-emerald-400 h-1.5 rounded-full"
+              />
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+            <span className="text-[11px] font-mono text-gray-400 flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-gray-400" />
+              {path.coursesCount} Courses Track
+            </span>
             <Link
               to={PUBLIC.COURSES}
-              className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-brand-600 to-indigo-600 rounded-xl shadow-xs transition-all block"
+              className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-semibold text-white bg-white/[0.08] hover:bg-white/15 border border-white/15 rounded-lg transition-all"
             >
-              View Roadmap
+              <span>View Roadmap</span>
+              <ArrowRight className="w-3 h-3 text-gray-400 group-hover:text-white transition-colors" />
             </Link>
-          </motion.div>
+          </div>
         </div>
       </div>
     </motion.div>
