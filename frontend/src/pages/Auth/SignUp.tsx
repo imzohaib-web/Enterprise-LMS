@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { registerThunk } from '../../features/auth/authSlice';
+import { registerThunk, selectIsAuthenticated, selectCurrentUser } from '../../features/auth/authSlice';
 import type { AppDispatch } from '../../app/store';
 import type { RegisterPayload } from '../../types/user';
 
 const SignUp: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const currentUser = useSelector(selectCurrentUser);
   const [showPw, setShowPw] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      const roleRoutes: Record<string, string> = {
+        admin:      '/admin/dashboard',
+        instructor: '/instructor/dashboard',
+        student:    '/student/dashboard',
+      };
+      navigate(roleRoutes[currentUser.role] || '/student/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, currentUser, navigate]);
 
   const {
     register,
@@ -107,7 +120,6 @@ const SignUp: React.FC = () => {
               >
                 <option value="student" className="bg-gray-800">Student</option>
                 <option value="instructor" className="bg-gray-800">Instructor</option>
-                <option value="admin" className="bg-gray-800">Administrator (Admin)</option>
               </select>
             </div>
 

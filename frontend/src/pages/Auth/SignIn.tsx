@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { loginThunk } from '../../features/auth/authSlice';
+import { loginThunk, selectIsAuthenticated, selectCurrentUser } from '../../features/auth/authSlice';
 import type { AppDispatch } from '../../app/store';
 import type { LoginPayload } from '../../types/user';
 
@@ -11,8 +11,21 @@ const SignIn: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as any)?.from?.pathname || '/admin/dashboard';
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const currentUser = useSelector(selectCurrentUser);
+  const from = (location.state as any)?.from?.pathname || '/student/dashboard';
   const [showPw, setShowPw] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      const roleRoutes: Record<string, string> = {
+        admin:      '/admin/dashboard',
+        instructor: '/instructor/dashboard',
+        student:    '/student/dashboard',
+      };
+      navigate(roleRoutes[currentUser.role] || from, { replace: true });
+    }
+  }, [isAuthenticated, currentUser, navigate, from]);
 
   const {
     register,

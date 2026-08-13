@@ -12,15 +12,36 @@ const REFRESH_EXPIRES_DAYS = 7;
 /**
  * Register a new user
  */
-const register = async ({ firstName, lastName, email, password, role }) => {
-  const existing = await User.findOne({ email });
+const register = async ({ firstName, lastName, email, password, role = 'student' }) => {
+  if (role === 'admin') {
+    throw AppError.forbidden('Admin role cannot be self-registered');
+  }
+
+  const userRole = ['student', 'instructor'].includes(role) ? role : 'student';
+  const normalizedEmail = (email || '').toLowerCase().trim();
+
+  const existing = await User.findOne({ email: normalizedEmail });
   if (existing) throw AppError.conflict('Email already registered');
 
-  const user = await User.create({ firstName, lastName, email, password, role });
+  let user;
+  try {
+    user = await User.create({
+      firstName: (firstName || '').trim(),
+      lastName: (lastName || '').trim(),
+      email: normalizedEmail,
+      password,
+      role: userRole,
+    });
+  } catch (err) {
+    if (err.code === 11000) {
+      throw AppError.conflict('Email already registered');
+    }
+    throw err;
+  }
 
   // Send welcome email (non-blocking)
   const tmpl = emailTemplates.welcome(firstName);
-  sendEmail({ to: email, ...tmpl }).catch(() => {});
+  sendEmail({ to: normalizedEmail, ...tmpl }).catch(() => {});
 
   const accessToken = signAccessToken({ userId: user._id, role: user.role });
   const refreshTokenStr = signRefreshToken({ userId: user._id, role: user.role });
@@ -38,7 +59,8 @@ const register = async ({ firstName, lastName, email, password, role }) => {
  * Login with email + password
  */
 const login = async ({ email, password, deviceId, userAgent, ip }) => {
-  const userWithPw = await User.findOne({ email }).select('+password');
+  const normalizedEmail = (email || '').toLowerCase().trim();
+  const userWithPw = await User.findOne({ email: normalizedEmail }).select('+password');
   if (!userWithPw) throw AppError.unauthorized('Invalid email or password');
   if (!userWithPw.isActive) throw AppError.forbidden('Account is deactivated');
 
