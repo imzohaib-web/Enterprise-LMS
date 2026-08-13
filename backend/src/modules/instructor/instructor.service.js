@@ -1372,6 +1372,7 @@ class InstructorService {
     if (updateData.maxScore !== undefined) assignment.maxScore = Number(updateData.maxScore);
     if (updateData.allowedFileTypes) assignment.allowedFileTypes = updateData.allowedFileTypes;
     if (updateData.status) assignment.status = updateData.status;
+    if (updateData.lessonId !== undefined) assignment.lessonId = updateData.lessonId;
 
     await assignment.save();
     return assignment;
@@ -1472,6 +1473,12 @@ class InstructorService {
       throw AppError.notFound('Assignment');
     }
 
+    const Enrollment = require('../../models/Enrollment');
+    const enrollment = await Enrollment.findOne({ student: studentId, course: assignment.courseId }).lean();
+    if (!enrollment) {
+      throw AppError.forbidden('You are not enrolled in the course associated with this assignment');
+    }
+
     let fileUrl = submitData.fileUrl || '';
     let fileName = submitData.fileName || '';
     let fileSize = submitData.fileSize || 0;
@@ -1525,6 +1532,16 @@ class InstructorService {
       });
     }
 
+    // Auto sync progress if lessonId is present
+    if (assignment.lessonId) {
+      try {
+        const progressService = require('../progress/progress.service');
+        await progressService.markLessonComplete(studentId, assignment.courseId, assignment.lessonId);
+      } catch (pErr) {
+        console.warn('Auto progress sync for assignment submission skipped:', pErr.message);
+      }
+    }
+
     return submission;
   }
 
@@ -1535,6 +1552,44 @@ class InstructorService {
     if (!courseId) throw AppError.badRequest('Course ID is required');
 
     const queryCourseId = mongoose.Types.ObjectId.isValid(courseId) ? new mongoose.Types.ObjectId(courseId) : courseId;
+
+    // Auto-provision backing Assignment document for any lesson of type 'assignment' in Course.sections
+    try {
+      const course = await Course.findById(queryCourseId).lean();
+      if (course && course.sections) {
+        for (const section of course.sections) {
+          for (const lesson of (section.lessons || [])) {
+            if (lesson.type === 'assignment') {
+              const lessonIdStr = lesson._id ? lesson._id.toString() : '';
+              const existing = await Assignment.findOne({
+                $or: [
+                  { courseId: queryCourseId, lessonId: lessonIdStr },
+                  { courseId: queryCourseId, title: lesson.title },
+                ],
+              });
+              if (!existing) {
+                await Assignment.create({
+                  title: lesson.title,
+                  description: lesson.content || '',
+                  instructions: lesson.content || 'Complete the assignment task as specified by your instructor.',
+                  courseId: queryCourseId,
+                  lessonId: lessonIdStr,
+                  instructorId: course.instructor,
+                  dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                  maxScore: 100,
+                  status: 'published',
+                });
+              } else if (!existing.lessonId && lessonIdStr) {
+                await Assignment.updateOne({ _id: existing._id }, { $set: { lessonId: lessonIdStr } });
+              }
+            }
+          }
+        }
+      }
+    } catch (syncErr) {
+      console.warn('Auto sync assignment lessons skipped:', syncErr.message);
+    }
+
     const assignments = await Assignment.find({ courseId: queryCourseId, status: 'published' })
       .populate('courseId', 'title')
       .sort({ dueDate: 1 })
@@ -1559,6 +1614,7 @@ class InstructorService {
           instructions: a.instructions || '',
           courseId: a.courseId?._id?.toString() || a.courseId?.toString() || '',
           courseTitle: a.courseId?.title || '',
+          lessonId: a.lessonId || '',
           dueDate: a.dueDate ? new Date(a.dueDate).toISOString() : '',
           maxScore: a.maxScore || 100,
           allowedFileTypes: a.allowedFileTypes || ['pdf', 'zip', 'docx', 'png', 'txt'],
@@ -1609,6 +1665,7 @@ class InstructorService {
       instructions: assignment.instructions || '',
       courseId: assignment.courseId?._id?.toString() || assignment.courseId?.toString() || '',
       courseTitle: assignment.courseId?.title || '',
+      lessonId: assignment.lessonId || '',
       dueDate: assignment.dueDate ? new Date(assignment.dueDate).toISOString() : '',
       maxScore: assignment.maxScore || 100,
       allowedFileTypes: assignment.allowedFileTypes || ['pdf', 'zip', 'docx', 'png', 'txt'],

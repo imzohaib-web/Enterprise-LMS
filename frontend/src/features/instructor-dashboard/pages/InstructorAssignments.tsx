@@ -59,11 +59,16 @@ export const InstructorAssignmentsPage: React.FC = () => {
   // Form state for creating/editing assignment
   const [title, setTitle] = useState('');
   const [courseId, setCourseId] = useState('');
+  const [lessonId, setLessonId] = useState('');
   const [description, setDescription] = useState('');
   const [instructions, setInstructions] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [maxScore, setMaxScore] = useState(100);
   const [status, setStatus] = useState<'published' | 'draft' | 'archived'>('published');
+
+  // Selected course lessons for lessonId dropdown
+  const selectedCourseObj = courses?.find((c: any) => (c.id || c._id) === courseId);
+  const availableLessons = selectedCourseObj?.sections?.flatMap((s: any) => s.lessons || []) || [];
 
   // Grade form state
   const [gradeScore, setGradeScore] = useState(0);
@@ -80,6 +85,7 @@ export const InstructorAssignmentsPage: React.FC = () => {
   const handleOpenCreate = () => {
     setEditingId(null);
     setTitle('');
+    setLessonId('');
     setDescription('');
     setInstructions('');
     setStatus('published');
@@ -95,6 +101,7 @@ export const InstructorAssignmentsPage: React.FC = () => {
     setEditingId(item.id);
     setTitle(item.title);
     setCourseId(item.courseId);
+    setLessonId(item.lessonId || '');
     setDescription(item.description || '');
     setInstructions(item.instructions || '');
     setStatus((item.status === 'archived' ? 'archived' : item.status === 'draft' ? 'draft' : 'published'));
@@ -133,6 +140,7 @@ export const InstructorAssignmentsPage: React.FC = () => {
           assignmentData: {
             title,
             courseId,
+            lessonId,
             description,
             instructions,
             dueDate: new Date(dueDate).toISOString(),
@@ -152,6 +160,7 @@ export const InstructorAssignmentsPage: React.FC = () => {
         {
           title,
           courseId,
+          lessonId,
           description,
           instructions,
           dueDate: new Date(dueDate).toISOString(),
@@ -389,6 +398,24 @@ export const InstructorAssignmentsPage: React.FC = () => {
                   <p className="text-[11px] text-rose-500 font-medium mt-1">{formErrors.courseId}</p>
                 )}
               </div>
+
+              {availableLessons.length > 0 && (
+                <div>
+                  <label className="block font-medium text-gray-700 dark:text-gray-300 mb-1">Associated Lesson (Optional)</label>
+                  <select
+                    value={lessonId}
+                    onChange={(e) => setLessonId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Course-wide (No specific lesson)</option>
+                    {availableLessons.map((les: any) => (
+                      <option key={les.id || les._id} value={les.id || les._id}>
+                        {les.title} ({les.type})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block font-medium text-gray-700 dark:text-gray-300 mb-1">Assignment Title *</label>

@@ -15,6 +15,8 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
+import { verifyCertificate } from '../../../services/certificateService';
+
 type VerificationState = 'WAITING' | 'LOADING' | 'SUCCESS' | 'INVALID';
 
 interface VerifiedCertDetails {
@@ -24,24 +26,14 @@ interface VerifiedCertDetails {
   code: string;
   grade: string;
   instructor: string;
+  certificateUrl?: string;
 }
 
 export const PublicVerifyCertificatePage: React.FC = () => {
   const { code: urlCode } = useParams<{ code?: string }>();
   const [inputCode, setInputCode] = useState(urlCode || '');
-  const [status, setStatus] = useState<VerificationState>(urlCode ? 'SUCCESS' : 'WAITING');
-  const [certData, setCertData] = useState<VerifiedCertDetails | null>(
-    urlCode
-      ? {
-          studentName: 'Alex Student',
-          courseTitle: 'Full Stack React + Node Architecture',
-          issueDate: 'July 15, 2026',
-          code: urlCode.toUpperCase(),
-          grade: '95% (Distinction)',
-          instructor: 'Dr. Elena Rostova',
-        }
-      : null
-  );
+  const [status, setStatus] = useState<VerificationState>('WAITING');
+  const [certData, setCertData] = useState<VerifiedCertDetails | null>(null);
 
   useEffect(() => {
     if (urlCode) {
@@ -50,8 +42,8 @@ export const PublicVerifyCertificatePage: React.FC = () => {
     }
   }, [urlCode]);
 
-  const handleVerifyCode = (targetCode: string) => {
-    const cleanCode = targetCode.trim().toUpperCase();
+  const handleVerifyCode = async (targetCode: string) => {
+    const cleanCode = targetCode.trim();
     if (!cleanCode) {
       setStatus('WAITING');
       setCertData(null);
@@ -60,22 +52,28 @@ export const PublicVerifyCertificatePage: React.FC = () => {
 
     setStatus('LOADING');
 
-    setTimeout(() => {
-      if (cleanCode.startsWith('INVALID') || cleanCode === '0000') {
-        setStatus('INVALID');
-        setCertData(null);
-      } else {
-        setStatus('SUCCESS');
-        setCertData({
-          studentName: 'Alex Student',
-          courseTitle: 'Full Stack React + Node Architecture',
-          issueDate: 'July 15, 2026',
-          code: cleanCode.startsWith('LMS-') ? cleanCode : `LMS-CERT-${cleanCode}`,
-          grade: '95% (Distinction)',
-          instructor: 'Dr. Elena Rostova',
-        });
-      }
-    }, 600);
+    try {
+      const data = await verifyCertificate(cleanCode);
+      setStatus('SUCCESS');
+      setCertData({
+        studentName: data.studentName || 'Valued Student',
+        courseTitle: data.courseName || 'Enterprise LMS Course',
+        issueDate: data.issueDate
+          ? new Date(data.issueDate).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })
+          : 'Verified',
+        code: data.verificationCode,
+        grade: '100% (Completed)',
+        instructor: data.instructor || 'Lead Instructor',
+        certificateUrl: data.certificateUrl,
+      });
+    } catch (err: any) {
+      setStatus('INVALID');
+      setCertData(null);
+    }
   };
 
   const onSubmitForm = (e: React.FormEvent) => {

@@ -6,6 +6,10 @@ const QRCode = require('qrcode');
 const cloudinary = require('cloudinary').v2;
 
 const Certificate = require('./certificate.model');
+const Enrollment = require('../../models/Enrollment');
+const User = require('../../models/User');
+const Course = require('../../models/Course');
+const { StudentProgressModel } = require('../progress/progress.model');
 const AppError = require('../../utils/appError');
 
 // Configure Cloudinary if credentials exist
@@ -243,18 +247,58 @@ const generatePDFCertificate = async ({
 
 /**
  * Service function: Generate certificate for a student upon course completion.
+ * Enforces backend enrollment and completion eligibility checks before generation.
  */
 const generateCertificate = async (studentId, courseId, studentUser = {}) => {
   // 1. Check if certificate already generated for this student & course
-  let existingCert = await Certificate.findOne({ studentId, courseId });
+  let existingCert = await Certificate.findOne({ studentId, courseId })
+    .populate('courseId', 'title description thumbnail level instructor')
+    .populate('studentId', 'firstName lastName email name');
   if (existingCert) {
     return existingCert;
   }
 
-  // 2. Generate unique verification code
-  const verificationCode = generateVerificationCode();
+  // 2. Verify backend enrollment
+  const enrollment = await Enrollment.findOne({ student: studentId, course: courseId }).lean();
+  if (!enrollment) {
+    throw new AppError('Forbidden: You are not enrolled in this course.', 403);
+  }
 
-  // 3. Generate QR Code pointing to /verify/:verificationCode
+  // 3. Verify backend course completion status
+  const progress = await StudentProgressModel.findOne({ studentId, courseId }).lean();
+  if (!progress || (!progress.completed && (progress.progressPercentage || 0) < 100)) {
+    throw new AppError(
+      'Course is not yet completed. Complete all required lessons before requesting a certificate.',
+      400
+    );
+  }
+
+  // 4. Fetch actual student & course metadata for accurate certificate rendering
+  const student = await User.findById(studentId).lean();
+  const course = await Course.findById(courseId).populate('instructor', 'firstName lastName name').lean();
+
+  const studentFullName = student
+    ? `${student.firstName || ''} ${student.lastName || ''}`.trim() || student.name || 'Student'
+    : studentUser.name || 'Student';
+
+  const courseTitle = course ? course.title : studentUser.courseTitle || 'Enterprise LMS Course';
+
+  let instructorFullName = 'Ezitech Instructor';
+  if (course && course.instructor) {
+    if (typeof course.instructor === 'object') {
+      instructorFullName =
+        `${course.instructor.firstName || ''} ${course.instructor.lastName || ''}`.trim() ||
+        course.instructor.name ||
+        'Ezitech Instructor';
+    }
+  } else if (course && course.instructorName) {
+    instructorFullName = course.instructorName;
+  } else if (studentUser.instructorName) {
+    instructorFullName = studentUser.instructorName;
+  }
+
+  // 5. Generate unique verification code & QR code
+  const verificationCode = generateVerificationCode();
   const verifyUrl = `${process.env.APP_URL || 'http://localhost:5000'}/verify/${verificationCode}`;
   const qrCodeDataUrl = await QRCode.toDataURL(verifyUrl, {
     errorCorrectionLevel: 'H',
@@ -262,7 +306,7 @@ const generateCertificate = async (studentId, courseId, studentUser = {}) => {
     width: 200,
   });
 
-  // 4. Set up file path for local PDF storage
+  // 6. Set up file path for local PDF storage
   const uploadDir = path.join(__dirname, '../../../uploads/certificates');
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -270,21 +314,17 @@ const generateCertificate = async (studentId, courseId, studentUser = {}) => {
 
   const fileName = `certificate_${verificationCode}.pdf`;
   const localFilePath = path.join(uploadDir, fileName);
-
-  const studentName = studentUser.name || 'Student';
-  const courseName = studentUser.courseTitle || 'Enterprise LMS Course';
-  const instructorName = studentUser.instructorName || 'Ezitech Instructor';
   const completionDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
 
-  // 5. Draw PDF Certificate
+  // 7. Draw PDF Certificate
   await generatePDFCertificate({
-    studentName,
-    courseName,
-    instructorName,
+    studentName: studentFullName,
+    courseName: courseTitle,
+    instructorName: instructorFullName,
     completionDate,
     verificationCode,
     qrCodeDataUrl,
@@ -293,7 +333,7 @@ const generateCertificate = async (studentId, courseId, studentUser = {}) => {
 
   let certificateUrl = `/uploads/certificates/${fileName}`;
 
-  // 6. Upload to Cloudinary if configured
+  // 8. Upload to Cloudinary if configured
   if (
     process.env.CLOUDINARY_CLOUD_NAME &&
     process.env.CLOUDINARY_API_KEY &&
@@ -313,7 +353,7 @@ const generateCertificate = async (studentId, courseId, studentUser = {}) => {
     }
   }
 
-  // 7. Save Certificate in Database
+  // 9. Save Certificate in Database
   const certificate = await Certificate.create({
     studentId,
     courseId,
@@ -323,13 +363,13 @@ const generateCertificate = async (studentId, courseId, studentUser = {}) => {
     qrCode: qrCodeDataUrl,
   });
 
-  // 8. Emit Real-time Notification to Student
+  // 10. Emit Real-time Notification to Student
   try {
     const notificationService = require('../notifications/notification.service');
     await notificationService.createAndEmitNotification({
       userId: studentId,
       title: 'Certificate Issued!',
-      message: `Congratulations! Your certificate for ${courseName} has been generated.`,
+      message: `Congratulations! Your certificate for ${courseTitle} has been generated.`,
       type: 'success',
       category: 'certificate',
       actionUrl: '/student/certificates',
@@ -348,7 +388,7 @@ const generateCertificate = async (studentId, courseId, studentUser = {}) => {
 const getStudentCertificates = async (studentId) => {
   return await Certificate.find({ studentId })
     .populate('courseId', 'title description thumbnail level instructor')
-    .populate('studentId', 'firstName lastName email')
+    .populate('studentId', 'firstName lastName email name')
     .sort({ createdAt: -1 });
 };
 
@@ -356,14 +396,16 @@ const getStudentCertificates = async (studentId) => {
  * Service function: Fetch a specific certificate by ID owned by student.
  */
 const getCertificateById = async (certificateId, studentId) => {
-  const certificate = await Certificate.findById(certificateId);
+  const certificate = await Certificate.findById(certificateId)
+    .populate('courseId', 'title description thumbnail level instructor')
+    .populate('studentId', 'firstName lastName email name');
 
   if (!certificate) {
     throw new AppError('Certificate not found', 404);
   }
 
-  // Only student can view their own certificate
-  if (certificate.studentId.toString() !== studentId.toString()) {
+  // Only student can view their own certificate via this private endpoint
+  if (certificate.studentId._id ? certificate.studentId._id.toString() !== studentId.toString() : certificate.studentId.toString() !== studentId.toString()) {
     throw new AppError('Access denied. You can only view your own certificate.', 403);
   }
 
@@ -379,24 +421,32 @@ const verifyCertificateByCode = async (verificationCode) => {
   }
 
   const certificate = await Certificate.findOne({ verificationCode })
-    .populate('studentId', 'name email')
+    .populate('studentId', 'firstName lastName name email')
     .populate({
       path: 'courseId',
       select: 'title instructorName instructor',
-      populate: { path: 'instructor', select: 'name' },
+      populate: { path: 'instructor', select: 'firstName lastName name' },
     });
 
   if (!certificate) {
     throw new AppError('Certificate not found or invalid verification code', 404);
   }
 
-  // Format return payload as required: Student Name, Course Name, Issue Date, Certificate Status, Instructor
-  const studentName = certificate.studentId?.name || 'Jane Doe';
+  // Format return payload safely
+  const student = certificate.studentId;
+  const studentName = student
+    ? `${student.firstName || ''} ${student.lastName || ''}`.trim() || student.name || 'Valued Student'
+    : 'Valued Student';
+
   const courseName = certificate.courseId?.title || 'Enterprise LMS Course';
-  const instructorName =
-    certificate.courseId?.instructorName ||
-    certificate.courseId?.instructor?.name ||
-    'Ezitech Instructor';
+  
+  let instructorName = 'Ezitech Instructor';
+  if (certificate.courseId?.instructor) {
+    const inst = certificate.courseId.instructor;
+    instructorName = `${inst.firstName || ''} ${inst.lastName || ''}`.trim() || inst.name || 'Ezitech Instructor';
+  } else if (certificate.courseId?.instructorName) {
+    instructorName = certificate.courseId.instructorName;
+  }
 
   return {
     studentName,
@@ -415,4 +465,5 @@ module.exports = {
   getCertificateById,
   verifyCertificateByCode,
 };
+
 

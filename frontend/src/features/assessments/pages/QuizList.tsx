@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuizzes } from '../hooks/useAssessments';
 import { QuizCard } from '../components/QuizCard';
 import { QuizSkeleton } from '../components/QuizSkeleton';
@@ -12,6 +13,7 @@ interface QuizListProps {
  * Includes skeleton loader during fetch and empty state CTA reset.
  */
 export const QuizList: React.FC<QuizListProps> = ({ onSelectQuiz }) => {
+  const navigate = useNavigate();
   const { data: quizzes, isLoading, isError, error, refetch } = useQuizzes();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -19,6 +21,14 @@ export const QuizList: React.FC<QuizListProps> = ({ onSelectQuiz }) => {
     q.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     q.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleSelectQuiz = (quizId: string) => {
+    if (onSelectQuiz) {
+      onSelectQuiz(quizId);
+    } else {
+      navigate(`/student/assessments/${quizId}`);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -79,7 +89,7 @@ export const QuizList: React.FC<QuizListProps> = ({ onSelectQuiz }) => {
                 <QuizCard
                   key={quiz.id || quiz._id}
                   quiz={quiz}
-                  onSelect={(id) => onSelectQuiz && onSelectQuiz(id)}
+                  onSelect={handleSelectQuiz}
                 />
               ))}
             </div>

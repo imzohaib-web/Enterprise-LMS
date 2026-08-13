@@ -2,6 +2,8 @@
 const mongoose = require('mongoose');
 const { QuizModel, QuizAttemptModel } = require('./assessment.model');
 const progressService = require('../progress/progress.service');
+const Enrollment = require('../../models/Enrollment');
+const AppError = require('../../utils/AppError');
 
 class AssessmentService {
   async createQuiz(quizData) {
@@ -9,36 +11,105 @@ class AssessmentService {
     return await quiz.save();
   }
 
-  async getAllQuizzes(filter = {}) {
+  async getAllQuizzes(filter = {}, user = null) {
     const queryFilter = {};
     if (filter.courseId) queryFilter.courseId = filter.courseId;
     if (filter.lessonId) queryFilter.lessonId = filter.lessonId;
 
-    return await QuizModel.find(queryFilter)
+    if (user && user.role === 'student') {
+      queryFilter.status = 'published';
+      // Find courses student is enrolled in
+      const enrollments = await Enrollment.find({ student: user._id || user.id }).select('course').lean();
+      const enrolledCourseIds = enrollments.map((e) => e.course);
+      if (filter.courseId) {
+        const isEnrolled = enrolledCourseIds.some((id) => id.toString() === filter.courseId.toString());
+        if (!isEnrolled) {
+          return [];
+        }
+      } else {
+        queryFilter.courseId = { $in: enrolledCourseIds };
+      }
+    }
+
+    const quizzes = await QuizModel.find(queryFilter)
       .populate('courseId', 'title slug')
       .sort({ createdAt: -1 })
       .lean()
       .exec();
+
+    if (user && user.role === 'student') {
+      return quizzes.map((q) => this.sanitizeQuizForStudent(q));
+    }
+
+    return quizzes;
   }
 
-  async getQuizById(id) {
-    return await QuizModel.findById(id).populate('courseId', 'title slug').exec();
+  async getQuizById(id, user = null) {
+    const quiz = await QuizModel.findById(id).populate('courseId', 'title slug').lean().exec();
+    if (!quiz) return null;
+
+    if (user && user.role === 'student') {
+      const courseId = quiz.courseId?._id || quiz.courseId;
+      if (courseId) {
+        const enrollment = await Enrollment.findOne({ student: user._id || user.id, course: courseId }).lean();
+        if (!enrollment) {
+          throw AppError.forbidden('You are not enrolled in the course associated with this quiz');
+        }
+      }
+      return this.sanitizeQuizForStudent(quiz);
+    }
+
+    return quiz;
   }
 
-  async updateQuiz(id, updateData) {
+  sanitizeQuizForStudent(quiz) {
+    if (!quiz || !quiz.questions) return quiz;
+    const sanitizedQuestions = quiz.questions.map((q) => {
+      const { correctAnswer, explanation, ...safeQuestion } = q;
+      return safeQuestion;
+    });
+    return {
+      ...quiz,
+      questions: sanitizedQuestions,
+    };
+  }
+
+  async updateQuiz(id, updateData, user = null) {
+    if (user && user.role !== 'admin') {
+      const quiz = await QuizModel.findById(id).lean();
+      if (!quiz) return null;
+      if (quiz.instructorId && quiz.instructorId.toString() !== (user._id || user.id).toString()) {
+        throw AppError.forbidden('You do not have permission to update this quiz');
+      }
+    }
     return await QuizModel.findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: true }).exec();
   }
 
-  async deleteQuiz(id) {
+  async deleteQuiz(id, user = null) {
+    if (user && user.role !== 'admin') {
+      const quiz = await QuizModel.findById(id).lean();
+      if (!quiz) return null;
+      if (quiz.instructorId && quiz.instructorId.toString() !== (user._id || user.id).toString()) {
+        throw AppError.forbidden('You do not have permission to delete this quiz');
+      }
+    }
     return await QuizModel.findByIdAndDelete(id).exec();
   }
 
-  async submitQuizAttempt(quizId, studentId, submissionInput) {
+  async submitQuizAttempt(quizId, studentId, submissionInput, user = null) {
     const quiz = await QuizModel.findById(quizId).exec();
     if (!quiz) {
-      const err = new Error(`Quiz not found with ID: ${quizId}`);
-      err.statusCode = 404;
-      throw err;
+      throw AppError.notFound(`Quiz with ID ${quizId}`);
+    }
+
+    if (user && user.role === 'student') {
+      const courseId = quiz.courseId?._id || quiz.courseId;
+      if (courseId) {
+        const enrollment = await Enrollment.findOne({ student: studentId, course: courseId }).lean();
+        if (!enrollment) {
+          throw AppError.forbidden('You must be enrolled in this course to submit this assessment');
+        }
+      }
     }
 
     let totalScore = 0;
@@ -46,16 +117,51 @@ class AssessmentService {
     let correctAnswersCount = 0;
     let wrongAnswersCount = 0;
 
+    const submittedAnswers = submissionInput.answers || [];
+
     const evaluatedAnswers = quiz.questions.map((q) => {
       const qIdStr = q._id ? q._id.toString() : '';
       const qMarks = q.marks || 1;
       totalPossibleMarks += qMarks;
 
-      const submitted = (submissionInput.answers || []).find(
-        (a) => a.questionId === qIdStr || a.questionId === q.question
+      const submitted = submittedAnswers.find(
+        (a) =>
+          a.questionId === qIdStr ||
+          a.questionId === q.question ||
+          (q.id && a.questionId === q.id)
       );
 
-      const isCorrect = submitted ? submitted.selectedOption === q.correctAnswer : false;
+      const studentChoice = submitted ? String(submitted.selectedOption).trim() : '';
+      const targetCorrect = String(q.correctAnswer).trim();
+
+      let isCorrect = false;
+
+      if (studentChoice && targetCorrect) {
+        if (studentChoice.toLowerCase() === targetCorrect.toLowerCase()) {
+          isCorrect = true;
+        } else if (Array.isArray(q.options)) {
+          const matchedOpt = q.options.find((opt) => {
+            if (typeof opt === 'object' && opt !== null) {
+              return (
+                (opt.id && String(opt.id).trim().toLowerCase() === studentChoice.toLowerCase()) ||
+                (opt.text && String(opt.text).trim().toLowerCase() === studentChoice.toLowerCase())
+              );
+            }
+            return false;
+          });
+          if (matchedOpt) {
+            const optText = matchedOpt.text || matchedOpt.id;
+            const optId = matchedOpt.id;
+            if (
+              String(optText).trim().toLowerCase() === targetCorrect.toLowerCase() ||
+              String(optId).trim().toLowerCase() === targetCorrect.toLowerCase()
+            ) {
+              isCorrect = true;
+            }
+          }
+        }
+      }
+
       const marksAwarded = isCorrect ? qMarks : 0;
 
       if (isCorrect) {
@@ -67,21 +173,24 @@ class AssessmentService {
 
       return {
         questionId: qIdStr || q.question,
-        selectedOption: submitted ? submitted.selectedOption : '',
+        selectedOption: studentChoice,
         isCorrect,
         marksAwarded,
       };
     });
 
     const percentage = totalPossibleMarks > 0 ? Number(((totalScore / totalPossibleMarks) * 100).toFixed(2)) : 0;
-    const passed = percentage >= quiz.passingScore;
-    const timeTakenSeconds = submissionInput.timeTakenSeconds || 0;
+    const passingThreshold = quiz.passingScore !== undefined ? quiz.passingScore : 70;
+    const passed = percentage >= passingThreshold;
+    const timeTakenSeconds = Number(submissionInput.timeTakenSeconds) || 0;
 
     let attempt;
     try {
       attempt = new QuizAttemptModel({
-        quizId,
+        quizId: quiz._id,
         studentId,
+        courseId: quiz.courseId,
+        instructorId: quiz.instructorId,
         answers: evaluatedAnswers,
         score: totalScore,
         totalMarks: totalPossibleMarks,
@@ -103,7 +212,7 @@ class AssessmentService {
         await progressService.recordQuizSubmission(
           studentId,
           effectiveCourseId,
-          quizId,
+          quiz._id.toString(),
           totalScore,
           percentage
         );
@@ -122,8 +231,8 @@ class AssessmentService {
           : `You scored ${percentage}% on "${quiz.title}". Review and try again.`,
         type: passed ? 'success' : 'warning',
         category: 'assessment',
-        actionUrl: `/student/assessments/${quizId}/result`,
-        metadata: { quizId, percentage, passed },
+        actionUrl: `/student/assessments/${quiz._id}/result`,
+        metadata: { quizId: quiz._id, percentage, passed },
       });
     } catch (err) {
       console.warn('Failed to emit quiz notification:', err.message);
@@ -179,3 +288,4 @@ class AssessmentService {
 }
 
 module.exports = new AssessmentService();
+

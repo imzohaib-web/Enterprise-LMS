@@ -119,6 +119,7 @@ export const CoursePlayer: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['studentProgressPage'] });
       queryClient.invalidateQueries({ queryKey: ['studentDashboard'] });
       queryClient.invalidateQueries({ queryKey: ['myEnrollments'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
       queryClient.invalidateQueries({ queryKey: ['studentLearningActivity'] });
     },
     onError: (err: any) => {
@@ -263,7 +264,7 @@ export const CoursePlayer: React.FC = () => {
           {/* Left / Main Content & Navigation Column */}
           <main className="lg:col-span-8 xl:col-span-9 p-4 md:p-6 lg:p-8 overflow-y-auto space-y-6 flex flex-col justify-between">
             <div className="space-y-6">
-              <LessonViewer lesson={activeLesson} />
+              <LessonViewer lesson={activeLesson} courseId={courseId} />
             </div>
 
             {/* Bottom Lesson Navigation Bar */}

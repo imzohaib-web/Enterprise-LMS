@@ -87,11 +87,13 @@ courseSchema.pre('validate', function () {
 
 // Virtual: total lesson count
 courseSchema.virtual('lessonCount').get(function () {
-  return this.sections.reduce((acc, s) => acc + s.lessons.length, 0);
+  if (!this.sections || !Array.isArray(this.sections)) return 0;
+  return this.sections.reduce((acc, s) => acc + (s.lessons ? s.lessons.length : 0), 0);
 });
 
 // Virtual: section count
 courseSchema.virtual('sectionCount').get(function () {
+  if (!this.sections || !Array.isArray(this.sections)) return 0;
   return this.sections.length;
 });
 
