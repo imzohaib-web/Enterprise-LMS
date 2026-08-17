@@ -21,5 +21,6 @@ router.get('/analytics/instructors', adminController.getInstructorPerformance);
 router.get('/analytics/enrollments', adminController.getEnrollmentTrend);
 router.get('/analytics/categories', adminController.getCategoryBreakdown);
 router.get('/audit-logs', adminController.listAuditLogs);
+router.get('/enrollments', adminController.listEnrollments);
 
 module.exports = router;

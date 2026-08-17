@@ -159,9 +159,10 @@ export const CoursePlayer: React.FC = () => {
 
   // Enroll Mutation for Preview page
   const enrollMutation = useMutation({
-    mutationFn: () => courseService.enrollInCourse(courseId),
+    mutationFn: (enrollmentData: { phone?: string; learningGoals?: string; agreedTerms?: boolean }) => courseService.enrollInCourse(courseId, enrollmentData),
     onSuccess: () => {
       toast.success('Successfully enrolled in course!');
+      setIsEnrollModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['myEnrollments'] });
       queryClient.invalidateQueries({ queryKey: ['courseDetail', courseId] });
       queryClient.invalidateQueries({ queryKey: ['courseProgress', courseId] });
@@ -229,7 +230,14 @@ export const CoursePlayer: React.FC = () => {
         <CourseOverviewPreview
           course={course}
           isEnrolling={enrollMutation.isPending}
-          onEnroll={() => enrollMutation.mutate()}
+          onEnroll={() => setIsEnrollModalOpen(true)}
+        />
+        <EnrollmentModal
+          isOpen={isEnrollModalOpen}
+          onClose={() => setIsEnrollModalOpen(false)}
+          courseTitle={course.title}
+          isLoading={enrollMutation.isPending}
+          onSubmit={(formData) => enrollMutation.mutate(formData)}
         />
       </>
     );

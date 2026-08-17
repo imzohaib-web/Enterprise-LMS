@@ -405,7 +405,10 @@ const getCertificateById = async (certificateId, studentId) => {
   }
 
   // Only student can view their own certificate via this private endpoint
-  if (certificate.studentId._id ? certificate.studentId._id.toString() !== studentId.toString() : certificate.studentId.toString() !== studentId.toString()) {
+  const ownerId = certificate.studentId
+    ? (certificate.studentId._id || certificate.studentId).toString()
+    : '';
+  if (ownerId !== studentId.toString()) {
     throw new AppError('Access denied. You can only view your own certificate.', 403);
   }
 

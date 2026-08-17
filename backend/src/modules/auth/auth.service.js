@@ -13,11 +13,15 @@ const REFRESH_EXPIRES_DAYS = 7;
  * Register a new user
  */
 const register = async ({ firstName, lastName, email, password, role = 'student' }) => {
-  if (role === 'admin') {
-    throw AppError.forbidden('Admin role cannot be self-registered');
+  if (role === 'admin' || role === 'instructor') {
+    if (role === 'admin') {
+      throw AppError.forbidden('Admin role cannot be self-registered');
+    }
+    // Self-registration as instructor is not permitted; user must apply via Become an Instructor flow
   }
 
-  const userRole = ['student', 'instructor'].includes(role) ? role : 'student';
+  // Force all public self-registrations to student role
+  const userRole = 'student';
   const normalizedEmail = (email || '').toLowerCase().trim();
 
   const existing = await User.findOne({ email: normalizedEmail });
@@ -31,6 +35,7 @@ const register = async ({ firstName, lastName, email, password, role = 'student'
       email: normalizedEmail,
       password,
       role: userRole,
+      accountStatus: 'ACTIVE',
     });
   } catch (err) {
     if (err.code === 11000) {
@@ -62,7 +67,9 @@ const login = async ({ email, password, deviceId, userAgent, ip }) => {
   const normalizedEmail = (email || '').toLowerCase().trim();
   const userWithPw = await User.findOne({ email: normalizedEmail }).select('+password');
   if (!userWithPw) throw AppError.unauthorized('Invalid email or password');
-  if (!userWithPw.isActive) throw AppError.forbidden('Account is deactivated');
+  if (!userWithPw.isActive || ['SUSPENDED', 'DEACTIVATED', 'REJECTED'].includes(userWithPw.accountStatus)) {
+    throw AppError.forbidden(`Account is ${userWithPw.accountStatus ? userWithPw.accountStatus.toLowerCase() : 'deactivated'}`);
+  }
 
   const isMatch = await bcrypt.compare(password, userWithPw.password);
   if (!isMatch) throw AppError.unauthorized('Invalid email or password');
@@ -116,7 +123,9 @@ const refresh = async (oldRefreshToken) => {
   await storedToken.save();
 
   const user = await User.findById(decoded.userId);
-  if (!user || !user.isActive) throw AppError.unauthorized('User not found or inactive');
+  if (!user || !user.isActive || ['SUSPENDED', 'DEACTIVATED', 'REJECTED'].includes(user.accountStatus)) {
+    throw AppError.unauthorized('User not found or account is restricted');
+  }
 
   const newAccessToken = signAccessToken({ userId: user._id, role: user.role });
   const newRefreshToken = signRefreshToken({ userId: user._id, role: user.role });

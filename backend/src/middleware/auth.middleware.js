@@ -17,7 +17,9 @@ const authenticate = async (req, res, next) => {
 
     const user = await User.findById(decoded.userId).select('-password').lean();
     if (!user) throw AppError.unauthorized('User not found');
-    if (!user.isActive) throw AppError.forbidden('Account is deactivated');
+    if (!user.isActive || ['SUSPENDED', 'DEACTIVATED', 'REJECTED'].includes(user.accountStatus)) {
+      throw AppError.forbidden(`Account is ${user.accountStatus ? user.accountStatus.toLowerCase() : 'deactivated'}`);
+    }
 
     req.user = user;
     next();
@@ -37,6 +39,9 @@ const authorize = (...roles) => (req, res, next) => {
   if (!req.user) return next(AppError.unauthorized());
   if (!roles.includes(req.user.role)) {
     return next(AppError.forbidden(`Role '${req.user.role}' is not allowed to access this resource`));
+  }
+  if (req.user.accountStatus && req.user.accountStatus !== 'ACTIVE') {
+    return next(AppError.forbidden(`Account is ${req.user.accountStatus.toLowerCase()} and cannot access this resource`));
   }
   next();
 };

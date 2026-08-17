@@ -50,7 +50,7 @@ const uploadThumbnail = async (req, res) => {
 };
 
 const enrollInCourse = async (req, res) => {
-  const enrollment = await courseService.enrollInCourse(req.params.id, req.user._id);
+  const enrollment = await courseService.enrollInCourse(req.params.id, req.user._id, req.body);
   sendSuccess(res, { statusCode: 201, message: 'Enrolled successfully', data: { enrollment } });
 };
 
@@ -103,9 +103,27 @@ const uploadDocument = async (req, res) => {
   });
 };
 
+/* ── Course Lifecycle & Moderation ────────────────────────────────────────── */
+
+const submitForReview = async (req, res) => {
+  const course = await courseService.submitForReview(req.params.id, req.user);
+  sendSuccess(res, { message: 'Course submitted for review successfully', data: { course } });
+};
+
+const approveCourse = async (req, res) => {
+  const course = await courseService.approveCourse(req.params.id, req.user);
+  sendSuccess(res, { message: 'Course approved and published successfully', data: { course } });
+};
+
+const rejectCourse = async (req, res) => {
+  const course = await courseService.rejectCourse(req.params.id, req.user, req.body);
+  sendSuccess(res, { message: 'Course rejected with feedback', data: { course } });
+};
+
 module.exports = {
   listCourses, getCourse, getCourseBySlug, createCourse, updateCourse, deleteCourse, uploadThumbnail,
   enrollInCourse, getMyEnrollments,
   listCategories, createCategory,
   uploadVideo, uploadDocument,
+  submitForReview, approveCourse, rejectCourse,
 };

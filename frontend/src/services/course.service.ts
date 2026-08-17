@@ -47,11 +47,21 @@ export const courseService = {
     });
   },
 
-  enrollInCourse: (id: string) =>
-    api.post<ApiResponse<{ enrollment: Enrollment }>>(`/courses/${id}/enroll`),
+  enrollInCourse: (id: string, enrollmentData?: { phone?: string; learningGoals?: string; agreedTerms?: boolean }) =>
+    api.post<ApiResponse<{ enrollment: Enrollment }>>(`/courses/${id}/enroll`, enrollmentData),
 
   getMyEnrollments: (params: { page?: number; limit?: number } = {}) =>
     api.get<ApiResponse<{ enrollments: Enrollment[] }>>('/courses/enrolled', { params }),
+
+  // ── Course Lifecycle & Moderation ──────────────────────────────────────
+  submitForReview: (id: string) =>
+    api.post<ApiResponse<{ course: Course }>>(`/courses/${id}/submit`),
+
+  approveCourse: (id: string) =>
+    api.patch<ApiResponse<{ course: Course }>>(`/courses/${id}/approve`),
+
+  rejectCourse: (id: string, rejectionReason: string) =>
+    api.patch<ApiResponse<{ course: Course }>>(`/courses/${id}/reject`, { rejectionReason }),
 
   // ── Categories ─────────────────────────────────────────────────────────
   listCategories: () =>

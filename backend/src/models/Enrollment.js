@@ -18,6 +18,12 @@ const enrollmentSchema = new mongoose.Schema(
     averageQuizScore:   { type: Number, default: 0 },
     lastActive:         { type: Date, default: Date.now },
     lastAccessedAt:     { type: Date, default: Date.now },
+
+    enrollmentData: {
+      phone: { type: String, trim: true },
+      learningGoals: { type: String, trim: true, maxlength: 1000 },
+      agreedTerms: { type: Boolean, default: true },
+    },
   },
   { timestamps: true }
 );

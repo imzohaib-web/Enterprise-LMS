@@ -10,6 +10,7 @@ const Category = require('./Category');
 const Enrollment = require('./Enrollment');
 const LearningPath = require('./LearningPath');
 const RefreshToken = require('./RefreshToken');
+const InstructorApplication = require('./InstructorApplication');
 const Certificate = require('../modules/certificates/certificate.model');
 const Notification = require('../modules/notifications/notification.model');
 const { QuizModel, QuizAttemptModel } = require('../modules/assessments/assessment.model');
@@ -23,6 +24,7 @@ module.exports = {
   Enrollment,
   LearningPath,
   RefreshToken,
+  InstructorApplication,
   Certificate,
   Notification,
   AuditLog,

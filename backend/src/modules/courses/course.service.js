@@ -131,6 +131,11 @@ const updateCourse = async (id, updates, requestingUser) => {
 
   checkCourseOwnership(course, requestingUser);
 
+  // Security Guard: Only admin can transition course to published
+  if (updates.status === 'published' && requestingUser.role !== 'admin') {
+    throw AppError.forbidden('Only administrators can publish courses. Please submit your course for admin review.');
+  }
+
   // Validate publishing requirements
   if (updates.status === 'published' && course.status !== 'published') {
     const finalTitle = updates.title || course.title;
@@ -202,10 +207,15 @@ const updateThumbnail = async (id, thumbnailUrl, thumbnailPublicId, requestingUs
 
 /* ── Enrollment ─────────────────────────────────────────────────────────── */
 
-const enrollInCourse = async (courseId, studentId) => {
+const enrollInCourse = async (courseId, studentId, enrollmentData = {}) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
   if (course.status !== 'published') throw AppError.badRequest('Course is not available for enrollment');
+
+  // Instructor Self-Enrollment Guard
+  if (course.instructor && course.instructor.toString() === studentId.toString()) {
+    throw AppError.badRequest('Instructors cannot enroll in their own courses');
+  }
 
   // Check prerequisites (normalize Objects or ObjectIds)
   const prereqIds = (course.prerequisites || []).map((p) =>
@@ -233,6 +243,11 @@ const enrollInCourse = async (courseId, studentId) => {
     instructor: course.instructor,
     status: 'active',
     enrolledAt: new Date(),
+    enrollmentData: {
+      phone: enrollmentData.phone || '',
+      learningGoals: enrollmentData.learningGoals || '',
+      agreedTerms: true,
+    },
   });
   await Course.findByIdAndUpdate(courseId, { $inc: { enrollmentCount: 1, enrolledStudentsCount: 1 } });
 
@@ -391,10 +406,125 @@ const createCategory = async (data) => {
   return category;
 };
 
+/* ── Course Lifecycle & Moderation ────────────────────────────────────────── */
+
+const submitForReview = async (id, requestingUser) => {
+  const course = await Course.findById(id);
+  if (!course) throw AppError.notFound('Course');
+
+  checkCourseOwnership(course, requestingUser);
+
+  if (['pending_approval', 'under_review', 'published'].includes(course.status)) {
+    throw AppError.badRequest(`Course is already in ${course.status.replace('_', ' ')} status`);
+  }
+
+  // Completeness Validation
+  if (!course.title || course.title.trim().length < 5) {
+    throw AppError.badRequest('Course must have a valid title (at least 5 characters) before submission');
+  }
+  if (!course.description || course.description.trim().length < 10) {
+    throw AppError.badRequest('Course must have a valid description (at least 10 characters) before submission');
+  }
+  if (!course.category) {
+    throw AppError.badRequest('Course must have a category assigned before submission');
+  }
+  if (!course.sections || course.sections.length === 0) {
+    throw AppError.badRequest('Course must have at least one curriculum section before submitting for review');
+  }
+  const totalLessons = course.sections.reduce((acc, s) => acc + (s.lessons ? s.lessons.length : 0), 0);
+  if (totalLessons === 0) {
+    throw AppError.badRequest('Course must have at least one lesson before submitting for review');
+  }
+
+  course.status = 'pending_approval';
+  course.submittedAt = new Date();
+  course.rejectionReason = undefined;
+  await course.save();
+
+  await cacheDel(`course:${id}`);
+  await cacheDelPattern('courses:*');
+
+  try {
+    const notificationService = require('../notifications/notification.service');
+    await notificationService.createAndEmitNotification({
+      userId: course.instructor,
+      title: 'Course Submitted for Review ⏳',
+      message: `Your course "${course.title}" has been submitted for admin moderation.`,
+      type: 'info',
+      category: 'system',
+    });
+  } catch (err) {}
+
+  return course;
+};
+
+const approveCourse = async (id, adminUser) => {
+  const course = await Course.findById(id);
+  if (!course) throw AppError.notFound('Course');
+
+  if (!['pending_approval', 'under_review'].includes(course.status)) {
+    throw AppError.badRequest(`Course is not pending review (current status: ${course.status})`);
+  }
+
+  course.status = 'published';
+  course.reviewedBy = adminUser._id;
+  course.reviewedAt = new Date();
+  course.rejectionReason = undefined;
+  await course.save();
+
+  await cacheDel(`course:${id}`);
+  await cacheDelPattern('courses:*');
+
+  try {
+    const notificationService = require('../notifications/notification.service');
+    await notificationService.createAndEmitNotification({
+      userId: course.instructor,
+      title: 'Course Approved & Published! 🎉',
+      message: `Congratulations! Your course "${course.title}" has been approved and published on the platform.`,
+      type: 'success',
+      category: 'system',
+    });
+  } catch (err) {}
+
+  return course;
+};
+
+const rejectCourse = async (id, adminUser, { rejectionReason }) => {
+  const course = await Course.findById(id);
+  if (!course) throw AppError.notFound('Course');
+
+  if (!['pending_approval', 'under_review'].includes(course.status)) {
+    throw AppError.badRequest(`Course is not pending review (current status: ${course.status})`);
+  }
+
+  course.status = 'rejected';
+  course.rejectionReason = rejectionReason || 'Course content requires revision.';
+  course.reviewedBy = adminUser._id;
+  course.reviewedAt = new Date();
+  await course.save();
+
+  await cacheDel(`course:${id}`);
+  await cacheDelPattern('courses:*');
+
+  try {
+    const notificationService = require('../notifications/notification.service');
+    await notificationService.createAndEmitNotification({
+      userId: course.instructor,
+      title: 'Course Review Feedback ⚠️',
+      message: `Your course "${course.title}" requires revisions. Reason: ${course.rejectionReason}`,
+      type: 'warning',
+      category: 'system',
+    });
+  } catch (err) {}
+
+  return course;
+};
+
 module.exports = {
   listCourses, getCourseById, getCourseBySlug, createCourse, updateCourse, deleteCourse, updateThumbnail,
   enrollInCourse, getEnrolledCourses,
   addSection, updateSection, deleteSection,
   addLesson, updateLesson, deleteLesson,
   listCategories, createCategory,
+  submitForReview, approveCourse, rejectCourse,
 };

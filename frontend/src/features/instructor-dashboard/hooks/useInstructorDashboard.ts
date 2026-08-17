@@ -107,6 +107,18 @@ export const useTogglePublishCourse = () => {
   });
 };
 
+export const useSubmitCourseForReview = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => courseService.submitForReview(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'courses'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+    },
+  });
+};
+
 export const useStudentProgressList = () => {
   return useQuery({
     queryKey: ['instructor', 'student-progress'],

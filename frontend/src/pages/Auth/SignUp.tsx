@@ -123,22 +123,18 @@ const SignUp: React.FC = () => {
             {errors.email && <p className="mt-1 text-[11px] text-rose-400 font-mono">{errors.email.message}</p>}
           </div>
 
-          {/* Account Role Dropdown */}
+          {/* Account Role Notice */}
           <div>
             <label className="block text-[11px] font-mono text-gray-300 uppercase tracking-wider mb-1">
-              Account Type / Role
+              Account Type
             </label>
-            <div className="relative flex items-center">
-              <select
-                id="signup-role"
-                {...register('role')}
-                className="w-full px-3 py-2 pl-9 text-xs sm:text-sm bg-white/[0.03] border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/30 font-mono transition-colors appearance-none"
-              >
-                <option value="student" className="bg-[#090C15] text-white">Student / Developer</option>
-                <option value="instructor" className="bg-[#090C15] text-white">Instructor / Author</option>
-              </select>
-              <ShieldCheck className="absolute left-3 text-gray-400 w-3.5 h-3.5" />
+            <div className="relative flex items-center bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-xs text-gray-300 font-mono">
+              <ShieldCheck className="text-emerald-400 w-3.5 h-3.5 mr-2" />
+              <span>Student / Developer Account</span>
             </div>
+            <p className="mt-1 text-[10px] text-gray-400 font-mono">
+              Looking to teach? You can apply as an Instructor after creating your account.
+            </p>
           </div>
 
           {/* Password Field */}

@@ -162,4 +162,38 @@ const getCategoryBreakdown = async () => {
   ]);
 };
 
-module.exports = { getOverview, getStudentGrowth, getCoursePerformance, getInstructorPerformance, getEnrollmentTrend, getCategoryBreakdown };
+/**
+ * List system-wide enrollments with pagination and optional status filter
+ */
+const listEnrollments = async (page = 1, limit = 10, status) => {
+  const query = {};
+  if (status) query.status = status;
+
+  const skip = (page - 1) * limit;
+  const [enrollments, total] = await Promise.all([
+    Enrollment.find(query)
+      .populate('student', 'firstName lastName email avatar')
+      .populate('course', 'title category thumbnail price')
+      .populate('instructor', 'firstName lastName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Enrollment.countDocuments(query),
+  ]);
+
+  return {
+    enrollments,
+    meta: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / limit) },
+  };
+};
+
+module.exports = {
+  getOverview,
+  getStudentGrowth,
+  getCoursePerformance,
+  getInstructorPerformance,
+  getEnrollmentTrend,
+  getCategoryBreakdown,
+  listEnrollments,
+};

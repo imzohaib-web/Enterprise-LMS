@@ -27,6 +27,11 @@ router.post('/upload/document', authenticate, authorize('admin', 'instructor'), 
 /* ── My enrollments ──────────────────────────────────────────────────────── */
 router.get('/enrolled', authenticate, courseController.getMyEnrollments);
 
+/* ── Course Lifecycle & Moderation ────────────────────────────────────────── */
+router.post('/:id/submit', authenticate, authorize('admin', 'instructor'), courseController.submitForReview);
+router.patch('/:id/approve', authenticate, authorize('admin'), courseController.approveCourse);
+router.patch('/:id/reject', authenticate, authorize('admin'), courseController.rejectCourse);
+
 /* ── Course CRUD ─────────────────────────────────────────────────────────── */
 router.get('/', optionalAuth, validate(schemas.listCourses, 'query'), courseController.listCourses);
 router.post('/', authenticate, authorize('admin', 'instructor'), validate(schemas.createCourse), courseController.createCourse);

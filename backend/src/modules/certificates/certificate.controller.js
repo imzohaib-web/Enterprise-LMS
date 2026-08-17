@@ -13,7 +13,7 @@ const generateCertificate = async (req, res, next) => {
   try {
     const validatedParams = generateCertificateParamsSchema.parse(req.params);
     const { courseId } = validatedParams;
-    const studentId = req.user.id;
+    const studentId = req.user._id || req.user.id;
 
     const certificate = await certificateService.generateCertificate(
       studentId,
@@ -33,7 +33,7 @@ const generateCertificate = async (req, res, next) => {
  */
 const getMyCertificates = async (req, res, next) => {
   try {
-    const studentId = req.user.id;
+    const studentId = req.user._id || req.user.id;
     const certificates = await certificateService.getStudentCertificates(studentId);
 
     return sendSuccess(
@@ -55,7 +55,7 @@ const getCertificateById = async (req, res, next) => {
   try {
     const validatedParams = getCertificateByIdParamsSchema.parse(req.params);
     const { id } = validatedParams;
-    const studentId = req.user.id;
+    const studentId = req.user._id || req.user.id;
 
     const certificate = await certificateService.getCertificateById(id, studentId);
 

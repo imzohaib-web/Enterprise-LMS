@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
 import PageMeta from '../../../components/common/PageMeta';
 import ComponentCard from '../../../components/common/ComponentCard';
+import { BecomeInstructorModal } from '../components/BecomeInstructorModal';
 import { selectCurrentUser, fetchMeThunk } from '../../auth/authSlice';
 import type { AppDispatch } from '../../../app/store';
 import { courseService } from '../../../services/course.service';
@@ -152,11 +153,18 @@ export const StudentDashboard: React.FC = () => {
     );
   }
 
+  const [isInstructorModalOpen, setIsInstructorModalOpen] = useState(false);
+
   return (
     <>
       <PageMeta
         title={`${studentName} | Student Dashboard`}
         description="Personalized learning dashboard for active courses, progress tracking, learning paths, and assessments."
+      />
+
+      <BecomeInstructorModal
+        isOpen={isInstructorModalOpen}
+        onClose={() => setIsInstructorModalOpen(false)}
       />
 
       <div className="space-y-6">
@@ -188,6 +196,14 @@ export const StudentDashboard: React.FC = () => {
               >
                 Learning Paths ({learningPaths.length})
               </Link>
+              {user?.role === 'student' && (
+                <button
+                  onClick={() => setIsInstructorModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-amber-300 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-400/30 rounded-xl transition-colors backdrop-blur-xs cursor-pointer"
+                >
+                  <span>🎓</span> Become an Instructor
+                </button>
+              )}
             </div>
           </div>
         </div>

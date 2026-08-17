@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import PageMeta from '../../../components/common/PageMeta';
 import ComponentCard from '../../../components/common/ComponentCard';
 import Badge from '../../../components/ui/badge/Badge';
@@ -10,6 +11,7 @@ import {
   useInstructorCourses,
   useCreateCourse,
   useTogglePublishCourse,
+  useSubmitCourseForReview,
   useDeleteCourse,
 } from '../hooks/useInstructorDashboard';
 import { InstructorCourse } from '../types';
@@ -32,6 +34,7 @@ export const CourseList: React.FC = () => {
 
   const createCourseMutation = useCreateCourse();
   const togglePublishMutation = useTogglePublishCourse();
+  const submitReviewMutation = useSubmitCourseForReview();
   const deleteCourseMutation = useDeleteCourse();
 
   // Multi-select bulk state & form validation state
@@ -455,9 +458,28 @@ export const CourseList: React.FC = () => {
                         {c.category}
                       </td>
                       <td className="py-3.5 px-4">
-                        <Badge color={c.status === 'published' ? 'success' : 'warning'}>
-                          {c.status === 'published' ? 'Published' : 'Draft'}
-                        </Badge>
+                        <span
+                          className={`px-2.5 py-1 text-xs font-bold rounded-full inline-flex items-center gap-1 ${
+                            c.status === 'published'
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400'
+                              : c.status === 'pending_approval' || c.status === 'under_review'
+                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400'
+                              : c.status === 'rejected'
+                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400'
+                              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                          }`}
+                        >
+                          {c.status === 'published' && 'Published'}
+                          {(c.status === 'pending_approval' || c.status === 'under_review') && '⏳ Under Review'}
+                          {c.status === 'rejected' && '❌ Rejected'}
+                          {c.status === 'draft' && 'Draft'}
+                          {c.status === 'archived' && 'Archived'}
+                        </span>
+                        {c.status === 'rejected' && (c as any).rejectionReason && (
+                          <div className="text-[10px] text-rose-500 mt-1 max-w-xs line-clamp-1" title={(c as any).rejectionReason}>
+                            Reason: {(c as any).rejectionReason}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 font-semibold text-gray-900 dark:text-white">
                         {(c.enrolledStudents || c.enrolledStudentsCount || 0).toLocaleString()}
@@ -478,21 +500,34 @@ export const CourseList: React.FC = () => {
                             className="px-2.5 py-1 text-xs font-semibold rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400"
                             title="View Course Details & Preview Syllabus"
                           >
-                            View Details
+                            View
                           </Link>
                           <Link
                             to={`/courses/${cid}/builder`}
                             className="px-2.5 py-1 text-xs font-semibold rounded-md bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400"
                           >
-                            Edit Content
+                            Edit
                           </Link>
-                          <button
-                            type="button"
-                            onClick={() => handleTogglePublish(c)}
-                            className="px-2.5 py-1 text-xs font-medium rounded-md border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                          >
-                            {c.status === 'published' ? 'Unpublish' : 'Publish'}
-                          </button>
+                          {(c.status === 'draft' || c.status === 'rejected') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                submitReviewMutation.mutate(cid, {
+                                  onSuccess: () => toast.success('Course submitted for Admin review!'),
+                                  onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to submit course'),
+                                });
+                              }}
+                              disabled={submitReviewMutation.isPending}
+                              className="px-2.5 py-1 text-xs font-bold rounded-md bg-amber-500 hover:bg-amber-600 text-white transition cursor-pointer"
+                            >
+                              Submit for Review
+                            </button>
+                          )}
+                          {(c.status === 'pending_approval' || c.status === 'under_review') && (
+                            <span className="px-2.5 py-1 text-[11px] font-bold rounded-md bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                              In Review
+                            </span>
+                          )}
                           <button
                             type="button"
                             onClick={() => handleDelete(cid)}

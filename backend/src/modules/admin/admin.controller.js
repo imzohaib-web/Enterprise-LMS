@@ -43,5 +43,20 @@ const listAuditLogs = async (req, res) => {
   sendSuccess(res, data);
 };
 
-module.exports = { getOverview, getStudentGrowth, getCoursePerformance, getInstructorPerformance, getEnrollmentTrend, getCategoryBreakdown, listAuditLogs };
+const listEnrollments = async (req, res) => {
+  const { page, limit, status } = req.query;
+  const { enrollments, meta } = await adminService.listEnrollments(page, limit, status);
+  sendSuccess(res, { data: { enrollments }, meta });
+};
+
+module.exports = {
+  getOverview,
+  getStudentGrowth,
+  getCoursePerformance,
+  getInstructorPerformance,
+  getEnrollmentTrend,
+  getCategoryBreakdown,
+  listAuditLogs,
+  listEnrollments,
+};
 

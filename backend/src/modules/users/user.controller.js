@@ -9,7 +9,7 @@ const listUsers = async (req, res) => {
 };
 
 const getUserById = async (req, res) => {
-  const user = await userService.getUserById(req.params.id);
+  const user = await userService.getUserById(req.params.id, req.user);
   sendSuccess(res, { data: { user } });
 };
 
@@ -24,9 +24,8 @@ const deleteUser = async (req, res) => {
 };
 
 const updateUserStatus = async (req, res) => {
-  const { isActive } = req.body;
-  const user = await userService.updateUserStatus(req.params.id, isActive);
-  sendSuccess(res, { message: `User ${isActive ? 'activated' : 'deactivated'} successfully`, data: { user } });
+  const user = await userService.updateUserStatus(req.params.id, req.body);
+  sendSuccess(res, { message: 'User account status updated successfully', data: { user } });
 };
 
 const getProfile = async (req, res) => {

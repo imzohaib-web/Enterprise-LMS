@@ -1,7 +1,7 @@
 import type { User } from './user';
 
 export type CourseLevel = 'beginner' | 'intermediate' | 'advanced';
-export type CourseStatus = 'draft' | 'published' | 'archived' | 'pending_approval' | 'rejected';
+export type CourseStatus = 'draft' | 'published' | 'archived' | 'pending_approval' | 'under_review' | 'rejected';
 export type LessonType = 'video' | 'pdf' | 'text' | 'assignment' | 'article' | 'quiz';
 
 export interface Resource {
@@ -73,6 +73,10 @@ export interface Course {
   totalDuration: number;
   lessonCount?: number;
   sectionCount?: number;
+  submittedAt?: string;
+  reviewedAt?: string;
+  reviewedBy?: Partial<User>;
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
 }
