@@ -12,6 +12,16 @@ const User = require('../../models/User');
 
 const CACHE_TTL = 300; // 5 minutes
 
+const checkCourseOwnership = (course, requestingUser) => {
+  if (!requestingUser) throw AppError.unauthorized();
+  if (requestingUser.role === 'admin') return;
+  const reqUserId = (requestingUser._id || requestingUser.id || '').toString();
+  const courseInstId = (course.instructor?._id || course.instructor || '').toString();
+  if (!reqUserId || reqUserId !== courseInstId) {
+    throw AppError.forbidden('You do not have permission to modify this course');
+  }
+};
+
 /* ── Course CRUD ─────────────────────────────────────────────────────────── */
 
 const listCourses = async (query) => {
@@ -57,9 +67,12 @@ const getCourseById = async (id, requestingUser = null) => {
 
   if (!course) throw AppError.notFound('Course');
 
-  const isOwnerOrAdmin = requestingUser && (
+  const reqUserId = requestingUser && typeof requestingUser === 'object' ? (requestingUser._id || requestingUser.id || '').toString() : '';
+  const courseInstId = course.instructor ? (course.instructor._id || course.instructor).toString() : '';
+
+  const isOwnerOrAdmin = requestingUser && typeof requestingUser === 'object' && (
     requestingUser.role === 'admin' ||
-    (course.instructor && (course.instructor._id || course.instructor).toString() === requestingUser._id.toString())
+    (Boolean(reqUserId) && courseInstId === reqUserId)
   );
 
   if (!isOwnerOrAdmin && course.status !== 'published') {
@@ -102,7 +115,11 @@ const getCourseBySlug = async (slug) => {
 const createCourse = async (data, instructorId) => {
   const course = await Course.create({ ...data, instructor: instructorId });
   if (data.category) {
-    await Category.findByIdAndUpdate(data.category, { $inc: { courseCount: 1 } });
+    if (mongoose.Types.ObjectId.isValid(data.category)) {
+      await Category.findByIdAndUpdate(data.category, { $inc: { courseCount: 1 } });
+    } else if (typeof data.category === 'string') {
+      await Category.findOneAndUpdate({ name: data.category }, { $inc: { courseCount: 1 } });
+    }
   }
   await cacheDelPattern('courses:*');
   return course;
@@ -112,10 +129,7 @@ const updateCourse = async (id, updates, requestingUser) => {
   const course = await Course.findById(id);
   if (!course) throw AppError.notFound('Course');
 
-  // Instructors can only update their own courses
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden('You can only update your own courses');
-  }
+  checkCourseOwnership(course, requestingUser);
 
   // Validate publishing requirements
   if (updates.status === 'published' && course.status !== 'published') {
@@ -131,8 +145,18 @@ const updateCourse = async (id, updates, requestingUser) => {
 
   // Handle category change
   if (updates.category && updates.category !== course.category?.toString()) {
-    if (course.category) await Category.findByIdAndUpdate(course.category, { $inc: { courseCount: -1 } });
-    await Category.findByIdAndUpdate(updates.category, { $inc: { courseCount: 1 } });
+    if (course.category) {
+      if (mongoose.Types.ObjectId.isValid(course.category)) {
+        await Category.findByIdAndUpdate(course.category, { $inc: { courseCount: -1 } });
+      } else if (typeof course.category === 'string') {
+        await Category.findOneAndUpdate({ name: course.category }, { $inc: { courseCount: -1 } });
+      }
+    }
+    if (mongoose.Types.ObjectId.isValid(updates.category)) {
+      await Category.findByIdAndUpdate(updates.category, { $inc: { courseCount: 1 } });
+    } else if (typeof updates.category === 'string') {
+      await Category.findOneAndUpdate({ name: updates.category }, { $inc: { courseCount: 1 } });
+    }
   }
 
   const updated = await Course.findByIdAndUpdate(id, { $set: updates }, { new: true, runValidators: true });
@@ -145,9 +169,7 @@ const deleteCourse = async (id, requestingUser) => {
   const course = await Course.findById(id);
   if (!course) throw AppError.notFound('Course');
 
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden('You can only delete your own courses');
-  }
+  checkCourseOwnership(course, requestingUser);
 
   // Delete all Cloudinary media
   for (const section of course.sections) {
@@ -171,9 +193,7 @@ const deleteCourse = async (id, requestingUser) => {
 const updateThumbnail = async (id, thumbnailUrl, thumbnailPublicId, requestingUser) => {
   const course = await Course.findById(id);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   if (course.thumbnailPublicId) await deleteFromCloudinary(course.thumbnailPublicId, 'image');
   const updated = await Course.findByIdAndUpdate(id, { thumbnail: thumbnailUrl, thumbnailPublicId }, { new: true });
   await cacheDel(`course:${id}`);
@@ -273,9 +293,7 @@ const getEnrolledCourses = async (studentId, page = 1, limit = 12) => {
 const addSection = async (courseId, sectionData, requestingUser) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   course.sections.push(sectionData);
   await course.save();
   await cacheDel(`course:${courseId}`);
@@ -285,9 +303,7 @@ const addSection = async (courseId, sectionData, requestingUser) => {
 const updateSection = async (courseId, sectionId, updates, requestingUser) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   const section = course.sections.id(sectionId);
   if (!section) throw AppError.notFound('Section');
   Object.assign(section, updates);
@@ -299,9 +315,7 @@ const updateSection = async (courseId, sectionId, updates, requestingUser) => {
 const deleteSection = async (courseId, sectionId, requestingUser) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   const section = course.sections.id(sectionId);
   if (!section) throw AppError.notFound('Section');
 
@@ -321,9 +335,7 @@ const deleteSection = async (courseId, sectionId, requestingUser) => {
 const addLesson = async (courseId, sectionId, lessonData, requestingUser) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   const section = course.sections.id(sectionId);
   if (!section) throw AppError.notFound('Section');
   section.lessons.push(lessonData);
@@ -335,9 +347,7 @@ const addLesson = async (courseId, sectionId, lessonData, requestingUser) => {
 const updateLesson = async (courseId, sectionId, lessonId, updates, requestingUser) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   const section = course.sections.id(sectionId);
   if (!section) throw AppError.notFound('Section');
   const lesson = section.lessons.id(lessonId);
@@ -351,9 +361,7 @@ const updateLesson = async (courseId, sectionId, lessonId, updates, requestingUs
 const deleteLesson = async (courseId, sectionId, lessonId, requestingUser) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   const section = course.sections.id(sectionId);
   if (!section) throw AppError.notFound('Section');
   const lesson = section.lessons.id(lessonId);

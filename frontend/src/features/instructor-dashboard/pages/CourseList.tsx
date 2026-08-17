@@ -436,13 +436,17 @@ export const CourseList: React.FC = () => {
                         </td>
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <img
-                            src={c.thumbnail || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80'}
-                            alt={c.title}
-                            className="w-14 h-10 rounded-lg object-cover border border-gray-200 dark:border-gray-700 shadow-sm"
-                          />
+                          <Link to={`/courses/${cid}`}>
+                            <img
+                              src={c.thumbnail || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80'}
+                              alt={c.title}
+                              className="w-14 h-10 rounded-lg object-cover border border-gray-200 dark:border-gray-700 shadow-sm hover:opacity-80 transition"
+                            />
+                          </Link>
                           <div>
-                            <div className="font-semibold text-gray-900 dark:text-white line-clamp-1">{c.title}</div>
+                            <Link to={`/courses/${cid}`} className="font-semibold text-gray-900 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 transition line-clamp-1">
+                              {c.title}
+                            </Link>
                             <div className="text-xs text-gray-400">{c.duration || '10 hours'} • {c.difficulty || 'intermediate'}</div>
                           </div>
                         </div>
@@ -470,7 +474,14 @@ export const CourseList: React.FC = () => {
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link
-                            to={`/courses/${c.id || c._id}/builder`}
+                            to={`/courses/${cid}`}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400"
+                            title="View Course Details & Preview Syllabus"
+                          >
+                            View Details
+                          </Link>
+                          <Link
+                            to={`/courses/${cid}/builder`}
                             className="px-2.5 py-1 text-xs font-semibold rounded-md bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400"
                           >
                             Edit Content
@@ -484,7 +495,7 @@ export const CourseList: React.FC = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(c.id || c._id || '')}
+                            onClick={() => handleDelete(cid)}
                             className="px-2.5 py-1 text-xs font-medium rounded-md bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100"
                           >
                             Delete
@@ -500,63 +511,77 @@ export const CourseList: React.FC = () => {
           ) : (
             /* Grid Card View */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {paginatedCourses.map((c) => (
-                <div
-                  key={c.id || c._id}
-                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between"
-                >
-                  <div className="relative">
-                    <img
-                      src={c.thumbnail || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80'}
-                      alt={c.title}
-                      className="w-full h-36 object-cover"
-                    />
-                    <div className="absolute top-2 right-2">
-                      <Badge color={c.status === 'published' ? 'success' : 'warning'}>
-                        {c.status === 'published' ? 'Published' : 'Draft'}
-                      </Badge>
+              {paginatedCourses.map((c) => {
+                const cid = c.id || c._id || '';
+                return (
+                  <div
+                    key={cid}
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition"
+                  >
+                    <div className="relative">
+                      <Link to={`/courses/${cid}`}>
+                        <img
+                          src={c.thumbnail || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80'}
+                          alt={c.title}
+                          className="w-full h-36 object-cover hover:opacity-90 transition"
+                        />
+                      </Link>
+                      <div className="absolute top-2 right-2">
+                        <Badge color={c.status === 'published' ? 'success' : 'warning'}>
+                          {c.status === 'published' ? 'Published' : 'Draft'}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="p-4 space-y-2 flex-1">
-                    <div className="text-xs font-semibold text-brand-600 dark:text-brand-400 uppercase tracking-wider">
-                      {c.category}
+                    <div className="p-4 space-y-2 flex-1">
+                      <div className="text-xs font-semibold text-brand-600 dark:text-brand-400 uppercase tracking-wider">
+                        {c.category}
+                      </div>
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2">
+                        <Link to={`/courses/${cid}`} className="hover:text-brand-600 dark:hover:text-brand-400 transition">
+                          {c.title}
+                        </Link>
+                      </h4>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
+                        <div>👥 {c.enrolledStudents || 0} Students</div>
+                        <div>📖 {c.lessonsCount || c.totalModules || 0} Lessons</div>
+                        <div>📝 {c.assessmentsCount || 0} Assessments</div>
+                        <div>📅 {c.createdAt}</div>
+                      </div>
                     </div>
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2">
-                      {c.title}
-                    </h4>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
-                      <div>👥 {c.enrolledStudents || 0} Students</div>
-                      <div>📖 {c.lessonsCount || c.totalModules || 0} Lessons</div>
-                      <div>📝 {c.assessmentsCount || 0} Assessments</div>
-                      <div>📅 {c.createdAt}</div>
-                    </div>
-                  </div>
 
-                  <div className="p-4 pt-0 flex items-center justify-between gap-2 border-t border-gray-100 dark:border-gray-700/50 mt-2">
-                    <Link
-                      to={`/courses/${c.id || c._id}/builder`}
-                      className="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400"
-                    >
-                      Edit Content
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => handleTogglePublish(c)}
-                      className="flex-1 py-1.5 text-xs font-medium text-center rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      {c.status === 'published' ? 'Unpublish' : 'Publish'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(c.id || c._id || '')}
-                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100"
-                    >
-                      Delete
-                    </button>
+                    <div className="p-4 pt-0 flex flex-wrap items-center justify-between gap-1.5 border-t border-gray-100 dark:border-gray-700/50 mt-2">
+                      <Link
+                        to={`/courses/${cid}`}
+                        className="flex-1 py-1.5 px-2 text-xs font-semibold text-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400"
+                        title="View Details"
+                      >
+                        View Details
+                      </Link>
+                      <Link
+                        to={`/courses/${cid}/builder`}
+                        className="flex-1 py-1.5 px-2 text-xs font-semibold text-center rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePublish(c)}
+                        className="flex-1 py-1.5 px-2 text-xs font-medium text-center rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
+                        {c.status === 'published' ? 'Unpublish' : 'Publish'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(cid)}
+                        className="px-2 py-1.5 text-xs font-medium rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

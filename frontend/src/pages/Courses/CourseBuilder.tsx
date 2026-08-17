@@ -11,7 +11,7 @@ import type { CreateCoursePayload, CreateSectionPayload, CreateLessonPayload, Se
 type Mode = 'create' | 'edit';
 
 const LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
-const LESSON_TYPES = ['video', 'pdf', 'text', 'assignment'] as const;
+const LESSON_TYPES = ['video', 'pdf', 'text', 'article', 'assignment', 'quiz'] as const;
 
 const CourseBuilder: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
@@ -209,13 +209,24 @@ const CourseBuilder: React.FC = () => {
               : 'Update your course details, thumbnail, sections, and lessons'}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/instructor/courses')}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-xs w-fit cursor-pointer"
-        >
-          ← Back to Course Catalog
-        </button>
+        <div className="flex items-center gap-3">
+          {mode === 'edit' && id && (
+            <button
+              type="button"
+              onClick={() => navigate(`/courses/${id}`)}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition shadow-xs w-fit cursor-pointer"
+            >
+              👁️ Preview Course
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => navigate('/instructor/courses')}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-xs w-fit cursor-pointer"
+          >
+            ← Back to Course Catalog
+          </button>
+        </div>
       </div>
 
       {/* Course Details Form */}

@@ -18,9 +18,10 @@ export const CourseOverviewPreview: React.FC<CourseOverviewPreviewProps> = ({
 }) => {
   const user = useSelector(selectCurrentUser);
   const isInstructorOrAdmin = user && ['instructor', 'admin'].includes(user.role);
+  const userIdStr = user?.id || user?._id || '';
+  const instIdStr = typeof course.instructor === 'object' ? (course.instructor?._id || course.instructor?.id) : course.instructor;
   const isOwner = isInstructorOrAdmin && (
-    user.role === 'admin' ||
-    (typeof course.instructor === 'object' ? course.instructor?._id === user._id : course.instructor === user._id)
+    user.role === 'admin' || (Boolean(userIdStr) && String(instIdStr) === String(userIdStr))
   );
 
   const instructorName = course.instructor

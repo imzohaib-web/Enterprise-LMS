@@ -279,7 +279,7 @@ class InstructorService {
    * Get single course details with instructor authorization via CourseService.
    */
   static async getCourseById(instructorId, courseId) {
-    const course = await CourseService.getCourseById(courseId, true);
+    const course = await CourseService.getCourseById(courseId, { _id: instructorId, role: 'instructor' });
     const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor ? course.instructor.toString() : '';
     if (instIdStr && instIdStr !== instructorId.toString()) {
       throw AppError.forbidden('Course not found or unauthorized');
