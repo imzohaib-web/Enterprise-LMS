@@ -35,6 +35,31 @@ class InstructorApplicationService {
 
     await User.findByIdAndUpdate(applicantId, { accountStatus: 'PENDING_APPROVAL' });
 
+    // Notify all active system administrators about the new instructor application
+    try {
+      const admins = await User.find({ role: 'admin', isActive: true }).select('_id');
+      const notificationService = require('../notifications/notification.service');
+      const applicantName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
+
+      for (const admin of admins) {
+        await notificationService.createAndEmitNotification({
+          userId: admin._id,
+          title: 'New Instructor Application',
+          message: `${applicantName} has submitted an application to become an instructor and is awaiting review.`,
+          type: 'info',
+          category: 'system',
+          actionUrl: '/admin/users?tab=applications',
+          metadata: {
+            applicationId: application._id,
+            applicantId: user._id,
+            applicantEmail: user.email,
+          },
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to send admin notifications for new instructor application:', err.message);
+    }
+
     return application;
   }
 
@@ -130,7 +155,7 @@ class InstructorApplicationService {
     await app.save();
 
     await User.findByIdAndUpdate(app.applicant, {
-      accountStatus: 'REJECTED',
+      accountStatus: 'ACTIVE',
     });
 
     try {

@@ -5,12 +5,28 @@ const { emitNotificationToUser, emitUnreadCountToUser } = require('../../sockets
 /**
  * Get paginated notifications for a specific user
  */
+const buildUserQuery = (userId) => {
+  if (!userId) return {};
+  const strId = userId.toString ? userId.toString() : String(userId);
+  return {
+    $or: [
+      { userId },
+      { recipient: userId },
+      { userId: strId },
+      { recipient: strId }
+    ]
+  };
+};
+
+/**
+ * Get paginated notifications for a specific user
+ */
 const getUserNotifications = async (userId, options = {}) => {
   const page = Math.max(1, parseInt(options.page, 10) || 1);
   const limit = Math.max(1, Math.min(100, parseInt(options.limit, 10) || 10));
   const skip = (page - 1) * limit;
 
-  const query = { userId };
+  const query = buildUserQuery(userId);
 
   if (options.category) {
     query.category = options.category;
@@ -40,7 +56,8 @@ const getUserNotifications = async (userId, options = {}) => {
  * Get unread notifications count for a user
  */
 const getUnreadCount = async (userId) => {
-  const count = await Notification.countDocuments({ userId, isRead: false });
+  const userQuery = buildUserQuery(userId);
+  const count = await Notification.countDocuments({ ...userQuery, isRead: false });
   return count;
 };
 
@@ -48,8 +65,9 @@ const getUnreadCount = async (userId) => {
  * Mark a single notification as read
  */
 const markAsRead = async (notificationId, userId) => {
+  const userQuery = buildUserQuery(userId);
   const notification = await Notification.findOneAndUpdate(
-    { _id: notificationId, userId },
+    { _id: notificationId, ...userQuery },
     { $set: { isRead: true } },
     { new: true }
   );
@@ -68,7 +86,11 @@ const markAsRead = async (notificationId, userId) => {
  * Mark all unread notifications for a user as read
  */
 const markAllAsRead = async (userId) => {
-  await Notification.updateMany({ userId, isRead: false }, { $set: { isRead: true } });
+  const userQuery = buildUserQuery(userId);
+  await Notification.updateMany(
+    { ...userQuery, isRead: false },
+    { $set: { isRead: true } }
+  );
 
   emitUnreadCountToUser(userId, 0);
 
@@ -79,7 +101,11 @@ const markAllAsRead = async (userId) => {
  * Delete a notification
  */
 const deleteNotification = async (notificationId, userId) => {
-  const notification = await Notification.findOneAndDelete({ _id: notificationId, userId });
+  const userQuery = buildUserQuery(userId);
+  const notification = await Notification.findOneAndDelete({
+    _id: notificationId,
+    ...userQuery
+  });
 
   if (!notification) {
     throw new AppError('Notification not found', 404);
@@ -97,6 +123,7 @@ const deleteNotification = async (notificationId, userId) => {
 const createAndEmitNotification = async (notificationData) => {
   const notification = await Notification.create({
     userId: notificationData.userId,
+    recipient: notificationData.userId,
     title: notificationData.title,
     message: notificationData.message,
     type: notificationData.type || 'info',

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { userService } from '../../services/user.service';
@@ -20,8 +21,10 @@ const roleBadge: Record<string, string> = {
 };
 
 const AdminUsers: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'applications' ? 'applications' : 'users';
   const qc = useQueryClient();
-  const [mainTab, setMainTab] = useState<'users' | 'applications'>('users');
+  const [mainTab, setMainTab] = useState<'users' | 'applications'>(initialTab);
   const [appStatusFilter, setAppStatusFilter] = useState<string>('PENDING');
   const [rejectingAppId, setRejectingAppId] = useState<string | null>(null);
   const [appRejectionReason, setAppRejectionReason] = useState<string>('');
@@ -287,6 +290,45 @@ const AdminUsers: React.FC = () => {
           }
         }
       }
+    }
+    toast.success(`Imported ${imported} user accounts successfully`);
+    setIsImportOpen(false);
+    setCsvContent('');
+    refetch();
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <PageBreadcrumb pageTitle="User Management" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+            User Accounts & Roles
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setIsImportOpen(true)}
+            className="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 text-xs font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition flex items-center gap-1.5 shadow-2xs"
+          >
+            <span>📥</span> Import CSV
+          </button>
+          <button
+            onClick={() => handleExportCSV()}
+            className="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 text-xs font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition flex items-center gap-1.5 shadow-2xs"
+          >
+            <span>📤</span> Export CSV
+          </button>
+          <button
+            onClick={openCreateModal}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md shadow-indigo-500/20"
+          >
+            <span>+</span> Create New User
+          </button>
+        </div>
+      </div>
+
       {/* Main Tab Navigation */}
       <div className="flex bg-gray-100 dark:bg-gray-800/60 p-1 rounded-2xl w-fit border border-gray-200 dark:border-gray-700/50">
         <button

@@ -42,6 +42,7 @@ import {
   verify2FA,
 } from '../api/instructorDashboardApi';
 import { InstructorCourse, InstructorProfile, InstructorAssignment } from '../types';
+import { courseService } from '../../../services/course.service';
 
 export const useInstructorStats = () => {
   return useQuery({

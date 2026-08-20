@@ -89,7 +89,7 @@ export const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
             <input
               type="text"
               disabled
-              value={user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name || 'Student' : ''}
+              value={user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || (user as any).name || 'Student' : ''}
               className="w-full px-3.5 py-2 text-xs font-medium rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed"
             />
           </div>

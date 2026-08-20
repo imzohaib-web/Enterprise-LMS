@@ -14,6 +14,7 @@ import LessonNavigation from './LessonNavigation';
 import CoursePlayerSkeleton from './CoursePlayerSkeleton';
 import CoursePlayerError from './CoursePlayerError';
 import CourseOverviewPreview from './CourseOverviewPreview';
+import EnrollmentModal from '../student-dashboard/components/EnrollmentModal';
 
 export const CoursePlayer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ export const CoursePlayer: React.FC = () => {
   const urlLessonId = searchParams.get('lessonId');
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
 
   // 1. Fetch Course details
   const {
@@ -237,7 +239,7 @@ export const CoursePlayer: React.FC = () => {
           onClose={() => setIsEnrollModalOpen(false)}
           courseTitle={course.title}
           isLoading={enrollMutation.isPending}
-          onSubmit={(formData) => enrollMutation.mutate(formData)}
+          onSubmit={(formData: { phone?: string; learningGoals?: string; agreedTerms?: boolean }) => enrollMutation.mutate(formData)}
         />
       </>
     );
