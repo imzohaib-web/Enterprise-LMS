@@ -14,7 +14,8 @@ import { getMyCertificates } from '../../../services/certificateService';
 import { getNotifications } from '../../notifications/api/notificationApi';
 import { learningPathService } from '../../../services/learningPath.service';
 import api from '../../../services/api';
-import { STUDENT } from '../../../constants/routes';
+import { STUDENT, INSTRUCTOR } from '../../../constants/routes';
+import { instructorApplicationService } from '../../../services/instructorApplication.service';
 import {
   TaskIcon,
   PieChartIcon,
@@ -36,6 +37,14 @@ export const StudentDashboard: React.FC = () => {
   }, [dispatch, user]);
 
   const userId = user?._id || (user as any)?.id;
+
+  // ── 0. Instructor Application Query ─────────────────────────────────────────
+  const { data: applicationData } = useQuery({
+    queryKey: ['myInstructorApplication', userId],
+    queryFn: () => instructorApplicationService.getMyApplication(),
+    enabled: !!userId,
+  });
+  const myApp = applicationData?.data?.application;
 
   // ── 1. Enrolled Courses Query ────────────────────────────────────────────────
   const { data: enrollments = [], isLoading: isEnrollmentsLoading } = useQuery({
@@ -196,7 +205,22 @@ export const StudentDashboard: React.FC = () => {
               >
                 Learning Paths ({learningPaths.length})
               </Link>
-              {user?.role === 'student' && (
+              {/* Role-Aware Instructor CTA Button */}
+              {user?.role === 'instructor' || user?.role === 'admin' || myApp?.status === 'APPROVED' ? (
+                <Link
+                  to={INSTRUCTOR.DASHBOARD}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-400/30 rounded-xl transition-colors backdrop-blur-xs cursor-pointer"
+                >
+                  <span>🎓</span> Instructor Dashboard
+                </Link>
+              ) : myApp?.status === 'PENDING' || (user as any)?.accountStatus === 'PENDING_APPROVAL' ? (
+                <button
+                  onClick={() => setIsInstructorModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-amber-300 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-400/30 rounded-xl transition-colors backdrop-blur-xs cursor-pointer"
+                >
+                  <span>⏳</span> Application Pending
+                </button>
+              ) : (
                 <button
                   onClick={() => setIsInstructorModalOpen(true)}
                   className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-amber-300 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-400/30 rounded-xl transition-colors backdrop-blur-xs cursor-pointer"

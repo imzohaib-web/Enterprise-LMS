@@ -121,9 +121,22 @@ const AppSidebar: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const currentUser = useSelector(selectCurrentUser);
 
+  const isAdminRole = currentUser?.role === "admin";
+  const isInstructorRole = currentUser?.role === "instructor";
+
   const [viewMode, setViewMode] = useState<"admin" | "student" | "instructor">(
-    currentUser?.role === "instructor" ? "instructor" : currentUser?.role === "student" ? "student" : "admin"
+    isAdminRole ? "admin" : isInstructorRole ? "instructor" : "student"
   );
+
+  React.useEffect(() => {
+    if (location.pathname.startsWith('/student')) {
+      setViewMode('student');
+    } else if (location.pathname.startsWith('/instructor')) {
+      setViewMode('instructor');
+    } else if (location.pathname.startsWith('/admin') && isAdminRole) {
+      setViewMode('admin');
+    }
+  }, [location.pathname, isAdminRole]);
 
   const isActive = useCallback(
     (path: string) => location.pathname === path,
@@ -183,8 +196,6 @@ const AppSidebar: React.FC = () => {
     </ul>
   );
 
-  const isAdminRole = currentUser?.role === "admin";
-
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-3 left-0 bg-white dark:bg-gray-900 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 dark:border-gray-800 
@@ -214,29 +225,31 @@ const AppSidebar: React.FC = () => {
             <div>
               <span className="font-bold text-gray-900 dark:text-white text-base leading-tight block">Enterprise LMS</span>
               <span className="text-[10px] uppercase tracking-wider font-semibold text-indigo-600 dark:text-indigo-400">
-                {isAdminRole ? "Admin Console" : currentUser?.role === "instructor" ? "Instructor Portal" : "Student Portal"}
+                {isAdminRole ? "Admin Console" : isInstructorRole ? "Instructor Portal" : "Student Portal"}
               </span>
             </div>
           )}
         </Link>
       </div>
 
-      {/* Admin View Switcher (Only visible to Admins) */}
-      {isAdminRole && (isExpanded || isHovered || isMobileOpen) && (
+      {/* Role Workspace Switcher (Visible to Admins & Approved Instructors) */}
+      {(isAdminRole || isInstructorRole) && (isExpanded || isHovered || isMobileOpen) && (
         <div className="pt-3 px-1">
           <div className="p-1 bg-gray-100 dark:bg-gray-800/80 rounded-xl flex gap-1">
+            {isAdminRole && (
+              <button
+                onClick={() => { setViewMode("admin"); navigate(ADMIN.DASHBOARD); }}
+                className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition ${
+                  viewMode === "admin"
+                    ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
+                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400"
+                }`}
+              >
+                Admin
+              </button>
+            )}
             <button
-              onClick={() => setViewMode("admin")}
-              className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition ${
-                viewMode === "admin"
-                  ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
-                  : "text-gray-500 hover:text-gray-900 dark:text-gray-400"
-              }`}
-            >
-              Admin
-            </button>
-            <button
-              onClick={() => setViewMode("instructor")}
+              onClick={() => { setViewMode("instructor"); navigate(INSTRUCTOR.DASHBOARD); }}
               className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition ${
                 viewMode === "instructor"
                   ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
@@ -246,7 +259,7 @@ const AppSidebar: React.FC = () => {
               Instructor
             </button>
             <button
-              onClick={() => setViewMode("student")}
+              onClick={() => { setViewMode("student"); navigate(STUDENT.DASHBOARD); }}
               className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition ${
                 viewMode === "student"
                   ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
@@ -269,7 +282,7 @@ const AppSidebar: React.FC = () => {
                 {renderNavList(group.items)}
               </div>
             ))
-          ) : viewMode === "instructor" || currentUser?.role === "instructor" ? (
+          ) : viewMode === "instructor" ? (
             <div>
               {renderSectionHeader("Instructor Workspace")}
               {renderNavList(instructorNavItems)}

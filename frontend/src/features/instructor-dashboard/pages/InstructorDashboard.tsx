@@ -13,7 +13,7 @@ import {
 } from '../hooks/useInstructorDashboard';
 import { BoxCubeIcon, GridIcon, TaskIcon, ChatIcon, MailIcon } from '../../../icons';
 import { Link } from 'react-router-dom';
-import { INSTRUCTOR } from '../../../constants/routes';
+import { INSTRUCTOR, STUDENT } from '../../../constants/routes';
 
 export const InstructorDashboard: React.FC = () => {
   const { data: stats, isLoading: isStatsLoading } = useInstructorStats();
@@ -50,7 +50,13 @@ export const InstructorDashboard: React.FC = () => {
               Here is your enterprise teaching overview. Track assigned courses, live student enrollments, quiz evaluations, and analytics.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to={STUDENT.DASHBOARD}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors shadow-xs"
+            >
+              🎓 Student Dashboard
+            </Link>
             <Link
               to={INSTRUCTOR.COURSES}
               className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-colors shadow-xs"

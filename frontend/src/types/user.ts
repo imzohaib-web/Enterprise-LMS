@@ -38,6 +38,7 @@ export interface User {
   lastName: string;
   email: string;
   role: UserRole;
+  accountStatus?: string;
   avatar?: string;
   bio?: string;
   phone?: string;
