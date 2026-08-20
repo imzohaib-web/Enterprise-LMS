@@ -425,7 +425,8 @@ class InstructorController {
   static async getAssignmentById(req, res, next) {
     try {
       const studentId = req.user ? getUserId(req) : null;
-      const assignment = await InstructorService.getAssignmentById(req.params.id, studentId);
+      const requestedCourseId = req.query.courseId || null;
+      const assignment = await InstructorService.getAssignmentById(req.params.id, studentId, requestedCourseId);
       res.status(200).json({ success: true, data: assignment });
     } catch (error) {
       next(error);

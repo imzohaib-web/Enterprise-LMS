@@ -76,6 +76,7 @@ const CourseBuilder      = lazy(() => import('../pages/Courses/CourseBuilder'));
 const CoursePlayer       = lazy(() => import('../features/course-player/CoursePlayer'));
 const LearningPathList   = lazy(() => import('../pages/LearningPaths/LearningPathList'));
 const LearningPathDetail = lazy(() => import('../pages/LearningPaths/LearningPathDetail'));
+const CourseLearningPage = lazy(() => import('../features/student-dashboard/pages/CourseLearningPage'));
 const StudentCertificates= lazy(() => import('../features/student-dashboard/pages/StudentCertificates'));
 
 const Loader = () => (
@@ -153,12 +154,24 @@ const AppRoutes: React.FC = () => {
           <Route element={<ProtectedRoute allowedRoles={['student']} />}>
             <Route path={STUDENT.DASHBOARD} element={<StudentDashboard />} />
             <Route path={STUDENT.COURSES} element={<Suspense fallback={<Loader />}><CourseList /></Suspense>} />
+
+            {/* Dedicated Course Learning Space Routes */}
+            <Route path="/student/courses/:courseId" element={<Suspense fallback={<Loader />}><CourseLearningPage /></Suspense>} />
+            <Route path="/student/courses/:courseId/:tab" element={<Suspense fallback={<Loader />}><CourseLearningPage /></Suspense>} />
+            <Route path="/student/courses/:courseId/assessments/:id" element={<QuizDetailsRouteWrapper />} />
+            <Route path="/student/courses/:courseId/assessments/:id/take" element={<TakeQuizRouteWrapper />} />
+            <Route path="/student/courses/:courseId/assessments/:id/result" element={<QuizResultRouteWrapper />} />
+
             <Route path={STUDENT.LEARNING_PATHS} element={<Suspense fallback={<Loader />}><LearningPathList /></Suspense>} />
             <Route path="/learning-paths/:id" element={<Suspense fallback={<Loader />}><LearningPathDetail /></Suspense>} />
-            <Route path={STUDENT.ASSESSMENTS} element={<QuizList />} />
+
+            {/* Redirect old global assessments/assignments pages to My Courses */}
+            <Route path={STUDENT.ASSESSMENTS} element={<Navigate to={STUDENT.COURSES} replace />} />
+            <Route path="/student/assignments" element={<Navigate to={STUDENT.COURSES} replace />} />
             <Route path={`${STUDENT.ASSESSMENTS}/:id`} element={<QuizDetailsRouteWrapper />} />
             <Route path={`${STUDENT.ASSESSMENTS}/:id/take`} element={<TakeQuizRouteWrapper />} />
             <Route path={`${STUDENT.ASSESSMENTS}/:id/result`} element={<QuizResultRouteWrapper />} />
+
             <Route path={STUDENT.PROGRESS} element={<StudentProgress />} />
             <Route path={STUDENT.CERTIFICATES} element={<Suspense fallback={<Loader />}><StudentCertificates /></Suspense>} />
             <Route path={STUDENT.DISCUSSIONS} element={<Discussions />} />

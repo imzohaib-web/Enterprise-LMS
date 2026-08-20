@@ -8,7 +8,7 @@ const getAllQuizzes = async (req, res) => {
 };
 
 const getQuizById = async (req, res) => {
-  const quiz = await assessmentService.getQuizById(req.params.id, req.user);
+  const quiz = await assessmentService.getQuizById(req.params.id, req.user, req.query.courseId);
   if (!quiz) {
     return res.status(404).json({ success: false, message: 'Quiz not found' });
   }

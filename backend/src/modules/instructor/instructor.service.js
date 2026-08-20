@@ -1677,7 +1677,7 @@ class InstructorService {
   /**
    * Get single assignment details by ID.
    */
-  static async getAssignmentById(assignmentId, studentId = null) {
+  static async getAssignmentById(assignmentId, studentId = null, requestedCourseId = null) {
     const asgnQuery = Assignment.findById(assignmentId).populate('courseId', 'title status');
     const assignment = typeof asgnQuery?.lean === 'function' ? await asgnQuery.lean() : await asgnQuery;
     if (!assignment) {
@@ -1687,7 +1687,10 @@ class InstructorService {
     if (studentId) {
       const user = await User.findById(studentId).lean();
       if (user && user.role === 'student') {
-        const courseId = assignment.courseId?._id || assignment.courseId;
+        const courseId = assignment.courseId?._id ? assignment.courseId._id.toString() : assignment.courseId ? assignment.courseId.toString() : null;
+        if (requestedCourseId && courseId && courseId !== requestedCourseId.toString()) {
+          throw AppError.forbidden('Assignment does not belong to the requested course');
+        }
         const course = await Course.findOne({ _id: courseId, status: 'published' }).lean();
         if (!course) {
           throw AppError.forbidden('The course associated with this assignment is not available');

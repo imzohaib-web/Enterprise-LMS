@@ -253,10 +253,10 @@ export const StudentDashboard: React.FC = () => {
                   />
                 </div>
                 <Link
-                  to={`/courses/${typeof continueLearningEnrollment.course === 'object' ? continueLearningEnrollment.course._id : continueLearningEnrollment.course}/learn`}
+                  to={`/student/courses/${typeof continueLearningEnrollment.course === 'object' ? continueLearningEnrollment.course._id : continueLearningEnrollment.course}/overview`}
                   className="inline-flex items-center justify-center w-full mt-2 px-3 py-2 text-xs font-semibold text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
                 >
-                  Resume Course
+                  Open Course Learning Space
                 </Link>
               </div>
             ) : (
@@ -309,10 +309,10 @@ export const StudentDashboard: React.FC = () => {
               <p className="text-xs text-gray-500 py-2 text-center">No upcoming quizzes.</p>
             )}
             <Link
-              to={STUDENT.ASSESSMENTS}
+              to={STUDENT.COURSES}
               className="inline-flex items-center justify-center w-full mt-3 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-100/60 dark:bg-amber-900/30 rounded-lg hover:bg-amber-200/60 transition-colors"
             >
-              View Quizzes ({quizzes.length})
+              Select Course to View Quizzes ({quizzes.length})
             </Link>
           </ComponentCard>
 
