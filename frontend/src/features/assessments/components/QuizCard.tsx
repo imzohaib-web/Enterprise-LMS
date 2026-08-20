@@ -12,9 +12,18 @@ interface QuizCardProps {
 export const QuizCard: React.FC<QuizCardProps> = memo(({ quiz, onSelect }) => {
   const quizId = quiz.id || quiz._id || '';
 
+  const courseTitle = typeof quiz.courseId === 'object' && quiz.courseId ? (quiz.courseId as any).title : (quiz as any).courseName || '';
+
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
       <div>
+        {/* Associated Course Badge */}
+        {courseTitle && (
+          <span className="inline-block px-2.5 py-1 text-2xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 rounded-lg mb-2 truncate max-w-full">
+            📖 {courseTitle}
+          </span>
+        )}
+
         {/* Title */}
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-1">
           {quiz.title}

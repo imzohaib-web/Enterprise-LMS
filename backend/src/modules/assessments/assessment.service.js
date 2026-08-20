@@ -3,11 +3,30 @@ const mongoose = require('mongoose');
 const { QuizModel, QuizAttemptModel } = require('./assessment.model');
 const progressService = require('../progress/progress.service');
 const Enrollment = require('../../models/Enrollment');
+const Course = require('../../models/Course');
 const AppError = require('../../utils/AppError');
 
 class AssessmentService {
-  async createQuiz(quizData) {
-    const quiz = new QuizModel(quizData);
+  async createQuiz(quizData, user = null) {
+    if (!quizData.courseId) {
+      throw AppError.badRequest('Associated course ID is required');
+    }
+    const course = await Course.findById(quizData.courseId).lean();
+    if (!course) {
+      throw AppError.notFound('Associated course');
+    }
+    if (user && user.role !== 'admin') {
+      const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor ? course.instructor.toString() : '';
+      const userIdStr = (user._id || user.id).toString();
+      if (instIdStr && instIdStr !== userIdStr) {
+        throw AppError.forbidden('You can only create quizzes for courses you instruct');
+      }
+    }
+
+    const quiz = new QuizModel({
+      ...quizData,
+      instructorId: user ? (user._id || user.id) : (quizData.instructorId || course.instructor),
+    });
     return await quiz.save();
   }
 
@@ -18,21 +37,27 @@ class AssessmentService {
 
     if (user && user.role === 'student') {
       queryFilter.status = 'published';
-      // Find courses student is enrolled in
-      const enrollments = await Enrollment.find({ student: user._id || user.id }).select('course').lean();
+      // Find active/completed courses student is enrolled in
+      const studentId = user._id || user.id;
+      const enrollments = await Enrollment.find({ student: studentId, status: { $in: ['active', 'completed'] } }).select('course').lean();
       const enrolledCourseIds = enrollments.map((e) => e.course);
+
+      // Verify that enrolled courses are published
+      const publishedCourses = await Course.find({ _id: { $in: enrolledCourseIds }, status: 'published' }).select('_id').lean();
+      const validEnrolledCourseIds = publishedCourses.map((c) => c._id);
+
       if (filter.courseId) {
-        const isEnrolled = enrolledCourseIds.some((id) => id.toString() === filter.courseId.toString());
-        if (!isEnrolled) {
+        const isEnrolledAndPublished = validEnrolledCourseIds.some((id) => id.toString() === filter.courseId.toString());
+        if (!isEnrolledAndPublished) {
           return [];
         }
       } else {
-        queryFilter.courseId = { $in: enrolledCourseIds };
+        queryFilter.courseId = { $in: validEnrolledCourseIds };
       }
     }
 
     const quizzes = await QuizModel.find(queryFilter)
-      .populate('courseId', 'title slug')
+      .populate('courseId', 'title slug status')
       .sort({ createdAt: -1 })
       .lean()
       .exec();
@@ -45,13 +70,18 @@ class AssessmentService {
   }
 
   async getQuizById(id, user = null) {
-    const quiz = await QuizModel.findById(id).populate('courseId', 'title slug').lean().exec();
+    const quiz = await QuizModel.findById(id).populate('courseId', 'title slug status').lean().exec();
     if (!quiz) return null;
 
     if (user && user.role === 'student') {
       const courseId = quiz.courseId?._id || quiz.courseId;
       if (courseId) {
-        const enrollment = await Enrollment.findOne({ student: user._id || user.id, course: courseId }).lean();
+        const course = await Course.findOne({ _id: courseId, status: 'published' }).lean();
+        if (!course) {
+          throw AppError.forbidden('The course associated with this quiz is not available');
+        }
+        const studentId = user._id || user.id;
+        const enrollment = await Enrollment.findOne({ student: studentId, course: courseId, status: { $in: ['active', 'completed'] } }).lean();
         if (!enrollment) {
           throw AppError.forbidden('You are not enrolled in the course associated with this quiz');
         }
@@ -102,13 +132,16 @@ class AssessmentService {
       throw AppError.notFound(`Quiz with ID ${quizId}`);
     }
 
-    if (user && user.role === 'student') {
-      const courseId = quiz.courseId?._id || quiz.courseId;
-      if (courseId) {
-        const enrollment = await Enrollment.findOne({ student: studentId, course: courseId }).lean();
-        if (!enrollment) {
-          throw AppError.forbidden('You must be enrolled in this course to submit this assessment');
-        }
+    const effectiveStudentId = user ? (user._id || user.id) : studentId;
+    const courseId = quiz.courseId?._id || quiz.courseId;
+    if (courseId) {
+      const course = await Course.findOne({ _id: courseId, status: 'published' }).lean();
+      if (!course) {
+        throw AppError.forbidden('The course associated with this quiz is not available');
+      }
+      const enrollment = await Enrollment.findOne({ student: effectiveStudentId, course: courseId, status: { $in: ['active', 'completed'] } }).lean();
+      if (!enrollment) {
+        throw AppError.forbidden('You must be enrolled in this course to submit this assessment');
       }
     }
 

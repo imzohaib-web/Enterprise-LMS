@@ -6,7 +6,8 @@ const InstructorController = require('../instructor/instructor.controller');
 const { authenticate, optionalAuth } = require('../../middleware/auth.middleware');
 const { documentUpload } = require('../../utils/upload');
 
-// Public/Student routes for viewing published assignments (optionalAuth populates req.user if authenticated)
+// Student routes for viewing published assignments
+router.get('/', authenticate, InstructorController.getStudentAssignments);
 router.get('/course/:courseId', optionalAuth, InstructorController.getCourseAssignments);
 router.get('/:id', optionalAuth, InstructorController.getAssignmentById);
 
