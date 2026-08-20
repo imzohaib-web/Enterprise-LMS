@@ -22,6 +22,7 @@ const authenticate = async (req, res, next) => {
     }
 
     req.user = user;
+    req.tokenRole = decoded.role;
     next();
   } catch (err) {
     if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
@@ -37,10 +38,20 @@ const authenticate = async (req, res, next) => {
  */
 const authorize = (...roles) => (req, res, next) => {
   if (!req.user) return next(AppError.unauthorized());
-  if (!roles.includes(req.user.role)) {
-    return next(AppError.forbidden(`Role '${req.user.role}' is not allowed to access this resource`));
+
+  const tokenRole = req.tokenRole || req.user.role;
+  const userRole = req.user.role;
+
+  // Both token role and DB user role must satisfy authorized roles (admin override permitted)
+  const isTokenAllowed = roles.includes(tokenRole) || tokenRole === 'admin';
+  const isUserAllowed = roles.includes(userRole) || userRole === 'admin';
+
+  if (!isTokenAllowed || !isUserAllowed) {
+    const deniedRole = !isTokenAllowed ? tokenRole : userRole;
+    return next(AppError.forbidden(`Role '${deniedRole}' is not allowed to access this resource`));
   }
-  if (req.user.accountStatus && req.user.accountStatus !== 'ACTIVE') {
+
+  if (req.user.accountStatus && !['ACTIVE', 'PENDING_APPROVAL'].includes(req.user.accountStatus)) {
     return next(AppError.forbidden(`Account is ${req.user.accountStatus.toLowerCase()} and cannot access this resource`));
   }
   next();

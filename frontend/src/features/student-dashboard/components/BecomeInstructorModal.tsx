@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { instructorApplicationService } from '../../../services/instructorApplication.service';
+import { logoutThunk } from '../../auth/authSlice';
+import type { AppDispatch } from '../../../app/store';
 
 interface BecomeInstructorModalProps {
   isOpen: boolean;
@@ -9,6 +13,8 @@ interface BecomeInstructorModalProps {
 }
 
 export const BecomeInstructorModal: React.FC<BecomeInstructorModalProps> = ({ isOpen, onClose }) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [qualification, setQualification] = useState('');
   const [specialization, setSpecialization] = useState('');
@@ -23,6 +29,12 @@ export const BecomeInstructorModal: React.FC<BecomeInstructorModalProps> = ({ is
   });
 
   const myApp = data?.data?.application;
+
+  const handleLogoutAndLogin = async () => {
+    onClose();
+    await dispatch(logoutThunk());
+    navigate('/login');
+  };
 
   const submitMutation = useMutation({
     mutationFn: () =>
@@ -70,6 +82,25 @@ export const BecomeInstructorModal: React.FC<BecomeInstructorModalProps> = ({ is
           <div className="py-12 text-center space-y-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto" />
             <p className="text-xs text-gray-400">Checking application status...</p>
+          </div>
+        ) : myApp && myApp.status === 'APPROVED' ? (
+          /* Approved Application View */
+          <div className="space-y-4 py-4 text-center">
+            <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold">
+              🎉
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">Instructor Application Approved!</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
+                Your application to become an instructor has been approved. Please log out and log back in using your existing email and password to activate your Instructor Dashboard.
+              </p>
+            </div>
+            <button
+              onClick={handleLogoutAndLogin}
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md"
+            >
+              Log Out & Log In as Instructor
+            </button>
           </div>
         ) : myApp && myApp.status === 'PENDING' ? (
           /* Pending Application View */
