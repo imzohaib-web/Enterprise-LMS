@@ -39,7 +39,7 @@ const getOverview = async () => {
     Course.countDocuments(),
     Course.countDocuments({ status: 'published' }),
     Course.countDocuments({ status: 'draft' }),
-    Course.countDocuments({ status: 'pending_approval' }),
+    Course.countDocuments({ status: { $in: ['pending_approval', 'under_review'] } }),
     Enrollment.countDocuments(),
     Enrollment.countDocuments({ status: 'active' }),
     Enrollment.countDocuments({ status: 'completed' }),
@@ -57,7 +57,7 @@ const getOverview = async () => {
       .limit(5)
       .select('applicantName email specialization experienceYears status createdAt')
       .lean() : Promise.resolve([]),
-    Course.find({ status: 'pending_approval' })
+    Course.find({ status: { $in: ['pending_approval', 'under_review'] } })
       .sort({ createdAt: -1 })
       .limit(5)
       .populate('instructor', 'firstName lastName email')
@@ -244,44 +244,133 @@ const getCategoryBreakdown = async () => {
   ]);
 };
 
+const AppError = require('../../utils/AppError');
+const { paginationMeta } = require('../../utils/response');
+
 /**
- * List system-wide enrollments with pagination and optional status filter
+ * List system-wide enrollments with pagination, search, status, and date range filters
  */
-const listEnrollments = async (page = 1, limit = 10, status) => {
-  const query = {};
-  if (status) query.status = status;
+const listEnrollments = async (query = {}) => {
+  const { page = 1, limit = 10, status, search, courseId, studentId, dateFrom, dateTo } = query;
+  const filter = {};
+
+  if (status && status !== 'all') filter.status = status;
+  if (courseId) filter.course = courseId;
+  if (studentId) filter.student = studentId;
+
+  if (dateFrom || dateTo) {
+    filter.enrolledAt = {};
+    if (dateFrom) filter.enrolledAt.$gte = new Date(dateFrom);
+    if (dateTo) filter.enrolledAt.$lte = new Date(dateTo);
+  }
+
+  if (search && search.trim()) {
+    const searchRegex = new RegExp(search.trim(), 'i');
+    const [matchingUsers, matchingCourses] = await Promise.all([
+      User.find({
+        $or: [
+          { firstName: searchRegex },
+          { lastName: searchRegex },
+          { email: searchRegex },
+        ],
+      }).select('_id'),
+      Course.find({ title: searchRegex }).select('_id'),
+    ]);
+
+    const userIds = matchingUsers.map((u) => u._id);
+    const courseIds = matchingCourses.map((c) => c._id);
+
+    filter.$or = [
+      { student: { $in: userIds } },
+      { course: { $in: courseIds } },
+    ];
+  }
 
   const skip = (page - 1) * limit;
+
   const [enrollments, total] = await Promise.all([
-    Enrollment.find(query)
+    Enrollment.find(filter)
       .populate('student', 'firstName lastName email avatar')
       .populate('course', 'title category thumbnail price')
       .populate('instructor', 'firstName lastName email')
+      .populate('revokedBy', 'firstName lastName email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
-    Enrollment.countDocuments(query),
+    Enrollment.countDocuments(filter),
   ]);
 
   return {
     enrollments,
-    meta: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / limit) },
+    meta: paginationMeta(page, limit, total),
   };
+};
+
+/**
+ * Revoke student course enrollment (Admin Only)
+ */
+const revokeEnrollment = async (id, reason, adminUser) => {
+  if (!reason || typeof reason !== 'string' || !reason.trim()) {
+    throw AppError.badRequest('Revoke reason is required');
+  }
+
+  const enrollment = await Enrollment.findById(id)
+    .populate('student', 'firstName lastName email')
+    .populate('course', 'title');
+
+  if (!enrollment) throw AppError.notFound('Enrollment');
+
+  enrollment.status = 'revoked';
+  enrollment.revokedAt = new Date();
+  enrollment.revokedBy = adminUser._id || adminUser.id;
+  enrollment.revokeReason = reason.trim();
+  await enrollment.save();
+
+  if (adminUser) {
+    createAuditLog({
+      action: 'ENROLLMENT_REVOKE',
+      category: 'user',
+      severity: 'warning',
+      performedBy: adminUser._id || adminUser.id,
+      performedByName: `${adminUser.firstName} ${adminUser.lastName}`,
+      performedByEmail: adminUser.email,
+      affectedResource: `Enrollment: ${enrollment.course?.title || 'Course'} for ${enrollment.student?.email || 'Student'}`,
+      details: { enrollmentId: id, reason: reason.trim() },
+    }).catch(() => {});
+  }
+
+  return enrollment;
 };
 
 const SystemSetting = require('../../models/SystemSetting');
 const { createAuditLog } = require('./auditLog.service');
 
+const isMaskedSecret = (val) => typeof val === 'string' && val.includes('••••');
+
+const maskSettings = (settingsDoc) => {
+  const obj = settingsDoc.toObject ? settingsDoc.toObject() : JSON.parse(JSON.stringify(settingsDoc));
+  if (obj.smtp && obj.smtp.password) {
+    obj.smtp.password = '••••••••••••';
+  }
+  if (obj.jwt && obj.jwt.secretKey) {
+    obj.jwt.secretKey = '••••••••••••••••';
+  }
+  if (obj.storage && obj.storage.apiSecret) {
+    obj.storage.apiSecret = '••••••••••••';
+  }
+  return obj;
+};
+
 /**
- * Get platform system settings
+ * Get platform system settings (with masked secrets)
  */
 const getSystemSettings = async () => {
   let settings = await SystemSetting.findOne({ key: 'global_settings' });
   if (!settings) {
     settings = await SystemSetting.create({ key: 'global_settings' });
   }
-  return settings;
+  return maskSettings(settings);
 };
 
 /**
@@ -293,18 +382,29 @@ const updateSystemSettings = async (section, data, requestingUser = null) => {
     settings = await SystemSetting.create({ key: 'global_settings' });
   }
 
+  const sanitizeData = (targetSection, inputData) => {
+    const current = settings[targetSection]?.toObject?.() || settings[targetSection] || {};
+    const updated = { ...current, ...inputData };
+
+    if (targetSection === 'smtp' && isMaskedSecret(inputData.password)) {
+      updated.password = current.password || 'apikey';
+    }
+    if (targetSection === 'jwt' && isMaskedSecret(inputData.secretKey)) {
+      updated.secretKey = current.secretKey || 'defaultsecret';
+    }
+    if (targetSection === 'storage' && isMaskedSecret(inputData.apiSecret)) {
+      updated.apiSecret = current.apiSecret || 'defaultapisecret';
+    }
+
+    return updated;
+  };
+
   if (section && data) {
-    settings[section] = {
-      ...(settings[section]?.toObject?.() || settings[section] || {}),
-      ...data,
-    };
+    settings[section] = sanitizeData(section, data);
   } else if (data) {
     Object.keys(data).forEach((sec) => {
       if (settings[sec] !== undefined) {
-        settings[sec] = {
-          ...(settings[sec]?.toObject?.() || settings[sec] || {}),
-          ...data[sec],
-        };
+        settings[sec] = sanitizeData(sec, data[sec]);
       }
     });
   }
@@ -320,11 +420,11 @@ const updateSystemSettings = async (section, data, requestingUser = null) => {
       performedByName: `${requestingUser.firstName} ${requestingUser.lastName}`,
       performedByEmail: requestingUser.email,
       affectedResource: `System Settings (${section || 'all'})`,
-      details: { section, updatedFields: data },
+      details: { section, updatedFields: Object.keys(data || {}) },
     }).catch(() => {});
   }
 
-  return settings;
+  return maskSettings(settings);
 };
 
 /**
@@ -370,6 +470,7 @@ module.exports = {
   getEnrollmentTrend,
   getCategoryBreakdown,
   listEnrollments,
+  revokeEnrollment,
   getSystemSettings,
   updateSystemSettings,
   getSystemHealth,

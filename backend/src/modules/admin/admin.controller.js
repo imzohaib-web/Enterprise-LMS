@@ -44,9 +44,15 @@ const listAuditLogs = async (req, res) => {
 };
 
 const listEnrollments = async (req, res) => {
-  const { page, limit, status } = req.query;
-  const { enrollments, meta } = await adminService.listEnrollments(page, limit, status);
+  const { enrollments, meta } = await adminService.listEnrollments(req.query);
   sendSuccess(res, { data: { enrollments }, meta });
+};
+
+const revokeEnrollment = async (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+  const enrollment = await adminService.revokeEnrollment(id, reason, req.user);
+  sendSuccess(res, { message: 'Enrollment revoked successfully', data: { enrollment } });
 };
 
 const getSystemSettings = async (req, res) => {
@@ -74,6 +80,7 @@ module.exports = {
   getCategoryBreakdown,
   listAuditLogs,
   listEnrollments,
+  revokeEnrollment,
   getSystemSettings,
   updateSystemSettings,
   getSystemHealth,

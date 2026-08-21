@@ -79,4 +79,10 @@ export const adminService = {
 
   getSystemHealth: () =>
     api.get<ApiResponse<any>>('/admin/health'),
+
+  listEnrollments: (params: { page?: number; limit?: number; status?: string; search?: string } = {}) =>
+    api.get<ApiResponse<{ enrollments: any[] }>>('/admin/enrollments', { params }),
+
+  revokeEnrollment: (id: string, reason: string) =>
+    api.patch<ApiResponse<{ enrollment: any }>>(`/admin/enrollments/${id}/revoke`, { reason }),
 };

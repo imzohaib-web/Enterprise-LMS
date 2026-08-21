@@ -72,6 +72,7 @@ const AdminAuditLogs     = lazy(() => import('../pages/Admin/AuditLogs'));
 const AdminSettings      = lazy(() => import('../pages/Admin/SystemSettings'));
 const AdminProfile       = lazy(() => import('../pages/Admin/AdminProfile'));
 const AdminCourses       = lazy(() => import('../pages/Admin/AdminCourses'));
+const AdminEnrollments   = lazy(() => import('../pages/Admin/EnrollmentGovernance'));
 const CourseList         = lazy(() => import('../pages/Courses/CourseList'));
 const CourseBuilder      = lazy(() => import('../pages/Courses/CourseBuilder'));
 const CoursePlayer       = lazy(() => import('../features/course-player/CoursePlayer'));
@@ -124,6 +125,7 @@ const AppRoutes: React.FC = () => {
             <Route path={ADMIN.USERS}     element={<Suspense fallback={<Loader />}><AdminUsers /></Suspense>} />
             <Route path={ADMIN.REPORTS}   element={<Suspense fallback={<Loader />}><AdminReports /></Suspense>} />
             <Route path={ADMIN.COURSES}   element={<Suspense fallback={<Loader />}><AdminCourses /></Suspense>} />
+            <Route path={ADMIN.ENROLLMENTS} element={<Suspense fallback={<Loader />}><AdminEnrollments /></Suspense>} />
             <Route path={ADMIN.ANALYTICS} element={<Suspense fallback={<Loader />}><AdminAnalytics /></Suspense>} />
             <Route path={ADMIN.AUDIT_LOGS} element={<Suspense fallback={<Loader />}><AdminAuditLogs /></Suspense>} />
             <Route path={ADMIN.SETTINGS}  element={<Suspense fallback={<Loader />}><AdminSettings /></Suspense>} />

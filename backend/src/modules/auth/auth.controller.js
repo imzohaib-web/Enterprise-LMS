@@ -62,4 +62,10 @@ const changePassword = async (req, res) => {
   sendSuccess(res, { message: 'Password changed successfully' });
 };
 
-module.exports = { register, login, refreshToken, logout, getMe, changePassword };
+const requestPasswordReset = async (req, res) => {
+  const email = req.body.email || req.user?.email;
+  const result = await authService.requestPasswordReset(email);
+  sendSuccess(res, { message: result.message });
+};
+
+module.exports = { register, login, refreshToken, logout, getMe, changePassword, requestPasswordReset };

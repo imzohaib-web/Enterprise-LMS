@@ -172,4 +172,19 @@ const changePassword = async (userId, { currentPassword, newPassword }) => {
   await RefreshToken.updateMany({ user: userId }, { isRevoked: true });
 };
 
-module.exports = { register, login, refresh, logout, getMe, changePassword };
+/**
+ * Request password reset
+ */
+const requestPasswordReset = async (email) => {
+  const normalizedEmail = (email || '').toLowerCase().trim();
+  const user = await User.findOne({ email: normalizedEmail });
+  if (user) {
+    const tmpl = emailTemplates.passwordReset
+      ? emailTemplates.passwordReset(user.firstName, 'RESET_TOKEN_PLACEHOLDER')
+      : { subject: 'Password Reset Request', text: 'Password reset requested.' };
+    sendEmail({ to: normalizedEmail, ...tmpl }).catch(() => {});
+  }
+  return { message: 'Password reset instructions have been sent to your email address.' };
+};
+
+module.exports = { register, login, refresh, logout, getMe, changePassword, requestPasswordReset };

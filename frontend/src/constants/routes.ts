@@ -28,6 +28,7 @@ export const ADMIN = {
   DASHBOARD:  '/admin/dashboard',
   USERS:      '/admin/users',
   COURSES:    '/admin/courses',
+  ENROLLMENTS: '/admin/enrollments',
   REPORTS:    '/admin/reports',
   ANALYTICS:  '/admin/analytics',
   AUDIT_LOGS: '/admin/audit-logs',

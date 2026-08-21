@@ -36,38 +36,38 @@ type NavGroup = {
 // ── Enterprise Admin Modules (5 Logical Groups) ──────────────────────────────
 const enterpriseAdminGroups: NavGroup[] = [
   {
-    title: "Dashboard",
+    title: "DASHBOARD",
     items: [
       { name: "Overview", icon: <GridIcon />, path: ADMIN.DASHBOARD },
       { name: "Platform Analytics", icon: <PieChartIcon />, path: ADMIN.ANALYTICS },
     ],
   },
   {
-    title: "User Governance",
+    title: "USER MANAGEMENT",
     items: [
       { name: "User Directory", icon: <UserCircleIcon />, path: ADMIN.USERS },
-      { name: "Instructor Applications", icon: <GroupIcon />, path: `${ADMIN.USERS}?tab=applications` },
     ],
   },
   {
-    title: "Course Governance",
+    title: "COURSE MANAGEMENT",
     items: [
       { name: "Course Moderation", icon: <ListIcon />, path: ADMIN.COURSES },
     ],
   },
   {
-    title: "Reports & Security",
+    title: "LEARNING MANAGEMENT",
     items: [
-      { name: "Data Exporter", icon: <DocsIcon />, path: ADMIN.REPORTS },
-      { name: "Audit Logs & Security", icon: <TaskIcon />, path: ADMIN.AUDIT_LOGS },
+      { name: "Enrollment Governance", icon: <ShootingStarIcon />, path: ADMIN.ENROLLMENTS },
     ],
   },
   {
-    title: "Platform Management",
+    title: "PLATFORM MANAGEMENT",
     items: [
       { name: "System Settings", icon: <PlugInIcon />, path: ADMIN.SETTINGS },
+      { name: "Audit Logs & Security", icon: <TaskIcon />, path: ADMIN.AUDIT_LOGS },
       { name: "System Notifications", icon: <MailIcon />, path: ADMIN.NOTIFICATIONS },
       { name: "Admin Profile", icon: <UserCircleIcon />, path: ADMIN.PROFILE },
+      { name: "Data Exporter", icon: <DocsIcon />, path: ADMIN.REPORTS },
     ],
   },
 ];
