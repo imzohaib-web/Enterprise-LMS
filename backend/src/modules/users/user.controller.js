@@ -19,12 +19,12 @@ const updateUser = async (req, res) => {
 };
 
 const deleteUser = async (req, res) => {
-  await userService.deleteUser(req.params.id);
+  await userService.deleteUser(req.params.id, req.user);
   sendSuccess(res, { message: 'User deleted successfully' });
 };
 
 const updateUserStatus = async (req, res) => {
-  const user = await userService.updateUserStatus(req.params.id, req.body);
+  const user = await userService.updateUserStatus(req.params.id, req.body, req.user);
   sendSuccess(res, { message: 'User account status updated successfully', data: { user } });
 };
 

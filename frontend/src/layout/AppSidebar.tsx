@@ -2,13 +2,12 @@ import React, { useCallback, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useSidebar } from "../context/SidebarContext";
-import { STUDENT, INSTRUCTOR, ADMIN, COURSES, LEARNING_PATHS, ASSESSMENTS, CERTIFICATES, DISCUSSIONS, AUTH } from "../constants/routes";
+import { STUDENT, INSTRUCTOR, ADMIN, AUTH } from "../constants/routes";
 import { selectCurrentUser, logoutThunk } from "../features/auth/authSlice";
 import type { AppDispatch } from "../app/store";
 
 import {
   GridIcon,
-  PageIcon,
   UserCircleIcon,
   PieChartIcon,
   ShootingStarIcon,
@@ -34,7 +33,7 @@ type NavGroup = {
   items: NavItem[];
 };
 
-// ── Enterprise Admin Modules (6 Logical Groups) ──────────────────────────────
+// ── Enterprise Admin Modules (5 Logical Groups) ──────────────────────────────
 const enterpriseAdminGroups: NavGroup[] = [
   {
     title: "Dashboard",
@@ -44,40 +43,29 @@ const enterpriseAdminGroups: NavGroup[] = [
     ],
   },
   {
-    title: "User Management",
+    title: "User Governance",
     items: [
       { name: "User Directory", icon: <UserCircleIcon />, path: ADMIN.USERS },
-      { name: "Student Roster", icon: <GroupIcon />, path: INSTRUCTOR.STUDENTS },
+      { name: "Instructor Applications", icon: <GroupIcon />, path: `${ADMIN.USERS}?tab=applications` },
     ],
   },
   {
-    title: "Course Management",
+    title: "Course Governance",
     items: [
-      { name: "Course Catalog", icon: <ListIcon />, path: COURSES.LIST },
-      { name: "Create Course", icon: <PageIcon />, path: COURSES.NEW, badge: "New" },
+      { name: "Course Moderation", icon: <ListIcon />, path: ADMIN.COURSES },
     ],
   },
   {
-    title: "Learning Management",
-    items: [
-      { name: "Learning Paths", icon: <ShootingStarIcon />, path: LEARNING_PATHS.LIST },
-      { name: "Assessments & Quizzes", icon: <TaskIcon />, path: ASSESSMENTS },
-      { name: "Certificates", icon: <ShootingStarIcon />, path: CERTIFICATES },
-      { name: "Discussions Forum", icon: <ChatIcon />, path: DISCUSSIONS },
-    ],
-  },
-  {
-    title: "Reports & Analytics",
+    title: "Reports & Security",
     items: [
       { name: "Data Exporter", icon: <DocsIcon />, path: ADMIN.REPORTS },
-      { name: "Performance & Stats", icon: <PieChartIcon />, path: INSTRUCTOR.STATISTICS },
+      { name: "Audit Logs & Security", icon: <TaskIcon />, path: ADMIN.AUDIT_LOGS },
     ],
   },
   {
     title: "Platform Management",
     items: [
       { name: "System Settings", icon: <PlugInIcon />, path: ADMIN.SETTINGS },
-      { name: "Audit Logs & Security", icon: <TaskIcon />, path: ADMIN.AUDIT_LOGS },
       { name: "System Notifications", icon: <MailIcon />, path: ADMIN.NOTIFICATIONS },
       { name: "Admin Profile", icon: <UserCircleIcon />, path: ADMIN.PROFILE },
     ],
@@ -138,8 +126,14 @@ const AppSidebar: React.FC = () => {
   }, [location.pathname, isAdminRole]);
 
   const isActive = useCallback(
-    (path: string) => location.pathname === path,
-    [location.pathname]
+    (path: string) => {
+      const [cleanPath, query] = path.split('?');
+      if (query) {
+        return location.pathname === cleanPath && location.search.includes(query);
+      }
+      return location.pathname === cleanPath && (!location.search || !path.includes('?'));
+    },
+    [location.pathname, location.search]
   );
 
   const handleLogout = async () => {

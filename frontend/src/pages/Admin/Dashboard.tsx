@@ -186,6 +186,41 @@ const AdminDashboard: React.FC = () => {
         />
       </div>
 
+      {/* Quick Action Governance Banner */}
+      <div className="bg-gradient-to-r from-indigo-900 via-indigo-850 to-purple-900 rounded-2xl p-5 text-white shadow-md flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-amber-400 text-amber-950">
+              Governance Hub
+            </span>
+            <h3 className="text-sm font-extrabold text-white">Administrative Action Center</h3>
+          </div>
+          <p className="text-xs text-indigo-200">
+            Direct access to pending instructor applications, course moderation, security telemetry, and data exporters.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            to="/admin/users?tab=applications"
+            className="px-3.5 py-2 text-xs font-bold bg-white text-indigo-900 hover:bg-indigo-50 rounded-xl transition shadow-xs flex items-center gap-1.5"
+          >
+            <span>🎓</span> Review Applications
+          </Link>
+          <Link
+            to="/admin/courses"
+            className="px-3.5 py-2 text-xs font-bold bg-indigo-700 hover:bg-indigo-600 text-white rounded-xl transition shadow-xs flex items-center gap-1.5"
+          >
+            <span>📚</span> Course Moderation
+          </Link>
+          <Link
+            to="/admin/audit-logs"
+            className="px-3.5 py-2 text-xs font-bold bg-indigo-950/60 hover:bg-indigo-950 text-indigo-200 rounded-xl transition border border-indigo-700/50 flex items-center gap-1.5"
+          >
+            <span>🛡️</span> Security Logs
+          </Link>
+        </div>
+      </div>
+
       {/* Charts row 1 */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
         {/* Student Growth */}
@@ -277,6 +312,97 @@ const AdminDashboard: React.FC = () => {
               No course categories registered
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── Actionable Management Sections ────────────────────────────────────── */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        {/* Pending Instructor Applications */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+                Pending Applications ({overview?.actionable?.pendingApplicationsCount ?? (overview as any)?.actionable?.pendingApplications?.length ?? 0})
+              </h2>
+            </div>
+            <Link to="/admin/users?tab=applications" className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+              Review All →
+            </Link>
+          </div>
+          <div className="p-4 flex-1">
+            {overview?.actionable?.pendingApplications && overview.actionable.pendingApplications.length > 0 ? (
+              <div className="space-y-3">
+                {overview.actionable.pendingApplications.map((app: any) => (
+                  <div key={app._id} className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl flex items-center justify-between gap-3 border border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold">
+                        🎓
+                      </div>
+                      <div>
+                        <div className="font-bold text-xs text-gray-900 dark:text-white">{app.applicantName || app.email}</div>
+                        <div className="text-[11px] text-gray-500">{app.specialization || 'Instructor Applicant'} • {app.experienceYears || 0} yrs exp</div>
+                      </div>
+                    </div>
+                    <Link
+                      to="/admin/users?tab=applications"
+                      className="px-3 py-1 bg-indigo-600 text-white text-[11px] font-bold rounded-lg hover:bg-indigo-700 transition"
+                    >
+                      Review
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="h-32 flex items-center justify-center text-xs text-gray-400 italic">
+                ✓ No pending instructor applications requiring review
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Courses Awaiting Review */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+                Courses Awaiting Review ({overview?.actionable?.coursesAwaitingReviewCount ?? (overview as any)?.actionable?.coursesAwaitingReview?.length ?? 0})
+              </h2>
+            </div>
+            <Link to="/admin/courses" className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+              Moderation Console →
+            </Link>
+          </div>
+          <div className="p-4 flex-1">
+            {overview?.actionable?.coursesAwaitingReview && overview.actionable.coursesAwaitingReview.length > 0 ? (
+              <div className="space-y-3">
+                {overview.actionable.coursesAwaitingReview.map((c: any) => (
+                  <div key={c._id} className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl flex items-center justify-between gap-3 border border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">
+                        📚
+                      </div>
+                      <div>
+                        <div className="font-bold text-xs text-gray-900 dark:text-white">{c.title}</div>
+                        <div className="text-[11px] text-gray-500">By {c.instructor?.firstName ? `${c.instructor.firstName} ${c.instructor.lastName}` : 'Instructor'} • ${c.price || 0}</div>
+                      </div>
+                    </div>
+                    <Link
+                      to="/admin/courses"
+                      className="px-3 py-1 bg-indigo-600 text-white text-[11px] font-bold rounded-lg hover:bg-indigo-700 transition"
+                    >
+                      Moderate
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="h-32 flex items-center justify-center text-xs text-gray-400 italic">
+                ✓ No course submissions pending moderation approval
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

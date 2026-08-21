@@ -17,6 +17,8 @@ const { QuizModel, QuizAttemptModel } = require('../modules/assessments/assessme
 const { DiscussionModel, ReplyModel } = require('../modules/discussions/discussion.model');
 const { StudentProgressModel } = require('../modules/progress/progress.model');
 
+const SystemSetting = require('./SystemSetting');
+
 module.exports = {
   User,
   Course,
@@ -28,6 +30,7 @@ module.exports = {
   Certificate,
   Notification,
   AuditLog,
+  SystemSetting,
   Quiz: QuizModel,
   QuizAttempt: QuizAttemptModel,
   Discussion: DiscussionModel,

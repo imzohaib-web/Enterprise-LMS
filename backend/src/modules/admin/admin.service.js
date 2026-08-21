@@ -2,33 +2,115 @@
 const User = require('../../models/User');
 const Course = require('../../models/Course');
 const Enrollment = require('../../models/Enrollment');
+const InstructorApplication = require('../../models/InstructorApplication');
+const AuditLog = require('../../models/AuditLog');
+const Certificate = require('../certificates/certificate.model');
+const { QuizAttemptModel } = require('../assessments/assessment.model');
 
 /**
- * Overview stats: total users, courses, enrollments, completion rate
+ * Overview stats: total users, courses, enrollments, completion rate, certificates, and actionable reviews
  */
 const getOverview = async () => {
-  const [totalUsers, totalCourses, totalEnrollments, completedEnrollments, publishedCourses] = await Promise.all([
+  const [
+    totalUsers,
+    students,
+    instructors,
+    admins,
+    totalCourses,
+    publishedCourses,
+    draftCourses,
+    pendingCourses,
+    totalEnrollments,
+    activeEnrollments,
+    completedEnrollments,
+    pendingApplicationsCount,
+    certificatesIssuedCount,
+    quizTotalAttempts,
+    quizPassedAttempts,
+    recentUsers,
+    pendingApplications,
+    coursesAwaitingReview,
+    recentAuditLogs,
+  ] = await Promise.all([
     User.countDocuments(),
-    Course.countDocuments(),
-    Enrollment.countDocuments(),
-    Enrollment.countDocuments({ status: 'completed' }),
-    Course.countDocuments({ status: 'published' }),
-  ]);
-
-  const [students, instructors, admins] = await Promise.all([
     User.countDocuments({ role: 'student' }),
     User.countDocuments({ role: 'instructor' }),
     User.countDocuments({ role: 'admin' }),
+    Course.countDocuments(),
+    Course.countDocuments({ status: 'published' }),
+    Course.countDocuments({ status: 'draft' }),
+    Course.countDocuments({ status: 'pending_approval' }),
+    Enrollment.countDocuments(),
+    Enrollment.countDocuments({ status: 'active' }),
+    Enrollment.countDocuments({ status: 'completed' }),
+    InstructorApplication ? InstructorApplication.countDocuments({ status: 'PENDING' }) : Promise.resolve(0),
+    Certificate ? Certificate.countDocuments() : Promise.resolve(0),
+    QuizAttemptModel ? QuizAttemptModel.countDocuments() : Promise.resolve(0),
+    QuizAttemptModel ? QuizAttemptModel.countDocuments({ passed: true }) : Promise.resolve(0),
+    User.find()
+      .sort({ createdAt: -1 })
+      .limit(8)
+      .select('firstName lastName email role isActive accountStatus createdAt avatar')
+      .lean(),
+    InstructorApplication ? InstructorApplication.find({ status: 'PENDING' })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('applicantName email specialization experienceYears status createdAt')
+      .lean() : Promise.resolve([]),
+    Course.find({ status: 'pending_approval' })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('instructor', 'firstName lastName email')
+      .select('title level price status category createdAt')
+      .lean(),
+    AuditLog ? AuditLog.find()
+      .sort({ createdAt: -1 })
+      .limit(6)
+      .populate('performedBy', 'firstName lastName email role')
+      .lean() : Promise.resolve([]),
   ]);
 
+  const completionRate = totalEnrollments > 0 ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0;
+  const quizPassRate = quizTotalAttempts > 0 ? Math.round((quizPassedAttempts / quizTotalAttempts) * 100) : 0;
+
   return {
+    metrics: {
+      totalUsers,
+      students,
+      instructors,
+      admins,
+      totalCourses,
+      publishedCourses,
+      draftCourses,
+      pendingCourses,
+      totalEnrollments,
+      activeEnrollments,
+      completedEnrollments,
+      completionRate,
+      pendingApplications: pendingApplicationsCount,
+      certificatesIssued: certificatesIssuedCount,
+      quizTotalAttempts,
+      quizPassedAttempts,
+      quizPassRate,
+    },
+    actionable: {
+      pendingApplications,
+      pendingApplicationsCount,
+      coursesAwaitingReview,
+      coursesAwaitingReviewCount: pendingCourses,
+      recentUsers,
+      recentAuditLogs,
+    },
     users: { total: totalUsers, students, instructors, admins },
-    courses: { total: totalCourses, published: publishedCourses, draft: totalCourses - publishedCourses },
+    courses: { total: totalCourses, published: publishedCourses, draft: draftCourses, pending: pendingCourses },
     enrollments: {
       total: totalEnrollments,
+      active: activeEnrollments,
       completed: completedEnrollments,
-      completionRate: totalEnrollments > 0 ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0,
+      completionRate,
     },
+    certificates: { totalIssued: certificatesIssuedCount },
+    assessments: { totalAttempts: quizTotalAttempts, passedAttempts: quizPassedAttempts, quizPassRate },
   };
 };
 
@@ -188,6 +270,98 @@ const listEnrollments = async (page = 1, limit = 10, status) => {
   };
 };
 
+const SystemSetting = require('../../models/SystemSetting');
+const { createAuditLog } = require('./auditLog.service');
+
+/**
+ * Get platform system settings
+ */
+const getSystemSettings = async () => {
+  let settings = await SystemSetting.findOne({ key: 'global_settings' });
+  if (!settings) {
+    settings = await SystemSetting.create({ key: 'global_settings' });
+  }
+  return settings;
+};
+
+/**
+ * Update platform system settings
+ */
+const updateSystemSettings = async (section, data, requestingUser = null) => {
+  let settings = await SystemSetting.findOne({ key: 'global_settings' });
+  if (!settings) {
+    settings = await SystemSetting.create({ key: 'global_settings' });
+  }
+
+  if (section && data) {
+    settings[section] = {
+      ...(settings[section]?.toObject?.() || settings[section] || {}),
+      ...data,
+    };
+  } else if (data) {
+    Object.keys(data).forEach((sec) => {
+      if (settings[sec] !== undefined) {
+        settings[sec] = {
+          ...(settings[sec]?.toObject?.() || settings[sec] || {}),
+          ...data[sec],
+        };
+      }
+    });
+  }
+
+  await settings.save();
+
+  if (requestingUser) {
+    createAuditLog({
+      action: 'SETTINGS_UPDATE',
+      category: 'system',
+      severity: 'warning',
+      performedBy: requestingUser._id || requestingUser.id,
+      performedByName: `${requestingUser.firstName} ${requestingUser.lastName}`,
+      performedByEmail: requestingUser.email,
+      affectedResource: `System Settings (${section || 'all'})`,
+      details: { section, updatedFields: data },
+    }).catch(() => {});
+  }
+
+  return settings;
+};
+
+/**
+ * System Health & Infrastructure Telemetry
+ */
+const getSystemHealth = async () => {
+  const memoryUsage = process.memoryUsage();
+  const uptime = process.uptime();
+
+  let dbStatus = 'healthy';
+  let dbLatencyMs = 0;
+  try {
+    const start = Date.now();
+    await User.findOne().select('_id').lean();
+    dbLatencyMs = Date.now() - start;
+  } catch {
+    dbStatus = 'degraded';
+  }
+
+  return {
+    status: 'OPERATIONAL',
+    uptimeSeconds: Math.floor(uptime),
+    nodeVersion: process.version,
+    memory: {
+      rssMb: Math.round(memoryUsage.rss / 1024 / 1024),
+      heapTotalMb: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+      heapUsedMb: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+    },
+    database: {
+      status: dbStatus,
+      latencyMs: dbLatencyMs,
+      ping: 'OK',
+    },
+    timestamp: new Date().toISOString(),
+  };
+};
+
 module.exports = {
   getOverview,
   getStudentGrowth,
@@ -196,4 +370,7 @@ module.exports = {
   getEnrollmentTrend,
   getCategoryBreakdown,
   listEnrollments,
+  getSystemSettings,
+  updateSystemSettings,
+  getSystemHealth,
 };

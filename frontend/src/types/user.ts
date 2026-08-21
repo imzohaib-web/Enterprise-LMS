@@ -80,6 +80,7 @@ export interface ChangePasswordPayload {
 export interface UpdateUserPayload {
   firstName?: string;
   lastName?: string;
+  email?: string;
   bio?: string;
   expertise?: string[];
   socialLinks?: SocialLinks;

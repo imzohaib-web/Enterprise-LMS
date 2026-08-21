@@ -141,11 +141,10 @@ const AdminAnalytics: React.FC = () => {
     tooltip: { theme: isDark ? 'dark' : 'light' },
   });
 
-  // Calculate estimated revenue index from course performance
+  // Real telemetry metrics calculated from MongoDB aggregations
   const estimatedRevenue = (coursesPerf || []).reduce((sum, c: any) => sum + (c.price || 0) * (c.enrollmentCount || 0), 0);
-  const totalCompletions = overview?.enrollments.completed ?? 0;
-  const totalCertificates = Math.round(totalCompletions * 0.95);
-  const averageQuizPassRate = 88.4;
+  const totalCertificates = (overview as any)?.certificates?.totalIssued ?? (overview as any)?.metrics?.certificatesIssued ?? 0;
+  const averageQuizPassRate = (overview as any)?.assessments?.quizPassRate ?? (overview as any)?.metrics?.quizPassRate ?? 0;
 
   if (isOverviewLoading || isGrowthLoading) {
     return <AnalyticsSkeleton />;

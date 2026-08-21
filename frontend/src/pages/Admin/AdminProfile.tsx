@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 import { selectCurrentUser } from '../../features/auth/authSlice';
 
+import { userService } from '../../services/user.service';
+
 const AdminProfile: React.FC = () => {
   const currentUser = useSelector(selectCurrentUser);
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'permissions' | 'logs'>('profile');
@@ -12,13 +14,19 @@ const AdminProfile: React.FC = () => {
   const [email, setEmail] = useState(currentUser?.email || 'admin@enterprise.lms');
   const [saving, setSaving] = useState(false);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    const userId = currentUser?._id || (currentUser as any)?.id;
+    if (!userId) return;
     setSaving(true);
-    setTimeout(() => {
+    try {
+      await userService.updateUser(userId, { firstName, lastName, email });
+      toast.success('Admin profile updated successfully!');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to update profile');
+    } finally {
       setSaving(false);
-      toast.success('Admin profile updated successfully');
-    }, 600);
+    }
   };
 
   return (

@@ -65,7 +65,9 @@ const updateUser = async (id, updates, requestingUser) => {
   return user;
 };
 
-const deleteUser = async (id) => {
+const { createAuditLog } = require('../admin/auditLog.service');
+
+const deleteUser = async (id, performingUser = null) => {
   const user = await User.findById(id);
   if (!user) throw AppError.notFound('User');
   if (user.role === 'admin') throw AppError.forbidden('Cannot delete an admin account');
@@ -75,9 +77,22 @@ const deleteUser = async (id) => {
     Enrollment.deleteMany({ student: id }),
     cacheDel(`user:${id}`),
   ]);
+
+  if (performingUser) {
+    createAuditLog({
+      action: 'USER_DELETE',
+      category: 'user',
+      severity: 'critical',
+      performedBy: performingUser._id || performingUser.id,
+      performedByName: `${performingUser.firstName} ${performingUser.lastName}`,
+      performedByEmail: performingUser.email,
+      affectedResource: `User: ${user.email}`,
+      details: { targetUserId: user._id, role: user.role },
+    }).catch(() => {});
+  }
 };
 
-const updateUserStatus = async (id, statusData) => {
+const updateUserStatus = async (id, statusData, performingUser = null) => {
   const payload = {};
   if (typeof statusData === 'object' && statusData !== null) {
     if (typeof statusData.isActive === 'boolean') {
@@ -104,6 +119,19 @@ const updateUserStatus = async (id, statusData) => {
   // Send status change email (non-blocking)
   const tmpl = emailTemplates.accountStatus(user.firstName, user.accountStatus.toLowerCase());
   sendEmail({ to: user.email, ...tmpl }).catch(() => {});
+
+  if (performingUser) {
+    createAuditLog({
+      action: 'USER_STATUS_UPDATE',
+      category: 'user',
+      severity: payload.isActive === false ? 'warning' : 'info',
+      performedBy: performingUser._id || performingUser.id,
+      performedByName: `${performingUser.firstName} ${performingUser.lastName}`,
+      performedByEmail: performingUser.email,
+      affectedResource: `User: ${user.email}`,
+      details: { newStatus: user.accountStatus, isActive: user.isActive },
+    }).catch(() => {});
+  }
 
   await cacheDel(`user:${id}`);
   return user;
