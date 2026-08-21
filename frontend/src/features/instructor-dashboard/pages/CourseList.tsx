@@ -496,9 +496,16 @@ export const CourseList: React.FC = () => {
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link
+                            to={`/instructor/courses/${cid}/overview`}
+                            className="px-3 py-1 text-xs font-bold rounded-md bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs transition"
+                            title="Manage Course Workspace"
+                          >
+                            Manage Course
+                          </Link>
+                          <Link
                             to={`/courses/${cid}`}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400"
-                            title="View Course Details & Preview Syllabus"
+                            className="px-2.5 py-1 text-xs font-semibold rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200"
+                            title="View Public Course Details"
                           >
                             View
                           </Link>
@@ -585,34 +592,34 @@ export const CourseList: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="p-4 pt-0 flex flex-wrap items-center justify-between gap-1.5 border-t border-gray-100 dark:border-gray-700/50 mt-2">
+                    <div className="p-4 pt-0 space-y-2 border-t border-gray-100 dark:border-gray-700/50 mt-2">
                       <Link
-                        to={`/courses/${cid}`}
-                        className="flex-1 py-1.5 px-2 text-xs font-semibold text-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400"
-                        title="View Details"
+                        to={`/instructor/courses/${cid}/overview`}
+                        className="w-full block py-2 text-xs font-bold text-center rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs transition"
                       >
-                        View Details
+                        Manage Course →
                       </Link>
-                      <Link
-                        to={`/courses/${cid}/builder`}
-                        className="flex-1 py-1.5 px-2 text-xs font-semibold text-center rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => handleTogglePublish(c)}
-                        className="flex-1 py-1.5 px-2 text-xs font-medium text-center rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      >
-                        {c.status === 'published' ? 'Unpublish' : 'Publish'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(cid)}
-                        className="px-2 py-1.5 text-xs font-medium rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex flex-wrap items-center justify-between gap-1.5">
+                        <Link
+                          to={`/courses/${cid}`}
+                          className="flex-1 py-1.5 px-2 text-xs font-semibold text-center rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200"
+                        >
+                          View
+                        </Link>
+                        <Link
+                          to={`/courses/${cid}/builder`}
+                          className="flex-1 py-1.5 px-2 text-xs font-semibold text-center rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400"
+                        >
+                          Edit Content
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePublish(c)}
+                          className="flex-1 py-1.5 px-2 text-xs font-medium text-center rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        >
+                          {c.status === 'published' ? 'Unpublish' : 'Publish'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

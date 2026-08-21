@@ -48,6 +48,7 @@ import {
   InstructorAssignmentsPage,
   InstructorCertificatesPage,
   InstructorLearningPaths,
+  InstructorCourseManagement,
 } from '../features/instructor-dashboard';
 import {
   QuizList,
@@ -134,6 +135,8 @@ const AppRoutes: React.FC = () => {
           <Route element={<ProtectedRoute allowedRoles={['instructor']} />}>
             <Route path={INSTRUCTOR.DASHBOARD} element={<InstructorDashboard />} />
             <Route path={INSTRUCTOR.COURSES} element={<InstructorCourseList />} />
+            <Route path="/instructor/courses/:courseId" element={<InstructorCourseManagement />} />
+            <Route path="/instructor/courses/:courseId/:tab" element={<InstructorCourseManagement />} />
             <Route path={INSTRUCTOR.LEARNING_PATHS} element={<InstructorLearningPaths />} />
             <Route path={INSTRUCTOR.STUDENTS} element={<StudentProgressPage />} />
             <Route path={INSTRUCTOR.ASSESSMENTS} element={<InstructorAssessments />} />

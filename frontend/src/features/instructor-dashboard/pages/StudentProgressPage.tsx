@@ -12,14 +12,18 @@ import { StudentProgressItem } from '../types';
 type SortField = 'studentName' | 'courseName' | 'progressPercent' | 'avgScore' | 'lastActive';
 type SortOrder = 'asc' | 'desc';
 
-export const StudentProgressPage: React.FC = () => {
-  const { data: students, isLoading, isError } = useStudentProgressList();
+interface StudentProgressPageProps {
+  courseId?: string;
+}
+
+export const StudentProgressPage: React.FC<StudentProgressPageProps> = ({ courseId: propCourseId }) => {
+  const { data: students, isLoading, isError } = useStudentProgressList(propCourseId);
   const { data: courses } = useInstructorCourses();
   const sendMessageMutation = useCreateDiscussion();
 
   // Filters & Sorting state
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCourseId, setSelectedCourseId] = useState<string>('all');
+  const [selectedCourseId, setSelectedCourseId] = useState<string>(propCourseId || 'all');
   const [sortField, setSortField] = useState<SortField>('lastActive');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 

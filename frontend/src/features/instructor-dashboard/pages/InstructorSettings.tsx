@@ -10,7 +10,11 @@ import {
   useVerify2FA,
 } from '../hooks/useInstructorDashboard';
 
-export const InstructorSettings: React.FC = () => {
+interface InstructorSettingsProps {
+  courseId?: string;
+}
+
+export const InstructorSettings: React.FC<InstructorSettingsProps> = ({ courseId: _propCourseId }) => {
   const { data: profile, isLoading, isError, refetch } = useInstructorProfile();
   const updateSettingsMutation = useUpdateInstructorSettings();
   const revokeSessionsMutation = useRevokeAllSessions();

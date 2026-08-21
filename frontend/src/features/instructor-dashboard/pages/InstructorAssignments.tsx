@@ -14,8 +14,12 @@ import {
 } from '../hooks/useInstructorDashboard';
 import { InstructorAssignment, AssignmentSubmissionItem } from '../types';
 
-export const InstructorAssignmentsPage: React.FC = () => {
-  const { data: assignments, isLoading, isError } = useInstructorAssignments();
+interface InstructorAssignmentsProps {
+  courseId?: string;
+}
+
+export const InstructorAssignmentsPage: React.FC<InstructorAssignmentsProps> = ({ courseId: propCourseId }) => {
+  const { data: assignments, isLoading, isError } = useInstructorAssignments(propCourseId);
   const { data: courses } = useInstructorCourses();
   const createMutation = useCreateAssignment();
   const updateMutation = useUpdateAssignment();

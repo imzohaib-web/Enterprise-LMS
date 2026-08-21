@@ -85,10 +85,22 @@ class InstructorController {
     }
   }
 
+  static async getCourseOverviewStats(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const courseId = req.params.courseId || req.query.courseId;
+      const stats = await InstructorService.getCourseOverviewStats(instructorId, courseId);
+      res.status(200).json({ success: true, data: stats });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getAssessments(req, res, next) {
     try {
       const instructorId = getUserId(req);
-      const assessments = await InstructorService.getInstructorAssessments(instructorId);
+      const courseId = req.params.courseId || req.query.courseId || null;
+      const assessments = await InstructorService.getInstructorAssessments(instructorId, courseId);
       res.status(200).json({ success: true, data: assessments });
     } catch (error) {
       next(error);
@@ -98,7 +110,10 @@ class InstructorController {
   static async createAssessment(req, res, next) {
     try {
       const instructorId = getUserId(req);
-      const assessment = await InstructorService.createAssessment(instructorId, req.body);
+      const courseId = req.params.courseId || req.body.courseId;
+      const assessmentData = { ...req.body };
+      if (courseId) assessmentData.courseId = courseId;
+      const assessment = await InstructorService.createAssessment(instructorId, assessmentData);
       res.status(201).json({ success: true, message: 'Assessment created successfully', data: assessment });
     } catch (error) {
       next(error);
@@ -130,7 +145,8 @@ class InstructorController {
   static async getQuizResults(req, res, next) {
     try {
       const instructorId = getUserId(req);
-      const results = await InstructorService.getQuizResults(instructorId);
+      const courseId = req.params.courseId || req.query.courseId || null;
+      const results = await InstructorService.getQuizResults(instructorId, courseId);
       res.status(200).json({ success: true, data: results });
     } catch (error) {
       next(error);
@@ -151,7 +167,8 @@ class InstructorController {
   static async getStudentProgress(req, res, next) {
     try {
       const instructorId = getUserId(req);
-      const progress = await InstructorService.getStudentProgressList(instructorId);
+      const courseId = req.params.courseId || req.query.courseId || null;
+      const progress = await InstructorService.getStudentProgressList(instructorId, courseId);
       res.status(200).json({ success: true, data: progress });
     } catch (error) {
       next(error);
@@ -331,7 +348,8 @@ class InstructorController {
     try {
       const instructorId = getUserId(req);
       const userRole = req.user?.role;
-      const assignments = await InstructorService.getAssignments(instructorId, userRole);
+      const courseId = req.params.courseId || req.query.courseId || null;
+      const assignments = await InstructorService.getAssignments(instructorId, userRole, courseId);
       res.status(200).json({ success: true, data: assignments });
     } catch (error) {
       next(error);
@@ -341,7 +359,10 @@ class InstructorController {
   static async createAssignment(req, res, next) {
     try {
       const instructorId = getUserId(req);
-      const assignment = await InstructorService.createAssignment(instructorId, req.body);
+      const courseId = req.params.courseId || req.body.courseId;
+      const assignmentData = { ...req.body };
+      if (courseId) assignmentData.courseId = courseId;
+      const assignment = await InstructorService.createAssignment(instructorId, assignmentData);
       res.status(201).json({ success: true, message: 'Assignment created successfully', data: assignment });
     } catch (error) {
       next(error);

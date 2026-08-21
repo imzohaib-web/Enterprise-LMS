@@ -19,3 +19,4 @@ export { InstructorProfilePage } from './pages/InstructorProfile';
 export { InstructorAssignmentsPage } from './pages/InstructorAssignments';
 export { InstructorCertificatesPage } from './pages/InstructorCertificates';
 export { InstructorLearningPaths } from './pages/InstructorLearningPaths';
+export { InstructorCourseManagement } from './pages/InstructorCourseManagement';

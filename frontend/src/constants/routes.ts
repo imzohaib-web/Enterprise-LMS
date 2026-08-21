@@ -84,10 +84,25 @@ export const STUDENT = {
   SETTINGS:           '/student/settings',
 } as const;
 
+// ── Instructor Course Management Route Helper ─────────────────────────────
+export const getInstructorCourseRoute = (courseId: string, tab: string = 'overview') =>
+  `/instructor/courses/${courseId}/${tab}`;
+
 // ── Instructor Routes ─────────────────────────────────────────────────────────
 export const INSTRUCTOR = {
   DASHBOARD:     '/instructor/dashboard',
   COURSES:       '/instructor/courses',
+  COURSE_MANAGE: (courseId: string) => `/instructor/courses/${courseId}`,
+  COURSE_OVERVIEW: (courseId: string) => `/instructor/courses/${courseId}/overview`,
+  COURSE_CONTENT: (courseId: string) => `/instructor/courses/${courseId}/content`,
+  COURSE_SECTIONS: (courseId: string) => `/instructor/courses/${courseId}/sections`,
+  COURSE_LESSONS: (courseId: string) => `/instructor/courses/${courseId}/lessons`,
+  COURSE_ASSESSMENTS: (courseId: string) => `/instructor/courses/${courseId}/assessments`,
+  COURSE_ASSIGNMENTS: (courseId: string) => `/instructor/courses/${courseId}/assignments`,
+  COURSE_QUIZZES: (courseId: string) => `/instructor/courses/${courseId}/quizzes`,
+  COURSE_STUDENTS: (courseId: string) => `/instructor/courses/${courseId}/students`,
+  COURSE_PROGRESS: (courseId: string) => `/instructor/courses/${courseId}/progress`,
+  COURSE_SETTINGS: (courseId: string) => `/instructor/courses/${courseId}/settings`,
   LEARNING_PATHS: '/instructor/learning-paths',
   STUDENTS:      '/instructor/students',
   ASSESSMENTS:   '/instructor/assessments',

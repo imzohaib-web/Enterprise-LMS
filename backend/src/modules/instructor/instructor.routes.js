@@ -25,6 +25,15 @@ router.put('/courses/:id', writeLimiter, InstructorController.updateCourse);
 router.delete('/courses/:id', writeLimiter, InstructorController.deleteCourse);
 router.patch('/courses/:id/publish', writeLimiter, InstructorController.togglePublishCourse);
 
+// Course-scoped Management Routes
+router.get('/courses/:courseId/overview', InstructorController.getCourseOverviewStats);
+router.get('/courses/:courseId/assessments', InstructorController.getAssessments);
+router.post('/courses/:courseId/assessments', writeLimiter, InstructorController.createAssessment);
+router.get('/courses/:courseId/assignments', InstructorController.getAssignments);
+router.post('/courses/:courseId/assignments', writeLimiter, InstructorController.createAssignment);
+router.get('/courses/:courseId/students', InstructorController.getStudentProgress);
+router.get('/courses/:courseId/quiz-results', InstructorController.getQuizResults);
+
 // Assessment & Assignment Management
 router.get('/assessments', InstructorController.getAssessments);
 router.post('/assessments', writeLimiter, InstructorController.createAssessment);

@@ -24,12 +24,31 @@ describe('InstructorService Unit Tests', () => {
     expect(typeof InstructorService.createAssignment).toBe('function');
     expect(typeof InstructorService.gradeSubmission).toBe('function');
     expect(typeof InstructorService.getInstructorCertificates).toBe('function');
+    expect(typeof InstructorService.getCourseOverviewStats).toBe('function');
     expect(typeof InstructorService.generateStudentProgressReport).toBe('function');
     expect(typeof InstructorService.generateQuizResultsReport).toBe('function');
     expect(typeof InstructorService.revokeAllOtherSessions).toBe('function');
     expect(typeof InstructorService.generate2FA).toBe('function');
     expect(typeof InstructorService.verify2FA).toBe('function');
-    expect(typeof InstructorService.logAuditAction).toBe('function');
+  });
+
+  it('should reject unauthorized course access when instructor does not own requested course', async () => {
+    const Course = require('../src/models/Course');
+    const unauthorizedInstructorId = new mongoose.Types.ObjectId().toString();
+    const ownerInstructorId = new mongoose.Types.ObjectId().toString();
+    const courseId = new mongoose.Types.ObjectId().toString();
+
+    jest.spyOn(Course, 'findById').mockReturnValueOnce({
+      lean: () => Promise.resolve({
+        _id: courseId,
+        title: 'React Development',
+        instructor: ownerInstructorId,
+      }),
+    });
+
+    await expect(
+      InstructorService.getInstructorAssessments(unauthorizedInstructorId, courseId)
+    ).rejects.toThrow('You do not have permission to view assessments for this course');
   });
 
   it('should format CSV student progress report string correctly', async () => {

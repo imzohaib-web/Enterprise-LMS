@@ -323,17 +323,35 @@ class InstructorService {
   }
 
   /**
-   * Assessment management: get assessments for instructor courses.
+   * Assessment management: get assessments for instructor courses (or filtered by courseId).
    */
-  static async getInstructorAssessments(instructorId) {
+  static async getInstructorAssessments(instructorId, courseId = null) {
     const instructorObjectId = new mongoose.Types.ObjectId(instructorId);
-    const courses = await Course.find({ instructor: instructorObjectId }, '_id title').lean();
-    const courseIds = courses.map((c) => c._id);
-    const courseMap = new Map(courses.map((c) => [c._id.toString(), c.title]));
+    let filter = {};
+    let courseMap = new Map();
 
-    const assessments = await QuizModel.find({
-      $or: [{ instructorId: instructorObjectId }, { courseId: { $in: courseIds } }],
-    })
+    if (courseId) {
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw AppError.badRequest('Invalid course ID');
+      }
+      const course = await Course.findById(courseId).lean();
+      if (!course) throw AppError.notFound('Course');
+      const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor?.toString();
+      if (instIdStr !== instructorId.toString()) {
+        throw AppError.forbidden('You do not have permission to view assessments for this course');
+      }
+      filter = { courseId: new mongoose.Types.ObjectId(courseId) };
+      courseMap.set(course._id.toString(), course.title);
+    } else {
+      const courses = await Course.find({ instructor: instructorObjectId }, '_id title').lean();
+      const courseIds = courses.map((c) => c._id);
+      courseMap = new Map(courses.map((c) => [c._id.toString(), c.title]));
+      filter = {
+        $or: [{ instructorId: instructorObjectId }, { courseId: { $in: courseIds } }],
+      };
+    }
+
+    const assessments = await QuizModel.find(filter)
       .sort({ createdAt: -1 })
       .lean();
 
@@ -467,16 +485,32 @@ class InstructorService {
   }
 
   /**
-   * Quiz attempts & results for instructor's courses.
+   * Quiz attempts & results for instructor's courses (or filtered by courseId).
    */
-  static async getQuizResults(instructorId) {
+  static async getQuizResults(instructorId, courseId = null) {
     const instructorObjectId = new mongoose.Types.ObjectId(instructorId);
-    const courses = await Course.find({ instructor: instructorObjectId }, '_id title').lean();
-    const courseIds = courses.map((c) => c._id);
+    let filter = {};
 
-    const attempts = await QuizAttemptModel.find({
-      $or: [{ instructorId: instructorObjectId }, { courseId: { $in: courseIds } }],
-    })
+    if (courseId) {
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw AppError.badRequest('Invalid course ID');
+      }
+      const course = await Course.findById(courseId).lean();
+      if (!course) throw AppError.notFound('Course');
+      const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor?.toString();
+      if (instIdStr !== instructorId.toString()) {
+        throw AppError.forbidden('You do not have permission to view quiz results for this course');
+      }
+      filter = { courseId: new mongoose.Types.ObjectId(courseId) };
+    } else {
+      const courses = await Course.find({ instructor: instructorObjectId }, '_id title').lean();
+      const courseIds = courses.map((c) => c._id);
+      filter = {
+        $or: [{ instructorId: instructorObjectId }, { courseId: { $in: courseIds } }],
+      };
+    }
+
+    const attempts = await QuizAttemptModel.find(filter)
       .sort({ createdAt: -1 })
       .populate('studentId', 'name email avatar')
       .populate('quizId', 'title description questions passingScore totalMarks timeLimitMinutes')
@@ -564,12 +598,28 @@ class InstructorService {
   }
 
   /**
-   * Get enrolled students progress across instructor's courses with real quiz scores.
+   * Get enrolled students progress across instructor's courses (or filtered by courseId) with real quiz scores.
    */
-  static async getStudentProgressList(instructorId) {
+  static async getStudentProgressList(instructorId, courseId = null) {
     const instructorObjectId = new mongoose.Types.ObjectId(instructorId);
-    const courseIds = await InstructorService._getInstructorCourseIds(instructorId);
-    const enrollmentFilter = InstructorService._instructorEnrollmentFilter(instructorId, courseIds);
+    let enrollmentFilter = {};
+
+    if (courseId) {
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw AppError.badRequest('Invalid course ID');
+      }
+      const course = await Course.findById(courseId).lean();
+      if (!course) throw AppError.notFound('Course');
+      const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor?.toString();
+      if (instIdStr !== instructorId.toString()) {
+        throw AppError.forbidden('You do not have permission to view student progress for this course');
+      }
+      enrollmentFilter = { course: new mongoose.Types.ObjectId(courseId) };
+    } else {
+      const courseIds = await InstructorService._getInstructorCourseIds(instructorId);
+      enrollmentFilter = InstructorService._instructorEnrollmentFilter(instructorId, courseIds);
+    }
+
     const enrollments = await Enrollment.find(enrollmentFilter)
       .populate('student', 'firstName lastName email avatar')
       .populate('course', 'title sections')
@@ -1273,10 +1323,28 @@ class InstructorService {
   // ── Assignment Management Service Methods ─────────────────────────────────
 
   /**
-   * Get assignments for instructor (or all assignments for admin).
+   * Get assignments for instructor (or filtered by courseId).
    */
-  static async getAssignments(instructorId, userRole) {
-    const filter = userRole === 'admin' ? {} : { instructorId: mongoose.Types.ObjectId.isValid(instructorId) ? new mongoose.Types.ObjectId(instructorId) : instructorId };
+  static async getAssignments(instructorId, userRole, courseId = null) {
+    let filter = {};
+
+    if (courseId) {
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw AppError.badRequest('Invalid course ID');
+      }
+      if (userRole !== 'admin') {
+        const course = await Course.findById(courseId).lean();
+        if (!course) throw AppError.notFound('Course');
+        const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor?.toString();
+        if (instIdStr !== instructorId.toString()) {
+          throw AppError.forbidden('You do not have permission to view assignments for this course');
+        }
+      }
+      filter = { courseId: new mongoose.Types.ObjectId(courseId) };
+    } else {
+      filter = userRole === 'admin' ? {} : { instructorId: mongoose.Types.ObjectId.isValid(instructorId) ? new mongoose.Types.ObjectId(instructorId) : instructorId };
+    }
+
     const assignments = await Assignment.find(filter)
       .populate('courseId', 'title')
       .sort({ createdAt: -1 })
@@ -1307,6 +1375,75 @@ class InstructorService {
     );
 
     return result;
+  }
+
+  /**
+   * Calculate course-scoped overview metrics for a specific course.
+   */
+  static async getCourseOverviewStats(instructorId, courseId) {
+    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+      throw AppError.badRequest('Valid course ID is required');
+    }
+
+    const course = await Course.findById(courseId).populate('category', 'name').lean();
+    if (!course) throw AppError.notFound('Course');
+
+    const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor?.toString();
+    if (instIdStr !== instructorId.toString()) {
+      throw AppError.forbidden('You do not have permission to access this course overview');
+    }
+
+    const cidObj = new mongoose.Types.ObjectId(courseId);
+
+    const enrollments = await Enrollment.find({ course: cidObj }).lean();
+    const enrolledStudentsCount = enrollments.length;
+
+    const sections = course.sections || [];
+    const totalSections = sections.length;
+    const totalLessons = sections.reduce((acc, s) => acc + (s.lessons ? s.lessons.length : 0), 0);
+
+    const assessmentsCount = await QuizModel.countDocuments({ courseId: cidObj });
+    const assignmentsCount = await Assignment.countDocuments({ courseId: cidObj });
+
+    const totalProgress = enrollments.reduce((acc, e) => acc + (e.progressPercentage || 0), 0);
+    const averageProgress = enrolledStudentsCount > 0 ? Math.round(totalProgress / enrolledStudentsCount) : 0;
+
+    const pendingQuizReviews = await QuizAttemptModel.countDocuments({ courseId: cidObj, status: 'pending_review' });
+
+    const assignments = await Assignment.find({ courseId: cidObj }, '_id').lean();
+    const assignmentIds = assignments.map((a) => a._id);
+    const pendingAssignmentSubmissions = assignmentIds.length > 0
+      ? await AssignmentSubmission.countDocuments({ assignmentId: { $in: assignmentIds }, status: 'submitted' })
+      : 0;
+
+    const pendingReviewsCount = pendingQuizReviews + pendingAssignmentSubmissions;
+
+    return {
+      course: {
+        id: course._id.toString(),
+        _id: course._id.toString(),
+        title: course.title,
+        description: course.description || '',
+        status: course.status || 'draft',
+        price: course.price || 0,
+        thumbnail: course.thumbnail || '',
+        category: typeof course.category === 'object' && course.category ? course.category.name : course.category || 'General',
+        level: course.level || 'beginner',
+        difficulty: course.difficulty || 'intermediate',
+        totalSections,
+        totalLessons,
+        createdAt: course.createdAt ? new Date(course.createdAt).toISOString() : new Date().toISOString(),
+      },
+      stats: {
+        enrolledStudentsCount,
+        assessmentsCount,
+        assignmentsCount,
+        averageProgress,
+        pendingReviewsCount,
+        totalSections,
+        totalLessons,
+      },
+    };
   }
 
   /**

@@ -54,13 +54,20 @@ export const togglePublishCourse = async (id: string, status: string): Promise<I
   return res.data?.data;
 };
 
-export const getStudentProgressList = async (): Promise<StudentProgressItem[]> => {
-  const res = await axiosInstance.get('/instructor/students/progress');
+export const getCourseOverviewStats = async (courseId: string): Promise<any> => {
+  const res = await axiosInstance.get(`/instructor/courses/${courseId}/overview`);
+  return res.data?.data;
+};
+
+export const getStudentProgressList = async (courseId?: string): Promise<StudentProgressItem[]> => {
+  const url = courseId ? `/instructor/courses/${courseId}/students` : '/instructor/students/progress';
+  const res = await axiosInstance.get(url);
   return res.data?.data || [];
 };
 
-export const getInstructorAssessments = async (): Promise<any[]> => {
-  const res = await axiosInstance.get('/instructor/assessments');
+export const getInstructorAssessments = async (courseId?: string): Promise<any[]> => {
+  const url = courseId ? `/instructor/courses/${courseId}/assessments` : '/instructor/assessments';
+  const res = await axiosInstance.get(url);
   return res.data?.data || [];
 };
 
@@ -79,8 +86,9 @@ export const deleteAssessment = async (id: string): Promise<boolean> => {
   return true;
 };
 
-export const getQuizResultsList = async (): Promise<QuizResultItem[]> => {
-  const res = await axiosInstance.get('/instructor/quiz-results');
+export const getQuizResultsList = async (courseId?: string): Promise<QuizResultItem[]> => {
+  const url = courseId ? `/instructor/courses/${courseId}/quiz-results` : '/instructor/quiz-results';
+  const res = await axiosInstance.get(url);
   return res.data?.data || [];
 };
 
@@ -184,8 +192,9 @@ export const uploadImage = async (fileOrUrl: string): Promise<string> => {
 
 // ── Assignment Management API Callers ──────────────────────────────────────────
 
-export const getInstructorAssignments = async (): Promise<InstructorAssignment[]> => {
-  const res = await axiosInstance.get('/instructor/assignments');
+export const getInstructorAssignments = async (courseId?: string): Promise<InstructorAssignment[]> => {
+  const url = courseId ? `/instructor/courses/${courseId}/assignments` : '/instructor/assignments';
+  const res = await axiosInstance.get(url);
   return res.data?.data || [];
 };
 

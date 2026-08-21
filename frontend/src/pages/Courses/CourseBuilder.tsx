@@ -13,8 +13,13 @@ type Mode = 'create' | 'edit';
 const LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
 const LESSON_TYPES = ['video', 'pdf', 'text', 'article', 'assignment', 'quiz'] as const;
 
-const CourseBuilder: React.FC = () => {
-  const { id } = useParams<{ id?: string }>();
+interface CourseBuilderProps {
+  courseIdOverride?: string;
+}
+
+const CourseBuilder: React.FC<CourseBuilderProps> = ({ courseIdOverride }) => {
+  const { id: paramId } = useParams<{ id?: string }>();
+  const id = courseIdOverride || paramId;
   const mode: Mode = id ? 'edit' : 'create';
   const navigate = useNavigate();
   const qc = useQueryClient();
