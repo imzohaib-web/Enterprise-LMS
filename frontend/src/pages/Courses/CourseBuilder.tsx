@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { courseService } from '../../services/course.service';
 import SectionAccordion from '../../components/lms/SectionAccordion';
 import ThumbnailUploader from '../../components/lms/ThumbnailUploader';
-import type { CreateCoursePayload, CreateSectionPayload, CreateLessonPayload, Section, Lesson } from '../../types/course';
+import type { CreateCoursePayload, CreateSectionPayload, CreateLessonPayload, Section, Lesson, Resource } from '../../types/course';
 
 type Mode = 'create' | 'edit';
 
@@ -81,13 +81,18 @@ const CourseBuilder: React.FC<CourseBuilderProps> = ({ courseIdOverride }) => {
     onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to save course'),
   });
 
-  // ── Section modals ────────────────────────────────────────────────────
+  // ── Section & Lesson Modal State ─────────────────────────────────────
   const [sectionModal, setSectionModal] = useState<{ open: boolean; section?: Section }>({ open: false });
+  const [sectionForm, setSectionForm] = useState<{ title: string; description: string }>({ title: '', description: '' });
+
   const [lessonModal, setLessonModal] = useState<{ open: boolean; sectionId?: string; lesson?: Lesson }>({ open: false });
-  const [sectionTitle, setSectionTitle] = useState('');
-  const [lessonForm, setLessonForm] = useState<Partial<CreateLessonPayload>>({ type: 'text' });
+  const [lessonForm, setLessonForm] = useState<Partial<CreateLessonPayload>>({ type: 'video', isPublished: true, isPreview: false });
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadedMedia, setUploadedMedia] = useState<{ url: string; publicId: string; duration?: number } | null>(null);
+  const [uploadedVideo, setUploadedVideo] = useState<{ url: string; publicId: string; duration?: number } | null>(null);
+  
+  const [resourceProgress, setResourceProgress] = useState(0);
+  const [isUploadingResource, setIsUploadingResource] = useState(false);
+  const [lessonResources, setLessonResources] = useState<Resource[]>([]);
 
   const addSectionMutation = useMutation({
     mutationFn: (payload: CreateSectionPayload) => courseService.addSection(id!, payload),
@@ -97,7 +102,7 @@ const CourseBuilder: React.FC<CourseBuilderProps> = ({ courseIdOverride }) => {
       qc.invalidateQueries({ queryKey: ['instructorCourses'] });
       setSectionModal({ open: false });
     },
-    onError: () => toast.error('Failed to add section'),
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to add section'),
   });
 
   const updateSectionMutation = useMutation({
@@ -108,7 +113,7 @@ const CourseBuilder: React.FC<CourseBuilderProps> = ({ courseIdOverride }) => {
       qc.invalidateQueries({ queryKey: ['course', id] });
       setSectionModal({ open: false });
     },
-    onError: () => toast.error('Failed to update section'),
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to update section'),
   });
 
   const deleteSectionMutation = useMutation({
@@ -117,7 +122,7 @@ const CourseBuilder: React.FC<CourseBuilderProps> = ({ courseIdOverride }) => {
       toast.success('Section deleted');
       qc.invalidateQueries({ queryKey: ['course', id] });
     },
-    onError: () => toast.error('Failed to delete section'),
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to delete section'),
   });
 
   // ── Lesson Mutations ──────────────────────────────────────────────────
@@ -128,9 +133,10 @@ const CourseBuilder: React.FC<CourseBuilderProps> = ({ courseIdOverride }) => {
       toast.success('Lesson added');
       qc.invalidateQueries({ queryKey: ['course', id] });
       setLessonModal({ open: false });
-      setUploadedMedia(null);
+      setUploadedVideo(null);
+      setLessonResources([]);
     },
-    onError: () => toast.error('Failed to add lesson'),
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to add lesson'),
   });
 
   const updateLessonMutation = useMutation({
@@ -140,9 +146,10 @@ const CourseBuilder: React.FC<CourseBuilderProps> = ({ courseIdOverride }) => {
       toast.success('Lesson updated');
       qc.invalidateQueries({ queryKey: ['course', id] });
       setLessonModal({ open: false });
-      setUploadedMedia(null);
+      setUploadedVideo(null);
+      setLessonResources([]);
     },
-    onError: () => toast.error('Failed to update lesson'),
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to update lesson'),
   });
 
   const deleteLessonMutation = useMutation({
@@ -152,38 +159,75 @@ const CourseBuilder: React.FC<CourseBuilderProps> = ({ courseIdOverride }) => {
       toast.success('Lesson deleted');
       qc.invalidateQueries({ queryKey: ['course', id] });
     },
-    onError: () => toast.error('Failed to delete lesson'),
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to delete lesson'),
   });
 
-  const handleFileUpload = async (file: File) => {
+  const handleVideoUpload = async (file: File) => {
+    setUploadProgress(1);
     try {
-      if (lessonForm.type === 'video') {
-        const res = await courseService.uploadVideo(file, setUploadProgress);
-        setUploadedMedia({ url: res.data.data!.url, publicId: res.data.data!.publicId, duration: res.data.data!.duration });
-        toast.success('Video uploaded!');
-      } else if (lessonForm.type === 'pdf') {
-        const res = await courseService.uploadDocument(file);
-        setUploadedMedia({ url: res.data.data!.url, publicId: res.data.data!.publicId });
-        toast.success('Document uploaded!');
+      const res = await courseService.uploadVideo(file, setUploadProgress);
+      const data = res.data?.data;
+      if (data) {
+        setUploadedVideo({ url: data.url, publicId: data.publicId, duration: data.duration });
+        if (data.duration && !lessonForm.duration) {
+          setLessonForm((f) => ({ ...f, duration: Math.ceil(data.duration! / 60) }));
+        }
+        toast.success('Video uploaded successfully!');
       }
-    } catch {
-      toast.error('Upload failed');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Video upload failed');
+    } finally {
+      setUploadProgress(0);
     }
+  };
+
+  const handleResourceUpload = async (file: File) => {
+    setIsUploadingResource(true);
+    setResourceProgress(1);
+    try {
+      const res = await courseService.uploadResource(file, setResourceProgress);
+      const data = res.data?.data;
+      if (data) {
+        setLessonResources((prev) => [
+          ...prev,
+          {
+            name: data.name || file.name,
+            url: data.url,
+            publicId: data.publicId,
+            type: data.type,
+            size: data.size,
+          },
+        ]);
+        toast.success('Resource file attached!');
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Resource upload failed');
+    } finally {
+      setIsUploadingResource(false);
+      setResourceProgress(0);
+    }
+  };
+
+  const handleRemoveResource = (index: number) => {
+    setLessonResources((prev) => prev.filter((_, i) => i !== index));
   };
 
   const onSubmitLesson = () => {
     if (!lessonModal.sectionId) return;
     const payload: CreateLessonPayload = {
       title: lessonForm.title || 'Untitled Lesson',
-      type: lessonForm.type || 'text',
-      content: lessonForm.content,
-      isPreview: lessonForm.isPreview ?? false,
-      order: lessonForm.order ?? 0,
-      videoUrl: uploadedMedia?.url || lessonForm.videoUrl,
-      videoPublicId: uploadedMedia?.publicId || lessonForm.videoPublicId,
-      duration: uploadedMedia?.duration ?? lessonForm.duration ?? 0,
-      documentUrl: lessonForm.type === 'pdf' ? (uploadedMedia?.url || lessonForm.documentUrl) : undefined,
-      documentPublicId: lessonForm.type === 'pdf' ? (uploadedMedia?.publicId || lessonForm.documentPublicId) : undefined,
+      type: lessonForm.type || 'video',
+      description: lessonForm.description || '',
+      content: lessonForm.content || '',
+      videoUrl: uploadedVideo?.url || lessonForm.videoUrl || '',
+      videoPublicId: uploadedVideo?.publicId || lessonForm.videoPublicId || '',
+      externalVideoUrl: lessonForm.externalVideoUrl || '',
+      duration: lessonForm.duration ? Number(lessonForm.duration) : (uploadedVideo?.duration || 0),
+      documentUrl: lessonForm.documentUrl || '',
+      documentPublicId: lessonForm.documentPublicId || '',
+      isPreview: Boolean(lessonForm.isPreview),
+      isPublished: lessonForm.isPublished !== false,
+      resources: lessonResources || [],
     };
 
     if (lessonModal.lesson) {
@@ -327,23 +371,36 @@ const CourseBuilder: React.FC<CourseBuilderProps> = ({ courseIdOverride }) => {
           <SectionAccordion
             sections={courseData.sections || []}
             editable={true}
-            onAddSection={() => { setSectionTitle(''); setSectionModal({ open: true }); }}
-            onEditSection={(section) => { setSectionTitle(section.title); setSectionModal({ open: true, section }); }}
+            onAddSection={() => { setSectionForm({ title: '', description: '' }); setSectionModal({ open: true }); }}
+            onEditSection={(section) => { setSectionForm({ title: section.title, description: section.description || '' }); setSectionModal({ open: true, section }); }}
             onDeleteSection={(sid) => { if (confirm('Are you sure you want to delete this section?')) deleteSectionMutation.mutate(sid); }}
-            onAddLesson={(sectionId) => { setLessonForm({ type: 'text' }); setUploadedMedia(null); setLessonModal({ open: true, sectionId }); }}
+            onAddLesson={(sectionId) => {
+              setLessonForm({ title: '', type: 'video', description: '', content: '', externalVideoUrl: '', duration: 0, isPreview: false, isPublished: true });
+              setUploadedVideo(null);
+              setLessonResources([]);
+              setUploadProgress(0);
+              setResourceProgress(0);
+              setLessonModal({ open: true, sectionId });
+            }}
             onEditLesson={(sectionId, lesson) => {
               setLessonForm({
                 title: lesson.title,
-                type: lesson.type,
-                content: lesson.content,
-                isPreview: lesson.isPreview,
-                videoUrl: lesson.videoUrl,
-                videoPublicId: lesson.videoPublicId,
-                documentUrl: lesson.documentUrl,
-                documentPublicId: lesson.documentPublicId,
-                duration: lesson.duration,
+                type: lesson.type || 'video',
+                description: lesson.description || '',
+                content: lesson.content || '',
+                externalVideoUrl: lesson.externalVideoUrl || '',
+                videoUrl: lesson.videoUrl || '',
+                videoPublicId: lesson.videoPublicId || '',
+                documentUrl: lesson.documentUrl || '',
+                documentPublicId: lesson.documentPublicId || '',
+                duration: lesson.duration || 0,
+                isPreview: Boolean(lesson.isPreview),
+                isPublished: lesson.isPublished !== false,
               });
-              setUploadedMedia(lesson.videoUrl ? { url: lesson.videoUrl, publicId: lesson.videoPublicId || '' } : null);
+              setUploadedVideo(lesson.videoUrl ? { url: lesson.videoUrl, publicId: lesson.videoPublicId || '', duration: lesson.duration } : null);
+              setLessonResources(lesson.resources || []);
+              setUploadProgress(0);
+              setResourceProgress(0);
               setLessonModal({ open: true, sectionId, lesson });
             }}
             onDeleteLesson={(sectionId, lessonId) => { if (confirm('Are you sure you want to delete this lesson?')) deleteLessonMutation.mutate({ sectionId, lessonId }); }}
@@ -354,31 +411,57 @@ const CourseBuilder: React.FC<CourseBuilderProps> = ({ courseIdOverride }) => {
       {/* Section Modal (Create / Edit) */}
       {sectionModal.open && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
-              {sectionModal.section ? 'Edit Section Title' : 'Add New Section'}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800 space-y-4">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+              {sectionModal.section ? 'Edit Section Details' : 'Add New Section'}
             </h3>
-            <input
-              value={sectionTitle}
-              onChange={(e) => setSectionTitle(e.target.value)}
-              placeholder="e.g. Section 1: Fundamentals & Getting Started"
-              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4 text-sm"
-            />
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setSectionModal({ open: false })} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition">Cancel</button>
+            
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 uppercase tracking-wider">
+                Section Title *
+              </label>
+              <input
+                value={sectionForm.title}
+                onChange={(e) => setSectionForm((s) => ({ ...s, title: e.target.value }))}
+                placeholder="e.g. Section 1: REST APIs & Core Concepts"
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 uppercase tracking-wider">
+                Section Description (Optional)
+              </label>
+              <textarea
+                rows={3}
+                value={sectionForm.description}
+                onChange={(e) => setSectionForm((s) => ({ ...s, description: e.target.value }))}
+                placeholder="Briefly describe what topics are covered in this section..."
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm resize-none"
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button onClick={() => setSectionModal({ open: false })} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 transition">Cancel</button>
               <button
                 onClick={() => {
-                  if (!sectionTitle.trim()) return;
+                  if (!sectionForm.title.trim()) return;
                   if (sectionModal.section) {
-                    updateSectionMutation.mutate({ sectionId: sectionModal.section._id, payload: { title: sectionTitle.trim() } });
+                    updateSectionMutation.mutate({
+                      sectionId: sectionModal.section._id,
+                      payload: { title: sectionForm.title.trim(), description: sectionForm.description.trim() },
+                    });
                   } else {
-                    addSectionMutation.mutate({ title: sectionTitle.trim() });
+                    addSectionMutation.mutate({
+                      title: sectionForm.title.trim(),
+                      description: sectionForm.description.trim(),
+                    });
                   }
                 }}
-                disabled={!sectionTitle.trim() || addSectionMutation.isPending || updateSectionMutation.isPending}
-                className="px-4 py-2 text-sm bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition disabled:opacity-60 cursor-pointer"
+                disabled={!sectionForm.title.trim() || addSectionMutation.isPending || updateSectionMutation.isPending}
+                className="px-4 py-2 text-sm bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition disabled:opacity-60 cursor-pointer shadow-xs"
               >
-                {sectionModal.section ? 'Save Section Title' : 'Add Section'}
+                {sectionModal.section ? 'Save Changes' : 'Add Section'}
               </button>
             </div>
           </div>
@@ -387,117 +470,300 @@ const CourseBuilder: React.FC<CourseBuilderProps> = ({ courseIdOverride }) => {
 
       {/* Lesson Modal (Create / Edit) */}
       {lessonModal.open && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
-              {lessonModal.lesson ? 'Edit Lesson Content' : 'Add New Lesson'}
-            </h3>
-            <div className="space-y-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 md:p-8 w-full max-w-2xl shadow-2xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  {lessonModal.lesson ? 'Edit Lesson Content' : 'Create New Lesson'}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Configure video lecture, lesson description, attached resources, and text instructions.
+                </p>
+              </div>
+              <button
+                onClick={() => { setLessonModal({ open: false }); setUploadedVideo(null); setLessonResources([]); }}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              {/* Lesson Title */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
                   Lesson Title *
                 </label>
                 <input
                   value={lessonForm.title || ''}
                   onChange={(e) => setLessonForm((f) => ({ ...f, title: e.target.value }))}
-                  placeholder="e.g. Introduction to Course Architecture"
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  placeholder="e.g. Introduction to REST APIs & HTTP Protocol"
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
                 />
               </div>
 
+              {/* Lesson Description */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
-                  Content Format / Type *
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+                  Lesson Short Summary / Overview
                 </label>
-                <div className="grid grid-cols-4 gap-2">
+                <textarea
+                  rows={2}
+                  value={lessonForm.description || ''}
+                  onChange={(e) => setLessonForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="Brief high-level summary of what students learn in this lesson..."
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm resize-none"
+                />
+              </div>
+
+              {/* Lesson Type selector */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+                  Primary Lesson Type *
+                </label>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {LESSON_TYPES.map((t) => (
                     <button
                       key={t}
                       type="button"
-                      onClick={() => { setLessonForm((f) => ({ ...f, type: t })); setUploadedMedia(null); }}
-                      className={`py-2 px-3 text-xs font-semibold rounded-xl border transition capitalize cursor-pointer ${
+                      onClick={() => setLessonForm((f) => ({ ...f, type: t }))}
+                      className={`py-2 px-2 text-xs font-bold rounded-xl border transition capitalize cursor-pointer flex flex-col items-center gap-1 ${
                         lessonForm.type === t
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 shadow-xs'
+                          ? 'border-indigo-600 bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400 shadow-xs'
                           : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'
                       }`}
                     >
-                      {t}
+                      <span>{t === 'video' ? '🎥' : t === 'pdf' ? '📄' : t === 'text' ? '📝' : t === 'assignment' ? '📋' : t === 'article' ? '📰' : '💡'}</span>
+                      <span className="truncate">{t}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {(lessonForm.type === 'video' || lessonForm.type === 'pdf') && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
-                    Upload {lessonForm.type === 'video' ? 'Video File' : 'PDF Document'}
-                  </label>
-                  {uploadedMedia ? (
-                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-2">
-                      <svg className="w-5 h-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      <span className="text-xs text-emerald-700 dark:text-emerald-400 truncate">
-                        File uploaded: {uploadedMedia.url}
-                      </span>
-                      <button onClick={() => setUploadedMedia(null)} className="ml-auto text-emerald-500 hover:text-emerald-700 text-sm font-bold">×</button>
+              {/* ── VIDEO LECTURE SECTION ────────────────────────────────── */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-800 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    🎥 Video Lecture (MP4, WebM, MOV)
+                  </h4>
+                  {uploadedVideo && (
+                    <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                      ✓ Video Attached
+                    </span>
+                  )}
+                </div>
+
+                {uploadedVideo ? (
+                  <div className="space-y-3">
+                    <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-gray-800">
+                      <video src={uploadedVideo.url} controls className="w-full h-full object-contain" />
                     </div>
-                  ) : (
-                    <div>
-                      <input
-                        type="file"
-                        accept={lessonForm.type === 'video' ? 'video/*' : 'application/pdf'}
-                        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-                        className="hidden"
-                        id="lesson-file-upload"
-                      />
-                      <label htmlFor="lesson-file-upload" className="flex flex-col items-center justify-center w-full p-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer hover:border-indigo-400 transition bg-gray-50 dark:bg-gray-800/40">
-                        <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Click to upload {lessonForm.type === 'video' ? 'video' : 'PDF document'}</span>
-                      </label>
-                      {uploadProgress > 0 && uploadProgress < 100 && (
-                        <div className="mt-2 space-y-1">
-                          <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div className="h-full bg-indigo-500 transition-all" style={{ width: `${uploadProgress}%` }} />
-                          </div>
-                          <p className="text-[11px] text-gray-500 text-right">{uploadProgress}%</p>
+                    <div className="flex items-center justify-between gap-2 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200 dark:border-gray-800">
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                        File: {uploadedVideo.url}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <label htmlFor="replace-video-upload" className="px-3 py-1 text-xs font-semibold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg cursor-pointer transition">
+                          Replace
+                        </label>
+                        <input
+                          id="replace-video-upload"
+                          type="file"
+                          accept="video/mp4,video/webm,video/quicktime,video/mov"
+                          onChange={(e) => e.target.files?.[0] && handleVideoUpload(e.target.files[0])}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setUploadedVideo(null)}
+                          className="px-3 py-1 text-xs font-semibold bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/quicktime,video/mov"
+                      onChange={(e) => e.target.files?.[0] && handleVideoUpload(e.target.files[0])}
+                      className="hidden"
+                      id="video-lecture-file-upload"
+                    />
+                    <label
+                      htmlFor="video-lecture-file-upload"
+                      className="flex flex-col items-center justify-center w-full p-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer hover:border-indigo-500 transition bg-white dark:bg-gray-900/60 text-center"
+                    >
+                      <svg className="w-8 h-8 text-indigo-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                        Click to upload video file
+                      </span>
+                      <span className="text-[11px] text-gray-400 mt-1">Supports MP4, WebM, MOV formats up to 500MB</span>
+                    </label>
+
+                    {uploadProgress > 0 && (
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[11px] text-gray-500 font-medium">
+                          <span>Uploading video lecture...</span>
+                          <span>{uploadProgress}%</span>
                         </div>
-                      )}
+                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-600 transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-2">
+                      <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                        Or External Video Embed URL (YouTube, Vimeo, MP4 link)
+                      </label>
+                      <input
+                        type="url"
+                        value={lessonForm.externalVideoUrl || ''}
+                        onChange={(e) => setLessonForm((f) => ({ ...f, externalVideoUrl: e.target.value }))}
+                        placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── ATTACHED RESOURCES / LEARNING FILES SECTION ────────────────── */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-800 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    📄 Attached Learning Resources
+                  </h4>
+                  <span className="text-xs text-gray-400 font-semibold">{lessonResources.length} Attached</span>
+                </div>
+
+                <div className="space-y-3">
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar,.txt,.csv,.png,.jpg,.jpeg,.webp"
+                    onChange={(e) => e.target.files?.[0] && handleResourceUpload(e.target.files[0])}
+                    className="hidden"
+                    id="resource-file-upload"
+                  />
+                  <label
+                    htmlFor="resource-file-upload"
+                    className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer hover:border-emerald-500 transition bg-white dark:bg-gray-900 text-xs font-semibold text-emerald-600 dark:text-emerald-400 ${
+                      isUploadingResource ? 'opacity-50 pointer-events-none' : ''
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                    {isUploadingResource ? 'Uploading file...' : '+ Attach Resource File (PDF, DOCX, PPTX, ZIP, Image)'}
+                  </label>
+
+                  {resourceProgress > 0 && (
+                    <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 transition-all" style={{ width: `${resourceProgress}%` }} />
+                    </div>
+                  )}
+
+                  {lessonResources.length > 0 && (
+                    <div className="space-y-2 pt-1">
+                      {lessonResources.map((res, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-sm">📄</span>
+                            <span className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{res.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <a href={res.url} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:underline">
+                              Preview
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveResource(idx)}
+                              className="text-xs text-rose-500 hover:text-rose-700 font-bold px-2 py-1"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
-              )}
+              </div>
 
-              {(lessonForm.type === 'text' || lessonForm.type === 'assignment') && (
+              {/* ── TEXT CONTENT / INSTRUCTIONS SECTION ────────────────── */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+                  Detailed Lesson Instructions / Reading Content
+                </label>
+                <textarea
+                  rows={4}
+                  value={lessonForm.content || ''}
+                  onChange={(e) => setLessonForm((f) => ({ ...f, content: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm leading-relaxed resize-none"
+                  placeholder="Provide detailed written explanation, code snippets, or study instructions..."
+                />
+              </div>
+
+              {/* ── DURATION & SETTINGS ───────────────────────────────── */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
-                    {lessonForm.type === 'assignment' ? 'Assignment Details & Instructions' : 'Reading / Article Content'}
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+                    Duration (Minutes)
                   </label>
-                  <textarea
-                    rows={4}
-                    value={lessonForm.content || ''}
-                    onChange={(e) => setLessonForm((f) => ({ ...f, content: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none text-sm"
-                    placeholder={lessonForm.type === 'assignment' ? 'Provide clear instructions for student submission...' : 'Write lesson text content...'}
+                  <input
+                    type="number"
+                    min="0"
+                    value={lessonForm.duration || 0}
+                    onChange={(e) => setLessonForm((f) => ({ ...f, duration: Number(e.target.value) }))}
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-xs"
+                    placeholder="e.g. 15"
                   />
                 </div>
-              )}
 
-              <label className="flex items-center gap-2 cursor-pointer pt-1">
-                <input
-                  type="checkbox"
-                  checked={lessonForm.isPreview ?? false}
-                  onChange={(e) => setLessonForm((f) => ({ ...f, isPreview: e.target.checked }))}
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Free preview lesson</span>
-              </label>
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={lessonForm.isPreview ?? false}
+                      onChange={(e) => setLessonForm((f) => ({ ...f, isPreview: e.target.checked }))}
+                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Free Preview Lesson</span>
+                  </label>
+                </div>
+
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={lessonForm.isPublished !== false}
+                      onChange={(e) => setLessonForm((f) => ({ ...f, isPublished: e.target.checked }))}
+                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Published & Visible</span>
+                  </label>
+                </div>
+              </div>
             </div>
 
-            <div className="flex gap-3 justify-end mt-6">
-              <button onClick={() => { setLessonModal({ open: false }); setUploadedMedia(null); }} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition">Cancel</button>
+            {/* Modal Actions */}
+            <div className="flex gap-3 justify-end pt-4 border-t border-gray-100 dark:border-gray-800">
               <button
+                type="button"
+                onClick={() => { setLessonModal({ open: false }); setUploadedVideo(null); setLessonResources([]); }}
+                className="px-5 py-2.5 text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
                 onClick={onSubmitLesson}
                 disabled={!lessonForm.title || addLessonMutation.isPending || updateLessonMutation.isPending}
-                className="px-5 py-2.5 text-sm bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition disabled:opacity-60 cursor-pointer shadow-xs"
+                className="px-6 py-2.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition disabled:opacity-60 cursor-pointer shadow-md shadow-indigo-500/20"
               >
                 {lessonModal.lesson ? 'Save Lesson Changes' : 'Add Lesson to Section'}
               </button>

@@ -7,19 +7,25 @@ export type LessonType = 'video' | 'pdf' | 'text' | 'assignment' | 'article' | '
 export interface Resource {
   name: string;
   url: string;
+  publicId?: string;
+  type?: string;
+  size?: number;
 }
 
 export interface Lesson {
   _id: string;
   title: string;
   type: LessonType;
+  description?: string;
   content?: string;
   videoUrl?: string;
   videoPublicId?: string;
+  externalVideoUrl?: string;
   duration: number;
   documentUrl?: string;
   documentPublicId?: string;
   isPreview: boolean;
+  isPublished?: boolean;
   order: number;
   resources: Resource[];
   createdAt: string;
@@ -117,14 +123,17 @@ export interface CreateSectionPayload {
 
 export interface CreateLessonPayload {
   title: string;
-  type: LessonType;
+  type?: LessonType;
+  description?: string;
   content?: string;
   videoUrl?: string;
   videoPublicId?: string;
+  externalVideoUrl?: string;
   duration?: number;
   documentUrl?: string;
   documentPublicId?: string;
   isPreview?: boolean;
+  isPublished?: boolean;
   order?: number;
   resources?: Resource[];
 }

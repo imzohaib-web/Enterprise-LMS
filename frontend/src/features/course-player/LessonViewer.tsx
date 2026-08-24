@@ -283,7 +283,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, courseId }) 
   }
 
   // Priority 3: Video Lesson
-  if (lesson.type === 'video' || lesson.videoUrl) {
+  if (lesson.type === 'video' || lesson.videoUrl || lesson.externalVideoUrl) {
     return <VideoLesson lesson={lesson} />;
   }
 

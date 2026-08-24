@@ -112,4 +112,15 @@ export const courseService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  uploadResource: (file: File, onProgress?: (pct: number) => void) => {
+    const fd = new FormData();
+    fd.append('resource', file);
+    return api.post<ApiResponse<{ name: string; url: string; publicId: string; size: number; type: string }>>('/courses/upload/resource', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (e) => {
+        if (onProgress && e.total) onProgress(Math.round((e.loaded * 100) / e.total));
+      },
+    });
+  },
 };

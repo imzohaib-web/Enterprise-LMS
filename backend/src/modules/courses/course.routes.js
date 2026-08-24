@@ -7,7 +7,7 @@ const lessonController = require('./lesson.controller');
 const { authenticate, authorize, optionalAuth } = require('../../middleware/auth.middleware');
 const validate = require('../../middleware/validate.middleware');
 const schemas = require('./course.validation');
-const { imageUpload, videoUpload, documentUpload } = require('../../utils/upload');
+const { imageUpload, videoUpload, documentUpload, resourceUpload } = require('../../utils/upload');
 
 /**
  * @swagger
@@ -23,6 +23,7 @@ router.post('/categories', authenticate, authorize('admin'), courseController.cr
 /* ── Upload endpoints ────────────────────────────────────────────────────── */
 router.post('/upload/video', authenticate, authorize('admin', 'instructor'), videoUpload.single('video'), courseController.uploadVideo);
 router.post('/upload/document', authenticate, authorize('admin', 'instructor'), documentUpload.single('document'), courseController.uploadDocument);
+router.post('/upload/resource', authenticate, authorize('admin', 'instructor'), resourceUpload.single('resource'), courseController.uploadResource);
 
 /* ── My enrollments ──────────────────────────────────────────────────────── */
 router.get('/enrolled', authenticate, courseController.getMyEnrollments);

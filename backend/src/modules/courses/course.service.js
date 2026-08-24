@@ -94,7 +94,7 @@ const getCourseById = async (id, requestingUser = null) => {
       ...section,
       lessons: (section.lessons || []).map((lesson) => {
         if (lesson.isPreview) return lesson;
-        const { videoUrl, videoPublicId, documentUrl, documentPublicId, content, ...publicLesson } = lesson;
+        const { videoUrl, videoPublicId, externalVideoUrl, documentUrl, documentPublicId, content, resources, ...publicLesson } = lesson;
         return publicLesson;
       }),
     }));

@@ -62,15 +62,28 @@ const updateSection = Joi.object({
 });
 
 const createLesson = Joi.object({
-  title:     Joi.string().trim().min(2).max(200).required(),
-  type:      Joi.string().valid('video', 'pdf', 'text', 'assignment').required(),
-  content:   Joi.string().max(50000),
-  isPreview: Joi.boolean().default(false),
-  order:     Joi.number().integer().min(0).default(0),
-  duration:  Joi.number().min(0).default(0),
-  resources: Joi.array().items(
-    Joi.object({ name: Joi.string().required(), url: Joi.string().uri().required() })
-  ).max(20).default([]),
+  title:            Joi.string().trim().min(2).max(200).required(),
+  type:             Joi.string().valid('video', 'pdf', 'text', 'assignment', 'article', 'quiz').default('video'),
+  description:      Joi.string().max(2000).allow('', null),
+  content:          Joi.string().max(50000).allow('', null),
+  videoUrl:         Joi.string().allow('', null),
+  videoPublicId:    Joi.string().allow('', null),
+  externalVideoUrl: Joi.string().allow('', null),
+  documentUrl:      Joi.string().allow('', null),
+  documentPublicId: Joi.string().allow('', null),
+  duration:         Joi.number().min(0).default(0),
+  isPreview:        Joi.boolean().default(false),
+  isPublished:      Joi.boolean().default(true),
+  order:            Joi.number().integer().min(0).default(0),
+  resources:        Joi.array().items(
+    Joi.object({
+      name:     Joi.string().allow('', null),
+      url:      Joi.string().required(),
+      publicId: Joi.string().allow('', null),
+      type:     Joi.string().allow('', null),
+      size:     Joi.number().allow(null),
+    })
+  ).max(50).default([]),
 });
 
 const updateLesson = createLesson.fork(
