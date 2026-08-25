@@ -1111,11 +1111,12 @@ class InstructorService {
   }
 
   /**
-   * Notifications for instructor.
+   * Notifications for instructor (Received alerts).
    */
   static async getInstructorNotifications(instructorId) {
     const notifications = await Notification.find({
       recipient: new mongoose.Types.ObjectId(instructorId),
+      category: { $ne: 'instructor_sent' },
     })
       .sort({ createdAt: -1 })
       .lean();
@@ -1125,10 +1126,158 @@ class InstructorService {
       title: n.title,
       message: n.message,
       type: n.type,
+      category: n.category,
       isRead: n.isRead,
       link: n.link || '',
       createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
     }));
+  }
+
+  /**
+   * Sent notifications history for instructor.
+   */
+  static async getInstructorSentNotifications(instructorId) {
+    const notifications = await Notification.find({
+      recipient: new mongoose.Types.ObjectId(instructorId),
+      category: 'instructor_sent',
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return notifications.map((n) => ({
+      id: n._id.toString(),
+      title: n.title,
+      message: n.message,
+      type: n.type,
+      category: n.category,
+      courseTitle: n.metadata?.courseTitle || 'Course',
+      courseId: n.metadata?.courseId || '',
+      recipientScope: n.metadata?.recipientScope || 'all',
+      totalRecipients: n.metadata?.totalRecipients || 0,
+      recipientNames: n.metadata?.recipientNames || [],
+      createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
+    }));
+  }
+
+  /**
+   * Send notification to course students with strict course & recipient isolation and security checks.
+   */
+  static async sendInstructorNotification(instructorId, userRole, payload, userFullName = 'Instructor') {
+    if (!payload.courseId || !mongoose.Types.ObjectId.isValid(payload.courseId)) {
+      throw AppError.badRequest('A valid course must be selected');
+    }
+    if (!payload.title || !payload.title.trim()) {
+      throw AppError.badRequest('Notification title is required');
+    }
+    if (!payload.message || !payload.message.trim()) {
+      throw AppError.badRequest('Notification message is required');
+    }
+
+    // 1. Verify Course Ownership
+    const course = await Course.findById(payload.courseId).lean();
+    if (!course) {
+      throw AppError.notFound('Selected course not found');
+    }
+
+    if (userRole !== 'admin') {
+      const courseInstructorId = course.instructor?._id
+        ? course.instructor._id.toString()
+        : course.instructor?.toString();
+      if (courseInstructorId !== instructorId.toString()) {
+        throw AppError.forbidden('You do not have permission to send notifications for this course');
+      }
+    }
+
+    // 2. Fetch Active Enrollments and Build Enrolled Student Map
+    const activeEnrollments = await Enrollment.find({
+      course: new mongoose.Types.ObjectId(payload.courseId),
+      status: { $ne: 'revoked' },
+    })
+      .populate('student', '_id firstName lastName email role')
+      .lean();
+
+    const enrolledStudentsMap = new Map();
+    activeEnrollments.forEach((e) => {
+      if (e.student && e.student._id && e.student.role !== 'admin' && e.student.role !== 'instructor') {
+        enrolledStudentsMap.set(e.student._id.toString(), e.student);
+      }
+    });
+
+    const scope = payload.recipientScope === 'specific' ? 'specific' : 'all';
+    let targetStudents = [];
+
+    if (scope === 'specific') {
+      if (!Array.isArray(payload.recipientStudentIds) || payload.recipientStudentIds.length === 0) {
+        throw AppError.badRequest('At least one enrolled student must be selected for specific recipient scope');
+      }
+      targetStudents = payload.recipientStudentIds
+        .map((id) => enrolledStudentsMap.get(id?.toString()))
+        .filter(Boolean);
+    } else {
+      targetStudents = Array.from(enrolledStudentsMap.values());
+    }
+
+    if (targetStudents.length === 0) {
+      throw AppError.badRequest('No valid enrolled students found in this course for the selected recipient scope');
+    }
+
+    // 3. Create & Emit Student Notifications
+    const notificationService = require('../notifications/notification.service');
+    const notifType = payload.type || 'announcement';
+
+    await Promise.all(
+      targetStudents.map((student) =>
+        notificationService.createAndEmitNotification({
+          userId: new mongoose.Types.ObjectId(student._id),
+          recipient: new mongoose.Types.ObjectId(student._id),
+          title: payload.title.trim(),
+          message: payload.message.trim(),
+          type: notifType,
+          category: 'course',
+          actionUrl: `/student/courses/${course._id.toString()}`,
+          metadata: {
+            courseId: course._id.toString(),
+            courseTitle: course.title,
+            instructorId: instructorId.toString(),
+            instructorName: userFullName,
+            recipientScope: scope,
+            sentByInstructor: true,
+          },
+        })
+      )
+    );
+
+    // 4. Create Sent History Record for Instructor
+    const studentNames = targetStudents.map((s) => {
+      const fullName = `${s.firstName || ''} ${s.lastName || ''}`.trim();
+      return fullName || s.email || 'Student';
+    });
+
+    const sentLog = await Notification.create({
+      recipient: new mongoose.Types.ObjectId(instructorId),
+      userId: new mongoose.Types.ObjectId(instructorId),
+      title: payload.title.trim(),
+      message: payload.message.trim(),
+      type: notifType,
+      category: 'instructor_sent',
+      isRead: true,
+      actionUrl: `/instructor/courses/${course._id.toString()}`,
+      metadata: {
+        courseId: course._id.toString(),
+        courseTitle: course.title,
+        recipientScope: scope,
+        totalRecipients: targetStudents.length,
+        recipientNames: studentNames,
+        isSent: true,
+      },
+    });
+
+    return {
+      success: true,
+      count: targetStudents.length,
+      message: `Notification sent successfully to ${targetStudents.length} student(s).`,
+      data: sentLog,
+    };
   }
 
   /**

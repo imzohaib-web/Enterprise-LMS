@@ -21,6 +21,9 @@ import {
   replyDiscussion,
   updateDiscussionStatus,
   getInstructorNotifications,
+  getInstructorSentNotifications,
+  sendInstructorNotification,
+  SendNotificationPayload,
   markNotificationRead,
   markAllNotificationsRead,
   getInstructorProfile,
@@ -251,6 +254,24 @@ export const useInstructorNotifications = () => {
     queryKey: ['instructor', 'notifications'],
     queryFn: getInstructorNotifications,
     staleTime: 30 * 1000,
+  });
+};
+
+export const useInstructorSentNotifications = () => {
+  return useQuery({
+    queryKey: ['instructor', 'notifications', 'sent'],
+    queryFn: getInstructorSentNotifications,
+    staleTime: 30 * 1000,
+  });
+};
+
+export const useSendInstructorNotification = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: SendNotificationPayload) => sendInstructorNotification(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'notifications'] });
+    },
   });
 };
 

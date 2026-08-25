@@ -15,12 +15,26 @@ export const getNotifications = async (
   if (typeof filters.isRead === 'boolean') params.isRead = filters.isRead;
 
   const res = await axiosInstance.get('/notifications', { params });
-  const data = res.data?.data;
+  const rawData = res.data?.data;
+
+  const rawList = Array.isArray(rawData?.notifications)
+    ? rawData.notifications
+    : Array.isArray(res.data?.notifications)
+    ? res.data.notifications
+    : Array.isArray(res.data)
+    ? res.data
+    : [];
+
+  const notifications = rawList.map((n: any) => ({
+    ...n,
+    id: (n.id || n._id || '').toString(),
+    _id: (n._id || n.id || '').toString(),
+  }));
 
   return {
-    notifications: data?.notifications || [],
-    pagination: data?.pagination || {
-      total: data?.notifications?.length || 0,
+    notifications,
+    pagination: rawData?.pagination || {
+      total: notifications.length,
       page: filters.page || 1,
       limit: filters.limit || 10,
       totalPages: 1,

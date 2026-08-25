@@ -71,6 +71,8 @@ router.patch('/discussions/:id/status', writeLimiter, InstructorController.updat
 
 // Notifications
 router.get('/notifications', InstructorController.getNotifications);
+router.get('/notifications/sent', InstructorController.getSentNotifications);
+router.post('/notifications/send', writeLimiter, InstructorController.sendNotification);
 router.patch('/notifications/read-all', writeLimiter, InstructorController.markAllNotificationsRead);
 router.patch('/notifications/:id/read', writeLimiter, InstructorController.markNotificationRead);
 

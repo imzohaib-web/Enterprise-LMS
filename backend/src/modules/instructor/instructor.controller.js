@@ -262,6 +262,33 @@ class InstructorController {
     }
   }
 
+  static async getSentNotifications(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const notifications = await InstructorService.getInstructorSentNotifications(instructorId);
+      res.status(200).json({ success: true, data: notifications });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async sendNotification(req, res, next) {
+    try {
+      const instructorId = getUserId(req);
+      const userRole = req.user?.role;
+      const userFullName = req.user?.firstName ? `${req.user.firstName} ${req.user.lastName || ''}`.trim() : 'Instructor';
+      const result = await InstructorService.sendInstructorNotification(instructorId, userRole, req.body, userFullName);
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        count: result.count,
+        data: result.data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async markNotificationRead(req, res, next) {
     try {
       const instructorId = getUserId(req);

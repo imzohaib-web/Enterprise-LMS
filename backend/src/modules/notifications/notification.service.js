@@ -2,6 +2,29 @@ const Notification = require('./notification.model');
 const AppError = require('../../utils/appError');
 const { emitNotificationToUser, emitUnreadCountToUser } = require('../../sockets/socket');
 
+const mongoose = require('mongoose');
+
+/**
+ * Get paginated notifications for a specific user
+ */
+const buildUserQuery = (userId) => {
+  if (!userId) return {};
+  const strId = userId.toString ? userId.toString() : String(userId);
+  let objId = null;
+  if (mongoose.Types.ObjectId.isValid(userId)) {
+    objId = new mongoose.Types.ObjectId(userId);
+  }
+  const conditions = [
+    { userId: strId },
+    { recipient: strId },
+    { 'metadata.recipientId': strId },
+  ];
+  if (objId) {
+    conditions.push({ userId: objId }, { recipient: objId });
+  }
+  return { $or: conditions };
+};
+
 /**
  * Get paginated notifications for a specific user
  */
@@ -10,9 +33,9 @@ const getUserNotifications = async (userId, options = {}) => {
   const limit = Math.max(1, Math.min(100, parseInt(options.limit, 10) || 10));
   const skip = (page - 1) * limit;
 
-  const query = { userId };
+  const query = buildUserQuery(userId);
 
-  if (options.category) {
+  if (options.category && options.category !== 'all') {
     query.category = options.category;
   }
 
@@ -20,10 +43,16 @@ const getUserNotifications = async (userId, options = {}) => {
     query.isRead = options.isRead;
   }
 
-  const [notifications, total] = await Promise.all([
+  const [rawNotifications, total] = await Promise.all([
     Notification.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     Notification.countDocuments(query),
   ]);
+
+  const notifications = rawNotifications.map((n) => ({
+    ...n,
+    id: n._id.toString(),
+    _id: n._id.toString(),
+  }));
 
   return {
     notifications,

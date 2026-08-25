@@ -147,9 +147,57 @@ export const updateDiscussionStatus = async (discussionId: string, statusData: a
   return res.data?.data;
 };
 
+export interface SendNotificationPayload {
+  courseId: string;
+  recipientScope: 'all' | 'specific';
+  recipientStudentIds?: string[];
+  type?: string;
+  title: string;
+  message: string;
+}
+
+export interface SentNotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  category: string;
+  courseTitle: string;
+  courseId: string;
+  recipientScope: 'all' | 'specific';
+  totalRecipients: number;
+  recipientNames: string[];
+  createdAt: string;
+}
+
 export const getInstructorNotifications = async (): Promise<NotificationItem[]> => {
   const res = await axiosInstance.get('/instructor/notifications');
   return res.data?.data || [];
+};
+
+export const getInstructorSentNotifications = async (): Promise<SentNotificationItem[]> => {
+  try {
+    const res = await axiosInstance.get('/instructor/notifications/sent');
+    return res.data?.data || [];
+  } catch {
+    const res = await axiosInstance.get('/notifications/sent');
+    return res.data?.data || [];
+  }
+};
+
+export const sendInstructorNotification = async (
+  payload: SendNotificationPayload
+): Promise<{ success: boolean; message: string; count: number }> => {
+  try {
+    const res = await axiosInstance.post('/instructor/notifications/send', payload);
+    return res.data;
+  } catch (err: any) {
+    if (err?.response?.status === 404) {
+      const res = await axiosInstance.post('/notifications/send', payload);
+      return res.data;
+    }
+    throw err;
+  }
 };
 
 export const markNotificationRead = async (id: string): Promise<boolean> => {

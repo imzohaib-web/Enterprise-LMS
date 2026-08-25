@@ -79,8 +79,22 @@ const uploadToCloudinary = (buffer, options = {}) => {
       }
     }
 
-    const stream = cloudinary.uploader.upload_stream(
-      { resource_type: 'auto', ...options },
+    const cloudinaryOptions = { ...options };
+    if (!cloudinaryOptions.resource_type) {
+      cloudinaryOptions.resource_type = 'auto';
+    }
+
+    const isVideo = cloudinaryOptions.resource_type === 'video';
+    if (isVideo && !cloudinaryOptions.chunk_size) {
+      cloudinaryOptions.chunk_size = 6 * 1024 * 1024; // 6 MB chunks
+    }
+
+    const uploadMethod = isVideo
+      ? cloudinary.uploader.upload_chunked_stream.bind(cloudinary.uploader)
+      : cloudinary.uploader.upload_stream.bind(cloudinary.uploader);
+
+    const stream = uploadMethod(
+      cloudinaryOptions,
       (error, result) => {
         if (error) {
           // Fallback to local storage if Cloudinary fails
