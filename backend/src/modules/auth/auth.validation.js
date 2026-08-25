@@ -8,7 +8,7 @@ const register = Joi.object({
   password:  Joi.string().min(8).max(128).required()
     .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .message('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
-  role:      Joi.string().valid('student', 'instructor', 'admin').default('student'),
+  role:      Joi.string().valid('student', 'instructor').default('student'),
 });
 
 const login = Joi.object({

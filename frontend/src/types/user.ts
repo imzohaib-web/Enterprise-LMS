@@ -38,6 +38,7 @@ export interface User {
   lastName: string;
   email: string;
   role: UserRole;
+  accountStatus?: string;
   avatar?: string;
   bio?: string;
   phone?: string;
@@ -79,6 +80,7 @@ export interface ChangePasswordPayload {
 export interface UpdateUserPayload {
   firstName?: string;
   lastName?: string;
+  email?: string;
   bio?: string;
   expertise?: string[];
   socialLinks?: SocialLinks;

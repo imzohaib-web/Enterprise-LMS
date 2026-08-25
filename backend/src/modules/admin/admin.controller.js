@@ -43,5 +43,46 @@ const listAuditLogs = async (req, res) => {
   sendSuccess(res, data);
 };
 
-module.exports = { getOverview, getStudentGrowth, getCoursePerformance, getInstructorPerformance, getEnrollmentTrend, getCategoryBreakdown, listAuditLogs };
+const listEnrollments = async (req, res) => {
+  const { enrollments, meta } = await adminService.listEnrollments(req.query);
+  sendSuccess(res, { data: { enrollments }, meta });
+};
+
+const revokeEnrollment = async (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+  const enrollment = await adminService.revokeEnrollment(id, reason, req.user);
+  sendSuccess(res, { message: 'Enrollment revoked successfully', data: { enrollment } });
+};
+
+const getSystemSettings = async (req, res) => {
+  const data = await adminService.getSystemSettings();
+  sendSuccess(res, { data });
+};
+
+const updateSystemSettings = async (req, res) => {
+  const { section, settings } = req.body;
+  const data = await adminService.updateSystemSettings(section, settings || req.body, req.user);
+  sendSuccess(res, { message: 'System settings updated successfully', data });
+};
+
+const getSystemHealth = async (req, res) => {
+  const data = await adminService.getSystemHealth();
+  sendSuccess(res, { data });
+};
+
+module.exports = {
+  getOverview,
+  getStudentGrowth,
+  getCoursePerformance,
+  getInstructorPerformance,
+  getEnrollmentTrend,
+  getCategoryBreakdown,
+  listAuditLogs,
+  listEnrollments,
+  revokeEnrollment,
+  getSystemSettings,
+  updateSystemSettings,
+  getSystemHealth,
+};
 

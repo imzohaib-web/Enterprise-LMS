@@ -29,6 +29,7 @@ const certificateRoutes  = require('./modules/certificates/certificate.routes');
 const notificationRoutes = require('./modules/notifications/notification.routes');
 const discussionRoutes   = require('./modules/discussions/discussion.routes');
 const instructorRoutes   = require('./modules/instructor/instructor.routes');
+const instructorApplicationRoutes = require('./modules/instructor/instructorApplication.routes');
 const assessmentRoutes   = require('./modules/assessments/assessment.routes');
 const assignmentRoutes   = require('./modules/assignments/assignment.routes');
 const progressRoutes     = require('./modules/progress/progress.routes');
@@ -54,8 +55,37 @@ if (config.nodeEnv !== 'test') {
   app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
 }
 
-// ── Serve static uploaded files ───────────────────────────────────────────────
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// ── Serve static uploaded files with CORS, Range support & proper MIME headers ──
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+  setHeaders: (res, filePath) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Accept-Ranges', 'bytes');
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === '.pdf') {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline');
+    } else if (ext === '.mp4') {
+      res.setHeader('Content-Type', 'video/mp4');
+    } else if (ext === '.webm') {
+      res.setHeader('Content-Type', 'video/webm');
+    } else if (ext === '.mov') {
+      res.setHeader('Content-Type', 'video/quicktime');
+    } else if (ext === '.png') {
+      res.setHeader('Content-Type', 'image/png');
+    } else if (ext === '.jpg' || ext === '.jpeg') {
+      res.setHeader('Content-Type', 'image/jpeg');
+    } else if (ext === '.webp') {
+      res.setHeader('Content-Type', 'image/webp');
+    } else if (ext === '.docx') {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    } else if (ext === '.pptx') {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    } else if (ext === '.zip') {
+      res.setHeader('Content-Type', 'application/zip');
+    }
+  },
+}));
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
 app.use('/api/v1', apiLimiter);
@@ -101,8 +131,9 @@ app.use('/api/v1/reports',        reportRoutes);
 app.use('/api/v1/certificates',  certificateRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/discussions',   discussionRoutes);
-app.use('/api/v1/instructor',    instructorRoutes);
-app.use('/api/v1/assessments',   assessmentRoutes);
+app.use('/api/v1/instructor',              instructorRoutes);
+app.use('/api/v1/instructor-applications', instructorApplicationRoutes);
+app.use('/api/v1/assessments',             assessmentRoutes);
 app.use('/api/v1/assignments',   assignmentRoutes);
 app.use('/api/v1/progress',      progressRoutes);
 if (discussionRoutes.replyRouter) {

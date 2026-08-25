@@ -121,16 +121,35 @@ const AdminCourses: React.FC = () => {
     onError: () => toast.error('Failed to delete course'),
   });
 
+  const approveCourseMutation = useMutation({
+    mutationFn: (id: string) => courseService.approveCourse(id),
+    onSuccess: () => {
+      toast.success('Course approved and published successfully! 🎉');
+      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to approve course'),
+  });
+
+  const rejectCourseMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => courseService.rejectCourse(id, reason),
+    onSuccess: () => {
+      toast.success('Course review rejected with feedback notes');
+      setRejectingCourse(null);
+      setRejectionReason('');
+      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to reject course'),
+  });
+
   const handleApprove = (id: string) => {
-    updateStatusMutation.mutate({ id, status: 'published' });
+    approveCourseMutation.mutate(id);
   };
 
   const handleConfirmReject = () => {
     if (!rejectingCourse) return;
-    updateStatusMutation.mutate({ id: rejectingCourse._id, status: 'rejected' });
-    toast.success(`Course "${rejectingCourse.title}" rejected`);
-    setRejectingCourse(null);
-    setRejectionReason('');
+    rejectCourseMutation.mutate({ id: rejectingCourse._id, reason: rejectionReason });
   };
 
   const handleToggleFeatured = (course: Course) => {

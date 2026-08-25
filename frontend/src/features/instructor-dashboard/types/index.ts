@@ -25,7 +25,7 @@ export interface InstructorCourse {
   title: string;
   category: string;
   description?: string;
-  status: 'published' | 'draft' | 'archived';
+  status: 'published' | 'draft' | 'archived' | 'pending_approval' | 'under_review' | 'rejected';
   enrolledStudents: number;
   enrolledStudentsCount?: number;
   totalModules: number;

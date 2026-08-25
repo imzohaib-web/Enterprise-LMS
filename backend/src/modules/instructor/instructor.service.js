@@ -279,7 +279,7 @@ class InstructorService {
    * Get single course details with instructor authorization via CourseService.
    */
   static async getCourseById(instructorId, courseId) {
-    const course = await CourseService.getCourseById(courseId, true);
+    const course = await CourseService.getCourseById(courseId, { _id: instructorId, role: 'instructor' });
     const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor ? course.instructor.toString() : '';
     if (instIdStr && instIdStr !== instructorId.toString()) {
       throw AppError.forbidden('Course not found or unauthorized');
@@ -323,17 +323,35 @@ class InstructorService {
   }
 
   /**
-   * Assessment management: get assessments for instructor courses.
+   * Assessment management: get assessments for instructor courses (or filtered by courseId).
    */
-  static async getInstructorAssessments(instructorId) {
+  static async getInstructorAssessments(instructorId, courseId = null) {
     const instructorObjectId = new mongoose.Types.ObjectId(instructorId);
-    const courses = await Course.find({ instructor: instructorObjectId }, '_id title').lean();
-    const courseIds = courses.map((c) => c._id);
-    const courseMap = new Map(courses.map((c) => [c._id.toString(), c.title]));
+    let filter = {};
+    let courseMap = new Map();
 
-    const assessments = await QuizModel.find({
-      $or: [{ instructorId: instructorObjectId }, { courseId: { $in: courseIds } }],
-    })
+    if (courseId) {
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw AppError.badRequest('Invalid course ID');
+      }
+      const course = await Course.findById(courseId).lean();
+      if (!course) throw AppError.notFound('Course');
+      const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor?.toString();
+      if (instIdStr !== instructorId.toString()) {
+        throw AppError.forbidden('You do not have permission to view assessments for this course');
+      }
+      filter = { courseId: new mongoose.Types.ObjectId(courseId) };
+      courseMap.set(course._id.toString(), course.title);
+    } else {
+      const courses = await Course.find({ instructor: instructorObjectId }, '_id title').lean();
+      const courseIds = courses.map((c) => c._id);
+      courseMap = new Map(courses.map((c) => [c._id.toString(), c.title]));
+      filter = {
+        $or: [{ instructorId: instructorObjectId }, { courseId: { $in: courseIds } }],
+      };
+    }
+
+    const assessments = await QuizModel.find(filter)
       .sort({ createdAt: -1 })
       .lean();
 
@@ -393,8 +411,25 @@ class InstructorService {
    * Create assessment for instructor.
    */
   static async createAssessment(instructorId, assessmentData) {
+    if (!assessmentData.courseId) {
+      throw AppError.badRequest('Course ID is required');
+    }
+
+    const course = await Course.findById(assessmentData.courseId).lean();
+    if (!course) {
+      throw AppError.notFound('Course');
+    }
+
+    const courseInstructorId = course.instructor?._id
+      ? course.instructor._id.toString()
+      : course.instructor?.toString();
+    if (courseInstructorId && courseInstructorId !== instructorId.toString()) {
+      throw AppError.forbidden('You can only create assessments for courses you instruct');
+    }
+
     const assessment = await QuizModel.create({
       ...assessmentData,
+      courseId: assessmentData.courseId,
       instructorId: new mongoose.Types.ObjectId(instructorId),
     });
     return assessment;
@@ -450,16 +485,32 @@ class InstructorService {
   }
 
   /**
-   * Quiz attempts & results for instructor's courses.
+   * Quiz attempts & results for instructor's courses (or filtered by courseId).
    */
-  static async getQuizResults(instructorId) {
+  static async getQuizResults(instructorId, courseId = null) {
     const instructorObjectId = new mongoose.Types.ObjectId(instructorId);
-    const courses = await Course.find({ instructor: instructorObjectId }, '_id title').lean();
-    const courseIds = courses.map((c) => c._id);
+    let filter = {};
 
-    const attempts = await QuizAttemptModel.find({
-      $or: [{ instructorId: instructorObjectId }, { courseId: { $in: courseIds } }],
-    })
+    if (courseId) {
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw AppError.badRequest('Invalid course ID');
+      }
+      const course = await Course.findById(courseId).lean();
+      if (!course) throw AppError.notFound('Course');
+      const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor?.toString();
+      if (instIdStr !== instructorId.toString()) {
+        throw AppError.forbidden('You do not have permission to view quiz results for this course');
+      }
+      filter = { courseId: new mongoose.Types.ObjectId(courseId) };
+    } else {
+      const courses = await Course.find({ instructor: instructorObjectId }, '_id title').lean();
+      const courseIds = courses.map((c) => c._id);
+      filter = {
+        $or: [{ instructorId: instructorObjectId }, { courseId: { $in: courseIds } }],
+      };
+    }
+
+    const attempts = await QuizAttemptModel.find(filter)
       .sort({ createdAt: -1 })
       .populate('studentId', 'name email avatar')
       .populate('quizId', 'title description questions passingScore totalMarks timeLimitMinutes')
@@ -547,12 +598,28 @@ class InstructorService {
   }
 
   /**
-   * Get enrolled students progress across instructor's courses with real quiz scores.
+   * Get enrolled students progress across instructor's courses (or filtered by courseId) with real quiz scores.
    */
-  static async getStudentProgressList(instructorId) {
+  static async getStudentProgressList(instructorId, courseId = null) {
     const instructorObjectId = new mongoose.Types.ObjectId(instructorId);
-    const courseIds = await InstructorService._getInstructorCourseIds(instructorId);
-    const enrollmentFilter = InstructorService._instructorEnrollmentFilter(instructorId, courseIds);
+    let enrollmentFilter = {};
+
+    if (courseId) {
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw AppError.badRequest('Invalid course ID');
+      }
+      const course = await Course.findById(courseId).lean();
+      if (!course) throw AppError.notFound('Course');
+      const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor?.toString();
+      if (instIdStr !== instructorId.toString()) {
+        throw AppError.forbidden('You do not have permission to view student progress for this course');
+      }
+      enrollmentFilter = { course: new mongoose.Types.ObjectId(courseId) };
+    } else {
+      const courseIds = await InstructorService._getInstructorCourseIds(instructorId);
+      enrollmentFilter = InstructorService._instructorEnrollmentFilter(instructorId, courseIds);
+    }
+
     const enrollments = await Enrollment.find(enrollmentFilter)
       .populate('student', 'firstName lastName email avatar')
       .populate('course', 'title sections')
@@ -1405,10 +1472,28 @@ class InstructorService {
   // ── Assignment Management Service Methods ─────────────────────────────────
 
   /**
-   * Get assignments for instructor (or all assignments for admin).
+   * Get assignments for instructor (or filtered by courseId).
    */
-  static async getAssignments(instructorId, userRole) {
-    const filter = userRole === 'admin' ? {} : { instructorId: mongoose.Types.ObjectId.isValid(instructorId) ? new mongoose.Types.ObjectId(instructorId) : instructorId };
+  static async getAssignments(instructorId, userRole, courseId = null) {
+    let filter = {};
+
+    if (courseId) {
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw AppError.badRequest('Invalid course ID');
+      }
+      if (userRole !== 'admin') {
+        const course = await Course.findById(courseId).lean();
+        if (!course) throw AppError.notFound('Course');
+        const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor?.toString();
+        if (instIdStr !== instructorId.toString()) {
+          throw AppError.forbidden('You do not have permission to view assignments for this course');
+        }
+      }
+      filter = { courseId: new mongoose.Types.ObjectId(courseId) };
+    } else {
+      filter = userRole === 'admin' ? {} : { instructorId: mongoose.Types.ObjectId.isValid(instructorId) ? new mongoose.Types.ObjectId(instructorId) : instructorId };
+    }
+
     const assignments = await Assignment.find(filter)
       .populate('courseId', 'title')
       .sort({ createdAt: -1 })
@@ -1439,6 +1524,75 @@ class InstructorService {
     );
 
     return result;
+  }
+
+  /**
+   * Calculate course-scoped overview metrics for a specific course.
+   */
+  static async getCourseOverviewStats(instructorId, courseId) {
+    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+      throw AppError.badRequest('Valid course ID is required');
+    }
+
+    const course = await Course.findById(courseId).populate('category', 'name').lean();
+    if (!course) throw AppError.notFound('Course');
+
+    const instIdStr = course.instructor?._id ? course.instructor._id.toString() : course.instructor?.toString();
+    if (instIdStr !== instructorId.toString()) {
+      throw AppError.forbidden('You do not have permission to access this course overview');
+    }
+
+    const cidObj = new mongoose.Types.ObjectId(courseId);
+
+    const enrollments = await Enrollment.find({ course: cidObj }).lean();
+    const enrolledStudentsCount = enrollments.length;
+
+    const sections = course.sections || [];
+    const totalSections = sections.length;
+    const totalLessons = sections.reduce((acc, s) => acc + (s.lessons ? s.lessons.length : 0), 0);
+
+    const assessmentsCount = await QuizModel.countDocuments({ courseId: cidObj });
+    const assignmentsCount = await Assignment.countDocuments({ courseId: cidObj });
+
+    const totalProgress = enrollments.reduce((acc, e) => acc + (e.progressPercentage || 0), 0);
+    const averageProgress = enrolledStudentsCount > 0 ? Math.round(totalProgress / enrolledStudentsCount) : 0;
+
+    const pendingQuizReviews = await QuizAttemptModel.countDocuments({ courseId: cidObj, status: 'pending_review' });
+
+    const assignments = await Assignment.find({ courseId: cidObj }, '_id').lean();
+    const assignmentIds = assignments.map((a) => a._id);
+    const pendingAssignmentSubmissions = assignmentIds.length > 0
+      ? await AssignmentSubmission.countDocuments({ assignmentId: { $in: assignmentIds }, status: 'submitted' })
+      : 0;
+
+    const pendingReviewsCount = pendingQuizReviews + pendingAssignmentSubmissions;
+
+    return {
+      course: {
+        id: course._id.toString(),
+        _id: course._id.toString(),
+        title: course.title,
+        description: course.description || '',
+        status: course.status || 'draft',
+        price: course.price || 0,
+        thumbnail: course.thumbnail || '',
+        category: typeof course.category === 'object' && course.category ? course.category.name : course.category || 'General',
+        level: course.level || 'beginner',
+        difficulty: course.difficulty || 'intermediate',
+        totalSections,
+        totalLessons,
+        createdAt: course.createdAt ? new Date(course.createdAt).toISOString() : new Date().toISOString(),
+      },
+      stats: {
+        enrolledStudentsCount,
+        assessmentsCount,
+        assignmentsCount,
+        averageProgress,
+        pendingReviewsCount,
+        totalSections,
+        totalLessons,
+      },
+    };
   }
 
   /**
@@ -1521,6 +1675,7 @@ class InstructorService {
     if (updateData.maxScore !== undefined) assignment.maxScore = Number(updateData.maxScore);
     if (updateData.allowedFileTypes) assignment.allowedFileTypes = updateData.allowedFileTypes;
     if (updateData.status) assignment.status = updateData.status;
+    if (updateData.lessonId !== undefined) assignment.lessonId = updateData.lessonId;
 
     await assignment.save();
     return assignment;
@@ -1621,6 +1776,17 @@ class InstructorService {
       throw AppError.notFound('Assignment');
     }
 
+    const course = await Course.findOne({ _id: assignment.courseId, status: 'published' }).lean();
+    if (!course) {
+      throw AppError.forbidden('The course associated with this assignment is not available');
+    }
+
+    const Enrollment = require('../../models/Enrollment');
+    const enrollment = await Enrollment.findOne({ student: studentId, course: assignment.courseId, status: { $in: ['active', 'completed'] } }).lean();
+    if (!enrollment) {
+      throw AppError.forbidden('You are not enrolled in the course associated with this assignment');
+    }
+
     let fileUrl = submitData.fileUrl || '';
     let fileName = submitData.fileName || '';
     let fileSize = submitData.fileSize || 0;
@@ -1674,6 +1840,16 @@ class InstructorService {
       });
     }
 
+    // Auto sync progress if lessonId is present
+    if (assignment.lessonId) {
+      try {
+        const progressService = require('../progress/progress.service');
+        await progressService.markLessonComplete(studentId, assignment.courseId, assignment.lessonId);
+      } catch (pErr) {
+        console.warn('Auto progress sync for assignment submission skipped:', pErr.message);
+      }
+    }
+
     return submission;
   }
 
@@ -1684,6 +1860,58 @@ class InstructorService {
     if (!courseId) throw AppError.badRequest('Course ID is required');
 
     const queryCourseId = mongoose.Types.ObjectId.isValid(courseId) ? new mongoose.Types.ObjectId(courseId) : courseId;
+
+    if (studentId) {
+      const user = await User.findById(studentId).lean();
+      if (user && user.role === 'student') {
+        const course = await Course.findOne({ _id: queryCourseId, status: 'published' }).lean();
+        if (!course) {
+          throw AppError.forbidden('This course is not available');
+        }
+        const enrollment = await Enrollment.findOne({ student: studentId, course: queryCourseId, status: { $in: ['active', 'completed'] } }).lean();
+        if (!enrollment) {
+          throw AppError.forbidden('You are not enrolled in this course');
+        }
+      }
+    }
+
+    // Auto-provision backing Assignment document for any lesson of type 'assignment' in Course.sections
+    try {
+      const course = await Course.findById(queryCourseId).lean();
+      if (course && course.sections) {
+        for (const section of course.sections) {
+          for (const lesson of (section.lessons || [])) {
+            if (lesson.type === 'assignment') {
+              const lessonIdStr = lesson._id ? lesson._id.toString() : '';
+              const existing = await Assignment.findOne({
+                $or: [
+                  { courseId: queryCourseId, lessonId: lessonIdStr },
+                  { courseId: queryCourseId, title: lesson.title },
+                ],
+              });
+              if (!existing) {
+                await Assignment.create({
+                  title: lesson.title,
+                  description: lesson.content || '',
+                  instructions: lesson.content || 'Complete the assignment task as specified by your instructor.',
+                  courseId: queryCourseId,
+                  lessonId: lessonIdStr,
+                  instructorId: course.instructor,
+                  dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                  maxScore: 100,
+                  status: 'published',
+                });
+              } else if (!existing.lessonId && lessonIdStr) {
+                await Assignment.updateOne({ _id: existing._id }, { $set: { lessonId: lessonIdStr } });
+              }
+            }
+          }
+        }
+      }
+    } catch (syncErr) {
+      console.warn('Auto sync assignment lessons skipped:', syncErr.message);
+    }
+
     const assignments = await Assignment.find({ courseId: queryCourseId, status: 'published' })
       .populate('courseId', 'title')
       .sort({ dueDate: 1 })
@@ -1708,6 +1936,7 @@ class InstructorService {
           instructions: a.instructions || '',
           courseId: a.courseId?._id?.toString() || a.courseId?.toString() || '',
           courseTitle: a.courseId?.title || '',
+          lessonId: a.lessonId || '',
           dueDate: a.dueDate ? new Date(a.dueDate).toISOString() : '',
           maxScore: a.maxScore || 100,
           allowedFileTypes: a.allowedFileTypes || ['pdf', 'zip', 'docx', 'png', 'txt'],
@@ -1734,11 +1963,29 @@ class InstructorService {
   /**
    * Get single assignment details by ID.
    */
-  static async getAssignmentById(assignmentId, studentId = null) {
-    const asgnQuery = Assignment.findById(assignmentId).populate('courseId', 'title');
+  static async getAssignmentById(assignmentId, studentId = null, requestedCourseId = null) {
+    const asgnQuery = Assignment.findById(assignmentId).populate('courseId', 'title status');
     const assignment = typeof asgnQuery?.lean === 'function' ? await asgnQuery.lean() : await asgnQuery;
     if (!assignment) {
       throw AppError.notFound('Assignment');
+    }
+
+    if (studentId) {
+      const user = await User.findById(studentId).lean();
+      if (user && user.role === 'student') {
+        const courseId = assignment.courseId?._id ? assignment.courseId._id.toString() : assignment.courseId ? assignment.courseId.toString() : null;
+        if (requestedCourseId && courseId && courseId !== requestedCourseId.toString()) {
+          throw AppError.forbidden('Assignment does not belong to the requested course');
+        }
+        const course = await Course.findOne({ _id: courseId, status: 'published' }).lean();
+        if (!course) {
+          throw AppError.forbidden('The course associated with this assignment is not available');
+        }
+        const enrollment = await Enrollment.findOne({ student: studentId, course: courseId, status: { $in: ['active', 'completed'] } }).lean();
+        if (!enrollment) {
+          throw AppError.forbidden('You are not enrolled in the course associated with this assignment');
+        }
+      }
     }
 
     let studentSubmission = null;
@@ -1758,6 +2005,7 @@ class InstructorService {
       instructions: assignment.instructions || '',
       courseId: assignment.courseId?._id?.toString() || assignment.courseId?.toString() || '',
       courseTitle: assignment.courseId?.title || '',
+      lessonId: assignment.lessonId || '',
       dueDate: assignment.dueDate ? new Date(assignment.dueDate).toISOString() : '',
       maxScore: assignment.maxScore || 100,
       allowedFileTypes: assignment.allowedFileTypes || ['pdf', 'zip', 'docx', 'png', 'txt'],
@@ -1775,6 +2023,58 @@ class InstructorService {
           }
         : null,
     };
+  }
+
+  /**
+   * Get all assignments across student's enrolled courses.
+   */
+  static async getStudentAssignments(studentId) {
+    const enrollments = await Enrollment.find({ student: studentId, status: { $in: ['active', 'completed'] } }).select('course').lean();
+    const enrolledCourseIds = enrollments.map((e) => e.course);
+    const publishedCourses = await Course.find({ _id: { $in: enrolledCourseIds }, status: 'published' }).select('_id').lean();
+    const validCourseIds = publishedCourses.map((c) => c._id);
+
+    const assignments = await Assignment.find({ courseId: { $in: validCourseIds }, status: 'published' })
+      .populate('courseId', 'title')
+      .sort({ dueDate: 1 })
+      .lean();
+
+    const result = await Promise.all(
+      assignments.map(async (a) => {
+        const studentSubmission = await AssignmentSubmission.findOne({
+          assignmentId: a._id,
+          studentId: new mongoose.Types.ObjectId(studentId),
+        }).lean();
+
+        return {
+          id: a._id.toString(),
+          title: a.title,
+          description: a.description || '',
+          instructions: a.instructions || '',
+          courseId: a.courseId?._id?.toString() || a.courseId?.toString() || '',
+          courseTitle: a.courseId?.title || '',
+          lessonId: a.lessonId || '',
+          dueDate: a.dueDate ? new Date(a.dueDate).toISOString() : '',
+          maxScore: a.maxScore || 100,
+          allowedFileTypes: a.allowedFileTypes || ['pdf', 'zip', 'docx', 'png', 'txt'],
+          status: a.status || 'published',
+          studentSubmission: studentSubmission
+            ? {
+                id: studentSubmission._id.toString(),
+                fileUrl: studentSubmission.fileUrl || '',
+                fileName: studentSubmission.fileName || '',
+                textSubmission: studentSubmission.textSubmission || '',
+                status: studentSubmission.status,
+                score: studentSubmission.score || 0,
+                feedback: studentSubmission.feedback || '',
+                submittedAt: studentSubmission.createdAt,
+              }
+            : null,
+        };
+      })
+    );
+
+    return result;
   }
 
   /**

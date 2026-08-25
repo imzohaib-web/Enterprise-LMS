@@ -23,6 +23,12 @@ const userSchema = new mongoose.Schema(
     },
     password:    { type: String, required: true, minlength: 6, select: false },
     role:        { type: String, enum: ['student', 'instructor', 'admin'], default: 'student', index: true },
+    accountStatus: {
+      type: String,
+      enum: ['PENDING_VERIFICATION', 'PENDING_APPROVAL', 'ACTIVE', 'SUSPENDED', 'REJECTED', 'DEACTIVATED'],
+      default: 'ACTIVE',
+      index: true,
+    },
     avatar:      { type: String, default: null },
     phone:       { type: String, default: '' },
     studentId:   { type: String, trim: true, default: '' },

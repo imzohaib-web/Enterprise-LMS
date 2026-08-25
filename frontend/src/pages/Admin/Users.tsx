@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { userService } from '../../services/user.service';
+import { instructorApplicationService, InstructorApplication } from '../../services/instructorApplication.service';
 import type { User, UserRole } from '../../types/user';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 
@@ -19,7 +21,14 @@ const roleBadge: Record<string, string> = {
 };
 
 const AdminUsers: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'applications' ? 'applications' : 'users';
   const qc = useQueryClient();
+  const [mainTab, setMainTab] = useState<'users' | 'applications'>(initialTab);
+  const [appStatusFilter, setAppStatusFilter] = useState<string>('PENDING');
+  const [rejectingAppId, setRejectingAppId] = useState<string | null>(null);
+  const [appRejectionReason, setAppRejectionReason] = useState<string>('');
+
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [search, setSearch] = useState('');
@@ -45,6 +54,38 @@ const AdminUsers: React.FC = () => {
   const [formRole, setFormRole] = useState<UserRole>('student');
   const [formIsActive, setFormIsActive] = useState(true);
   const [csvContent, setCsvContent] = useState('');
+
+  // ── Instructor Applications Query ───────────────────────────────────────────
+  const { data: appsRes, isLoading: isAppsLoading } = useQuery({
+    queryKey: ['admin', 'instructor-applications', appStatusFilter],
+    queryFn: () => instructorApplicationService.listApplications({ status: appStatusFilter || undefined }),
+    enabled: mainTab === 'applications',
+  });
+
+  const rawApps = (appsRes?.data as any)?.applications ?? (appsRes as any)?.applications ?? [];
+  const applications: InstructorApplication[] = Array.isArray(rawApps) ? rawApps : [];
+
+  const approveAppMutation = useMutation({
+    mutationFn: (id: string) => instructorApplicationService.approveApplication(id),
+    onSuccess: () => {
+      toast.success('Instructor application approved! User promoted to Instructor.');
+      qc.invalidateQueries({ queryKey: ['admin', 'instructor-applications'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'users-list'] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to approve application'),
+  });
+
+  const rejectAppMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => instructorApplicationService.rejectApplication(id, reason),
+    onSuccess: () => {
+      toast.success('Instructor application rejected.');
+      setRejectingAppId(null);
+      setAppRejectionReason('');
+      qc.invalidateQueries({ queryKey: ['admin', 'instructor-applications'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'users-list'] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to reject application'),
+  });
 
   // ── 1. Fetch Users Query ────────────────────────────────────────────────────
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -250,44 +291,204 @@ const AdminUsers: React.FC = () => {
         }
       }
     }
-    toast.success(`Successfully imported ${imported} new users`);
+    toast.success(`Imported ${imported} user accounts successfully`);
     setIsImportOpen(false);
     setCsvContent('');
-    qc.invalidateQueries({ queryKey: ['admin', 'users-list'] });
+    refetch();
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header & Breadcrumb */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex-1">
-          <PageBreadcrumb pageTitle="User Directory & Management" />
+    <div className="p-6 space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <PageBreadcrumb pageTitle="User Management" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+            User Accounts & Roles
+          </h1>
         </div>
-        <div className="flex items-center gap-2 -mt-6">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setIsImportOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+            className="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 text-xs font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition flex items-center gap-1.5 shadow-2xs"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" /></svg>
-            Import CSV
+            <span>📥</span> Import CSV
           </button>
           <button
             onClick={() => handleExportCSV()}
-            className="flex items-center gap-2 px-3.5 py-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition"
+            className="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 text-xs font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition flex items-center gap-1.5 shadow-2xs"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-            Export CSV
+            <span>📤</span> Export CSV
           </button>
           <button
             onClick={openCreateModal}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition shadow-xs"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md shadow-indigo-500/20"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            Create User
+            <span>+</span> Create New User
           </button>
         </div>
       </div>
 
+      {/* Main Tab Navigation */}
+      <div className="flex bg-gray-100 dark:bg-gray-800/60 p-1 rounded-2xl w-fit border border-gray-200 dark:border-gray-700/50">
+        <button
+          onClick={() => setMainTab('users')}
+          className={`px-5 py-2 text-xs font-bold rounded-xl transition ${
+            mainTab === 'users'
+              ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          User Directory ({meta.total || users.length})
+        </button>
+        <button
+          onClick={() => setMainTab('applications')}
+          className={`px-5 py-2 text-xs font-bold rounded-xl transition flex items-center gap-2 ${
+            mainTab === 'applications'
+              ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          <span>🎓</span> Instructor Applications Queue
+        </button>
+      </div>
+
+      {mainTab === 'applications' ? (
+        /* Instructor Applications Queue View */
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center justify-between gap-4 shadow-sm">
+            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+              {['PENDING', 'APPROVED', 'REJECTED', ''].map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setAppStatusFilter(st)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+                    appStatusFilter === st
+                      ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  {st ? st : 'ALL'}
+                </button>
+              ))}
+            </div>
+            <span className="text-xs text-gray-500 font-medium">
+              Showing {applications.length} applications
+            </span>
+          </div>
+
+          {isAppsLoading ? (
+            <div className="py-16 text-center space-y-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto" />
+              <p className="text-xs text-gray-400">Loading applications...</p>
+            </div>
+          ) : applications.length === 0 ? (
+            <div className="py-16 text-center text-gray-400 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
+              No instructor applications found for status "{appStatusFilter || 'ALL'}".
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {applications.map((app) => (
+                <div
+                  key={app._id}
+                  className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-sm space-y-3 flex flex-col justify-between"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 className="font-bold text-sm text-gray-900 dark:text-white">
+                          {app.applicant?.firstName} {app.applicant?.lastName}
+                        </h3>
+                        <p className="text-xs text-gray-500">{app.applicant?.email}</p>
+                      </div>
+                      <span
+                        className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full uppercase ${
+                          app.status === 'APPROVED'
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                            : app.status === 'REJECTED'
+                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400'
+                            : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
+                        }`}
+                      >
+                        {app.status}
+                      </span>
+                    </div>
+
+                    <div className="text-xs space-y-1 pt-2 border-t border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300">
+                      <p><span className="font-semibold text-gray-900 dark:text-white">Specialization:</span> {app.specialization}</p>
+                      <p><span className="font-semibold text-gray-900 dark:text-white">Qualification:</span> {app.qualification}</p>
+                      <p><span className="font-semibold text-gray-900 dark:text-white">Experience:</span> {app.experienceYears} years</p>
+                      {app.portfolioUrl && (
+                        <p>
+                          <span className="font-semibold text-gray-900 dark:text-white">Portfolio:</span>{' '}
+                          <a href={app.portfolioUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline">
+                            {app.portfolioUrl}
+                          </a>
+                        </p>
+                      )}
+                      <p className="pt-1 text-[11px] text-gray-500 italic leading-relaxed">"{app.bio}"</p>
+                      {app.status === 'REJECTED' && app.rejectionReason && (
+                        <p className="text-rose-500 text-[11px] pt-1"><span className="font-bold">Rejection Reason:</span> {app.rejectionReason}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {app.status === 'PENDING' && (
+                    <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex gap-2">
+                      <button
+                        onClick={() => approveAppMutation.mutate(app._id)}
+                        disabled={approveAppMutation.isPending}
+                        className="flex-1 py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition disabled:opacity-50 cursor-pointer"
+                      >
+                        Approve & Promote
+                      </button>
+                      <button
+                        onClick={() => setRejectingAppId(app._id)}
+                        className="py-1.5 px-3 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold text-xs rounded-xl hover:bg-rose-100 transition cursor-pointer"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Rejection Reason Modal */}
+          {rejectingAppId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 max-w-md w-full space-y-4">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Reject Instructor Application</h3>
+                <p className="text-xs text-gray-500">Provide feedback/reason for rejection:</p>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. Portfolio links are incomplete or insufficient experience demonstrated."
+                  value={appRejectionReason}
+                  onChange={(e) => setAppRejectionReason(e.target.value)}
+                  className="w-full p-2.5 text-xs border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white"
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => setRejectingAppId(null)}
+                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => rejectAppMutation.mutate({ id: rejectingAppId, reason: appRejectionReason })}
+                    disabled={rejectAppMutation.isPending}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition"
+                  >
+                    Confirm Rejection
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
       {/* Search & Filter Bar */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex flex-wrap gap-3 shadow-sm items-center">
         <div className="flex-1 min-w-[220px] relative">
@@ -727,6 +928,8 @@ const AdminUsers: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

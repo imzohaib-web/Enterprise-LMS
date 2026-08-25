@@ -3,8 +3,18 @@ import type { ApiResponse } from '../types/api';
 
 export interface OverviewStats {
   users: { total: number; students: number; instructors: number; admins: number };
-  courses: { total: number; published: number; draft: number };
-  enrollments: { total: number; completed: number; completionRate: number };
+  courses: { total: number; published: number; draft: number; pending?: number };
+  enrollments: { total: number; active?: number; completed: number; completionRate: number };
+  certificates?: { totalIssued: number };
+  assessments?: { totalAttempts: number; passedAttempts: number; quizPassRate: number };
+  actionable?: {
+    pendingApplications?: any[];
+    pendingApplicationsCount?: number;
+    coursesAwaitingReview?: any[];
+    coursesAwaitingReviewCount?: number;
+    recentUsers?: any[];
+    recentAuditLogs?: any[];
+  };
 }
 
 export interface GrowthDataPoint { month: string; count: number }
@@ -60,4 +70,19 @@ export const adminService = {
 
   exportReport: (type: 'students' | 'courses' | 'progress', format: 'csv' | 'pdf' = 'csv') =>
     api.get(`/reports/${type}`, { params: { format }, responseType: 'blob' }),
+
+  getSettings: () =>
+    api.get<ApiResponse<any>>('/admin/settings'),
+
+  updateSettings: (section: string, settingsData: any) =>
+    api.put<ApiResponse<any>>('/admin/settings', { section, settings: settingsData }),
+
+  getSystemHealth: () =>
+    api.get<ApiResponse<any>>('/admin/health'),
+
+  listEnrollments: (params: { page?: number; limit?: number; status?: string; search?: string } = {}) =>
+    api.get<ApiResponse<{ enrollments: any[] }>>('/admin/enrollments', { params }),
+
+  revokeEnrollment: (id: string, reason: string) =>
+    api.patch<ApiResponse<{ enrollment: any }>>(`/admin/enrollments/${id}/revoke`, { reason }),
 };

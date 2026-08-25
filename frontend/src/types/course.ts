@@ -1,25 +1,31 @@
 import type { User } from './user';
 
 export type CourseLevel = 'beginner' | 'intermediate' | 'advanced';
-export type CourseStatus = 'draft' | 'published' | 'archived' | 'pending_approval' | 'rejected';
-export type LessonType = 'video' | 'pdf' | 'text' | 'assignment';
+export type CourseStatus = 'draft' | 'published' | 'archived' | 'pending_approval' | 'under_review' | 'rejected';
+export type LessonType = 'video' | 'pdf' | 'text' | 'assignment' | 'article' | 'quiz';
 
 export interface Resource {
   name: string;
   url: string;
+  publicId?: string;
+  type?: string;
+  size?: number;
 }
 
 export interface Lesson {
   _id: string;
   title: string;
   type: LessonType;
+  description?: string;
   content?: string;
   videoUrl?: string;
   videoPublicId?: string;
+  externalVideoUrl?: string;
   duration: number;
   documentUrl?: string;
   documentPublicId?: string;
   isPreview: boolean;
+  isPublished?: boolean;
   order: number;
   resources: Resource[];
   createdAt: string;
@@ -73,6 +79,10 @@ export interface Course {
   totalDuration: number;
   lessonCount?: number;
   sectionCount?: number;
+  submittedAt?: string;
+  reviewedAt?: string;
+  reviewedBy?: Partial<User>;
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -93,6 +103,7 @@ export interface CreateCoursePayload {
   title: string;
   description: string;
   shortDesc?: string;
+  thumbnail?: string;
   level: CourseLevel;
   language?: string;
   price?: number;
@@ -112,14 +123,17 @@ export interface CreateSectionPayload {
 
 export interface CreateLessonPayload {
   title: string;
-  type: LessonType;
+  type?: LessonType;
+  description?: string;
   content?: string;
   videoUrl?: string;
   videoPublicId?: string;
+  externalVideoUrl?: string;
   duration?: number;
   documentUrl?: string;
   documentPublicId?: string;
   isPreview?: boolean;
+  isPublished?: boolean;
   order?: number;
   resources?: Resource[];
 }

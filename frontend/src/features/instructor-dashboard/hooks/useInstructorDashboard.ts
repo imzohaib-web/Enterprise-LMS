@@ -43,8 +43,10 @@ import {
   revokeAllSessions,
   generate2FA,
   verify2FA,
+  getCourseOverviewStats,
 } from '../api/instructorDashboardApi';
 import { InstructorCourse, InstructorProfile, InstructorAssignment } from '../types';
+import { courseService } from '../../../services/course.service';
 
 export const useInstructorStats = () => {
   return useQuery({
@@ -110,18 +112,39 @@ export const useTogglePublishCourse = () => {
   });
 };
 
-export const useStudentProgressList = () => {
+export const useSubmitCourseForReview = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => courseService.submitForReview(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'courses'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+    },
+  });
+};
+
+export const useCourseOverviewStats = (courseId: string) => {
   return useQuery({
-    queryKey: ['instructor', 'student-progress'],
-    queryFn: getStudentProgressList,
+    queryKey: ['instructor', 'course-overview', courseId],
+    queryFn: () => getCourseOverviewStats(courseId),
+    enabled: Boolean(courseId),
+    staleTime: 30 * 1000,
+  });
+};
+
+export const useStudentProgressList = (courseId?: string) => {
+  return useQuery({
+    queryKey: ['instructor', 'student-progress', courseId],
+    queryFn: () => getStudentProgressList(courseId),
     staleTime: 60 * 1000,
   });
 };
 
-export const useQuizResultsList = () => {
+export const useQuizResultsList = (courseId?: string) => {
   return useQuery({
-    queryKey: ['instructor', 'quiz-results'],
-    queryFn: getQuizResultsList,
+    queryKey: ['instructor', 'quiz-results', courseId],
+    queryFn: () => getQuizResultsList(courseId),
     staleTime: 60 * 1000,
   });
 };
@@ -325,10 +348,10 @@ export const useUpdateInstructorSettings = () => {
   });
 };
 
-export const useInstructorAssessments = () => {
+export const useInstructorAssessments = (courseId?: string) => {
   return useQuery({
-    queryKey: ['instructor', 'assessments'],
-    queryFn: getInstructorAssessments,
+    queryKey: ['instructor', 'assessments', courseId],
+    queryFn: () => getInstructorAssessments(courseId),
     staleTime: 30 * 1000,
   });
 };
@@ -372,10 +395,10 @@ export const useDeleteAssessment = () => {
 
 // ── Assignment Hooks ──────────────────────────────────────────────────────────
 
-export const useInstructorAssignments = () => {
+export const useInstructorAssignments = (courseId?: string) => {
   return useQuery({
-    queryKey: ['instructor', 'assignments'],
-    queryFn: getInstructorAssignments,
+    queryKey: ['instructor', 'assignments', courseId],
+    queryFn: () => getInstructorAssignments(courseId),
     staleTime: 30 * 1000,
   });
 };

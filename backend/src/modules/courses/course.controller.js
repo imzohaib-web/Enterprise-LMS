@@ -50,7 +50,7 @@ const uploadThumbnail = async (req, res) => {
 };
 
 const enrollInCourse = async (req, res) => {
-  const enrollment = await courseService.enrollInCourse(req.params.id, req.user._id);
+  const enrollment = await courseService.enrollInCourse(req.params.id, req.user._id, req.body);
   sendSuccess(res, { statusCode: 201, message: 'Enrolled successfully', data: { enrollment } });
 };
 
@@ -79,11 +79,13 @@ const uploadVideo = async (req, res) => {
   const result = await uploadToCloudinary(req.file.buffer, {
     folder: 'lms/videos',
     resource_type: 'video',
+    filename: req.file.originalname,
+    originalname: req.file.originalname,
   });
   sendSuccess(res, {
     message: 'Video uploaded successfully',
     data: {
-      url: result.secure_url,
+      url: result.secure_url || result.url,
       publicId: result.public_id,
       duration: Math.round(result.duration || 0),
       format: result.format,
@@ -96,16 +98,58 @@ const uploadDocument = async (req, res) => {
   const result = await uploadToCloudinary(req.file.buffer, {
     folder: 'lms/documents',
     resource_type: 'raw',
+    filename: req.file.originalname,
+    originalname: req.file.originalname,
   });
   sendSuccess(res, {
     message: 'Document uploaded successfully',
-    data: { url: result.secure_url, publicId: result.public_id },
+    data: { url: result.secure_url || result.url, publicId: result.public_id, name: req.file.originalname },
   });
+};
+
+const uploadResource = async (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: 'No resource file uploaded' });
+  const ext = (req.file.originalname ? req.file.originalname.split('.').pop() : '').toLowerCase();
+  const resourceType = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext) ? 'image' : ['mp4', 'mov', 'webm'].includes(ext) ? 'video' : 'raw';
+  const result = await uploadToCloudinary(req.file.buffer, {
+    folder: 'lms/resources',
+    resource_type: resourceType,
+    filename: req.file.originalname,
+    originalname: req.file.originalname,
+  });
+  sendSuccess(res, {
+    message: 'Resource file uploaded successfully',
+    data: {
+      name: req.file.originalname || 'Attached Resource',
+      url: result.secure_url || result.url,
+      publicId: result.public_id,
+      size: req.file.size || 0,
+      type: ext || 'file',
+    },
+  });
+};
+
+/* ── Course Lifecycle & Moderation ────────────────────────────────────────── */
+
+const submitForReview = async (req, res) => {
+  const course = await courseService.submitForReview(req.params.id, req.user);
+  sendSuccess(res, { message: 'Course submitted for review successfully', data: { course } });
+};
+
+const approveCourse = async (req, res) => {
+  const course = await courseService.approveCourse(req.params.id, req.user);
+  sendSuccess(res, { message: 'Course approved and published successfully', data: { course } });
+};
+
+const rejectCourse = async (req, res) => {
+  const course = await courseService.rejectCourse(req.params.id, req.user, req.body);
+  sendSuccess(res, { message: 'Course rejected with feedback', data: { course } });
 };
 
 module.exports = {
   listCourses, getCourse, getCourseBySlug, createCourse, updateCourse, deleteCourse, uploadThumbnail,
   enrollInCourse, getMyEnrollments,
   listCategories, createCategory,
-  uploadVideo, uploadDocument,
+  uploadVideo, uploadDocument, uploadResource,
+  submitForReview, approveCourse, rejectCourse,
 };

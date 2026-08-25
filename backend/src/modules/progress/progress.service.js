@@ -116,15 +116,61 @@ class ProgressService {
   }
 
   async markLessonComplete(studentId, courseId, lessonId) {
+    const Enrollment = require('../../models/Enrollment');
+    const User = require('../../models/User');
+    const Course = require('../../models/Course');
+    const AppError = require('../../utils/AppError');
+
+    const user = await User.findById(studentId).lean();
+    if (!user) throw AppError.unauthorized('User not found');
+
+    if (user.role !== 'admin' && user.role !== 'instructor') {
+      const enrollment = await Enrollment.findOne({ student: studentId, course: courseId }).lean();
+      if (!enrollment) {
+        throw AppError.forbidden('You are not enrolled in this course');
+      }
+    }
+
+    const course = await Course.findById(courseId).lean();
+    if (!course) throw AppError.notFound('Course not found');
+
+    // Collect all valid lesson IDs from all sections of the course
+    const validLessonIds = new Set();
+    (course.sections || []).forEach((sec) => {
+      (sec.lessons || []).forEach((les) => {
+        if (les._id) validLessonIds.add(les._id.toString());
+      });
+    });
+
+    if (!validLessonIds.has(String(lessonId))) {
+      throw AppError.notFound('Lesson not found in this course');
+    }
+
     const progress = await this.getOrCreateProgress(studentId, courseId);
-    if (!progress.completedLessons.includes(lessonId)) {
-      progress.completedLessons.push(lessonId);
+
+    const lessonIdStr = String(lessonId);
+    if (!progress.completedLessons.includes(lessonIdStr)) {
+      progress.completedLessons.push(lessonIdStr);
     }
     progress.lastActivity = new Date();
-    this.recalculateMetrics(progress);
+
+    const totalCourseLessons = validLessonIds.size;
+    await this.recalculateMetrics(progress, totalCourseLessons);
     await progress.save();
 
-    await this.logActivity(studentId, courseId, lessonId, 5, 'general');
+    // Sync state to Enrollment model
+    await this.syncEnrollment(studentId, courseId, progress);
+
+    await this.logActivity(studentId, courseId, lessonIdStr, 5, 'general');
+
+    if (progress.completed) {
+      try {
+        const certificateService = require('../certificates/certificate.service');
+        await certificateService.generateCertificate(studentId, courseId);
+      } catch (certErr) {
+        console.warn('Auto certificate generation skipped:', certErr.message);
+      }
+    }
 
     return this.toResponseDTO(progress);
   }
@@ -143,8 +189,10 @@ class ProgressService {
     }
 
     progress.lastActivity = new Date();
-    this.recalculateMetrics(progress);
+    await this.recalculateMetrics(progress);
     await progress.save();
+
+    await this.syncEnrollment(studentId, courseId, progress);
 
     await this.logActivity(studentId, courseId, quizId, 10, 'quiz');
 
@@ -165,6 +213,28 @@ class ProgressService {
     }
 
     return this.toResponseDTO(progress);
+  }
+
+  async syncEnrollment(studentId, courseId, progress) {
+    const Enrollment = require('../../models/Enrollment');
+    try {
+      const updateData = {
+        progressPercentage: progress.progressPercentage,
+        completedLessons: progress.completedLessons,
+        lastActive: progress.lastActivity || new Date(),
+        lastAccessedAt: progress.lastActivity || new Date(),
+      };
+      if (progress.completed || progress.progressPercentage >= 100) {
+        updateData.status = 'completed';
+        updateData.completedAt = progress.completedAt || new Date();
+      }
+      await Enrollment.updateOne(
+        { student: studentId, course: courseId },
+        { $set: updateData }
+      );
+    } catch (err) {
+      console.warn('Enrollment sync warning:', err.message);
+    }
   }
 
   async getUserAllProgress(studentId) {
@@ -194,6 +264,8 @@ class ProgressService {
         progDoc = await this.getOrCreateProgress(studentId, courseIdStr);
       }
 
+      await this.recalculateMetrics(progDoc);
+
       result.push({
         ...this.toResponseDTO(progDoc),
         course: enc.course,
@@ -206,11 +278,26 @@ class ProgressService {
   }
 
   async getCourseProgressDTO(studentId, courseId) {
+    const Enrollment = require('../../models/Enrollment');
+    const User = require('../../models/User');
+    const AppError = require('../../utils/AppError');
+
+    const user = await User.findById(studentId).lean();
+    if (!user) throw AppError.unauthorized('User not found');
+
+    if (user.role !== 'admin' && user.role !== 'instructor') {
+      const enrollment = await Enrollment.findOne({ student: studentId, course: courseId }).lean();
+      if (!enrollment) {
+        throw AppError.forbidden('You are not enrolled in this course');
+      }
+    }
+
     const progress = await this.getOrCreateProgress(studentId, courseId);
+    await this.recalculateMetrics(progress);
     return this.toResponseDTO(progress);
   }
 
-  recalculateMetrics(progress) {
+  async recalculateMetrics(progress, totalCourseLessons = null) {
     if (progress.quizScores && progress.quizScores.length > 0) {
       const totalPercentage = progress.quizScores.reduce((sum, item) => sum + item.percentage, 0);
       progress.overallScore = Number((totalPercentage / progress.quizScores.length).toFixed(2));
@@ -218,11 +305,27 @@ class ProgressService {
       progress.overallScore = 0;
     }
 
-    const lessonCount = progress.completedLessons.length;
-    const quizCount = progress.completedQuizzes.length;
-    const totalCompletedItems = lessonCount + quizCount;
+    let totalLessons = totalCourseLessons;
+    if (totalLessons === null && progress.courseId) {
+      try {
+        const Course = require('../../models/Course');
+        const course = await Course.findById(progress.courseId).select('sections').lean();
+        if (course && course.sections) {
+          totalLessons = course.sections.reduce((acc, sec) => acc + (sec.lessons ? sec.lessons.length : 0), 0);
+        }
+      } catch (e) {
+        totalLessons = 0;
+      }
+    }
 
-    const calculatedPercentage = totalCompletedItems > 0 ? Math.min(100, totalCompletedItems * 20) : 0;
+    const lessonCount = progress.completedLessons ? progress.completedLessons.length : 0;
+    const totalRequiredLessons = totalLessons || 0;
+
+    let calculatedPercentage = 0;
+    if (totalRequiredLessons > 0) {
+      calculatedPercentage = Math.min(100, Math.round((lessonCount / totalRequiredLessons) * 100));
+    }
+
     progress.progressPercentage = Number(calculatedPercentage.toFixed(2));
 
     const isCompleted = progress.progressPercentage >= 100;

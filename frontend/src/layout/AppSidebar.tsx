@@ -2,13 +2,12 @@ import React, { useCallback, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useSidebar } from "../context/SidebarContext";
-import { STUDENT, INSTRUCTOR, ADMIN, COURSES, LEARNING_PATHS, ASSESSMENTS, CERTIFICATES, DISCUSSIONS, AUTH } from "../constants/routes";
+import { STUDENT, INSTRUCTOR, ADMIN, AUTH } from "../constants/routes";
 import { selectCurrentUser, logoutThunk } from "../features/auth/authSlice";
 import type { AppDispatch } from "../app/store";
 
 import {
   GridIcon,
-  PageIcon,
   UserCircleIcon,
   PieChartIcon,
   ShootingStarIcon,
@@ -34,52 +33,41 @@ type NavGroup = {
   items: NavItem[];
 };
 
-// ── Enterprise Admin Modules (6 Logical Groups) ──────────────────────────────
+// ── Enterprise Admin Modules (5 Logical Groups) ──────────────────────────────
 const enterpriseAdminGroups: NavGroup[] = [
   {
-    title: "Dashboard",
+    title: "DASHBOARD",
     items: [
       { name: "Overview", icon: <GridIcon />, path: ADMIN.DASHBOARD },
       { name: "Platform Analytics", icon: <PieChartIcon />, path: ADMIN.ANALYTICS },
     ],
   },
   {
-    title: "User Management",
+    title: "USER MANAGEMENT",
     items: [
       { name: "User Directory", icon: <UserCircleIcon />, path: ADMIN.USERS },
-      { name: "Student Roster", icon: <GroupIcon />, path: INSTRUCTOR.STUDENTS },
     ],
   },
   {
-    title: "Course Management",
+    title: "COURSE MANAGEMENT",
     items: [
-      { name: "Course Catalog", icon: <ListIcon />, path: COURSES.LIST },
-      { name: "Create Course", icon: <PageIcon />, path: COURSES.NEW, badge: "New" },
+      { name: "Course Moderation", icon: <ListIcon />, path: ADMIN.COURSES },
     ],
   },
   {
-    title: "Learning Management",
+    title: "LEARNING MANAGEMENT",
     items: [
-      { name: "Learning Paths", icon: <ShootingStarIcon />, path: LEARNING_PATHS.LIST },
-      { name: "Assessments & Quizzes", icon: <TaskIcon />, path: ASSESSMENTS },
-      { name: "Certificates", icon: <ShootingStarIcon />, path: CERTIFICATES },
-      { name: "Discussions Forum", icon: <ChatIcon />, path: DISCUSSIONS },
+      { name: "Enrollment Governance", icon: <ShootingStarIcon />, path: ADMIN.ENROLLMENTS },
     ],
   },
   {
-    title: "Reports & Analytics",
-    items: [
-      { name: "Data Exporter", icon: <DocsIcon />, path: ADMIN.REPORTS },
-      { name: "Performance & Stats", icon: <PieChartIcon />, path: INSTRUCTOR.STATISTICS },
-    ],
-  },
-  {
-    title: "Platform Management",
+    title: "PLATFORM MANAGEMENT",
     items: [
       { name: "System Settings", icon: <PlugInIcon />, path: ADMIN.SETTINGS },
       { name: "Audit Logs & Security", icon: <TaskIcon />, path: ADMIN.AUDIT_LOGS },
       { name: "System Notifications", icon: <MailIcon />, path: ADMIN.NOTIFICATIONS },
       { name: "Admin Profile", icon: <UserCircleIcon />, path: ADMIN.PROFILE },
+      { name: "Data Exporter", icon: <DocsIcon />, path: ADMIN.REPORTS },
     ],
   },
 ];
@@ -89,7 +77,6 @@ const studentNavItems: NavItem[] = [
   { name: "Dashboard", icon: <GridIcon />, path: STUDENT.DASHBOARD },
   { name: "My Courses", icon: <ListIcon />, path: STUDENT.COURSES },
   { name: "Learning Paths", icon: <ShootingStarIcon />, path: STUDENT.LEARNING_PATHS },
-  { name: "Assessments", icon: <TaskIcon />, path: STUDENT.ASSESSMENTS },
   { name: "Progress", icon: <PieChartIcon />, path: STUDENT.PROGRESS },
   { name: "Certificates", icon: <ShootingStarIcon />, path: STUDENT.CERTIFICATES },
   { name: "Discussions", icon: <ChatIcon />, path: STUDENT.DISCUSSIONS },
@@ -121,13 +108,32 @@ const AppSidebar: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const currentUser = useSelector(selectCurrentUser);
 
+  const isAdminRole = currentUser?.role === "admin";
+  const isInstructorRole = currentUser?.role === "instructor";
+
   const [viewMode, setViewMode] = useState<"admin" | "student" | "instructor">(
-    currentUser?.role === "instructor" ? "instructor" : currentUser?.role === "student" ? "student" : "admin"
+    isAdminRole ? "admin" : isInstructorRole ? "instructor" : "student"
   );
 
+  React.useEffect(() => {
+    if (location.pathname.startsWith('/student')) {
+      setViewMode('student');
+    } else if (location.pathname.startsWith('/instructor')) {
+      setViewMode('instructor');
+    } else if (location.pathname.startsWith('/admin') && isAdminRole) {
+      setViewMode('admin');
+    }
+  }, [location.pathname, isAdminRole]);
+
   const isActive = useCallback(
-    (path: string) => location.pathname === path,
-    [location.pathname]
+    (path: string) => {
+      const [cleanPath, query] = path.split('?');
+      if (query) {
+        return location.pathname === cleanPath && location.search.includes(query);
+      }
+      return location.pathname === cleanPath && (!location.search || !path.includes('?'));
+    },
+    [location.pathname, location.search]
   );
 
   const handleLogout = async () => {
@@ -183,8 +189,6 @@ const AppSidebar: React.FC = () => {
     </ul>
   );
 
-  const isAdminRole = currentUser?.role === "admin";
-
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-3 left-0 bg-white dark:bg-gray-900 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 dark:border-gray-800 
@@ -214,29 +218,31 @@ const AppSidebar: React.FC = () => {
             <div>
               <span className="font-bold text-gray-900 dark:text-white text-base leading-tight block">Enterprise LMS</span>
               <span className="text-[10px] uppercase tracking-wider font-semibold text-indigo-600 dark:text-indigo-400">
-                {isAdminRole ? "Admin Console" : currentUser?.role === "instructor" ? "Instructor Portal" : "Student Portal"}
+                {isAdminRole ? "Admin Console" : isInstructorRole ? "Instructor Portal" : "Student Portal"}
               </span>
             </div>
           )}
         </Link>
       </div>
 
-      {/* Admin View Switcher (Only visible to Admins) */}
-      {isAdminRole && (isExpanded || isHovered || isMobileOpen) && (
+      {/* Role Workspace Switcher (Visible to Admins & Approved Instructors) */}
+      {(isAdminRole || isInstructorRole) && (isExpanded || isHovered || isMobileOpen) && (
         <div className="pt-3 px-1">
           <div className="p-1 bg-gray-100 dark:bg-gray-800/80 rounded-xl flex gap-1">
+            {isAdminRole && (
+              <button
+                onClick={() => { setViewMode("admin"); navigate(ADMIN.DASHBOARD); }}
+                className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition ${
+                  viewMode === "admin"
+                    ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
+                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400"
+                }`}
+              >
+                Admin
+              </button>
+            )}
             <button
-              onClick={() => setViewMode("admin")}
-              className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition ${
-                viewMode === "admin"
-                  ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
-                  : "text-gray-500 hover:text-gray-900 dark:text-gray-400"
-              }`}
-            >
-              Admin
-            </button>
-            <button
-              onClick={() => setViewMode("instructor")}
+              onClick={() => { setViewMode("instructor"); navigate(INSTRUCTOR.DASHBOARD); }}
               className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition ${
                 viewMode === "instructor"
                   ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
@@ -246,7 +252,7 @@ const AppSidebar: React.FC = () => {
               Instructor
             </button>
             <button
-              onClick={() => setViewMode("student")}
+              onClick={() => { setViewMode("student"); navigate(STUDENT.DASHBOARD); }}
               className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition ${
                 viewMode === "student"
                   ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs"
@@ -269,7 +275,7 @@ const AppSidebar: React.FC = () => {
                 {renderNavList(group.items)}
               </div>
             ))
-          ) : viewMode === "instructor" || currentUser?.role === "instructor" ? (
+          ) : viewMode === "instructor" ? (
             <div>
               {renderSectionHeader("Instructor Workspace")}
               {renderNavList(instructorNavItems)}

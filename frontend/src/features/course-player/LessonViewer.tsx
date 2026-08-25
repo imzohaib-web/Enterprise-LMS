@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import type { Lesson } from '../../types/course';
 import VideoLesson from './VideoLesson';
@@ -11,17 +11,22 @@ import api from '../../services/api';
 
 interface LessonViewerProps {
   lesson: Lesson | null;
+  courseId?: string;
 }
 
-const QuizLessonView: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
+const QuizLessonView: React.FC<{ lesson: Lesson; courseId?: string }> = ({ lesson, courseId }) => {
   const navigate = useNavigate();
   const { data: quizzes = [], isLoading } = useQuery({
-    queryKey: ['lessonQuizzes', lesson._id],
-    queryFn: () => assessmentApi.getQuizzes(),
+    queryKey: ['lessonQuizzes', courseId || lesson._id],
+    queryFn: () => assessmentApi.getQuizzes(courseId),
   });
 
   const matchingQuiz = quizzes.find(
-    (q) => q.lessonId === lesson._id || q.title.toLowerCase() === lesson.title.toLowerCase()
+    (q) =>
+      q.lessonId === lesson._id ||
+      q._id === lesson._id ||
+      q.id === lesson._id ||
+      q.title.toLowerCase() === lesson.title.toLowerCase()
   ) || quizzes[0];
 
   return (
@@ -90,10 +95,30 @@ const QuizLessonView: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
   );
 };
 
-const AssignmentLessonView: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
+const AssignmentLessonView: React.FC<{ lesson: Lesson; courseId?: string }> = ({ lesson, courseId }) => {
+  const queryClient = useQueryClient();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [textAnswer, setTextAnswer] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submittedStatus, setSubmittedStatus] = useState<string | null>(null);
+
+  const { data: assignments = [], refetch } = useQuery({
+    queryKey: ['courseAssignments', courseId],
+    queryFn: async () => {
+      if (!courseId) return [];
+      const res = await api.get(`/assignments/course/${courseId}`);
+      return res.data?.data || [];
+    },
+    enabled: Boolean(courseId),
+  });
+
+  const matchingAssignment = (assignments || []).find(
+    (a: any) =>
+      a.lessonId === lesson._id ||
+      a.id === lesson._id ||
+      (a.title && lesson.title && a.title.trim().toLowerCase() === lesson.title.trim().toLowerCase())
+  ) || assignments[0];
+
+  const studentSubmission = matchingAssignment?.studentSubmission;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,19 +126,33 @@ const AssignmentLessonView: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
   };
 
   const handleSubmitAssignment = async () => {
-    if (!selectedFile) {
-      toast.error('Please select a file to submit');
+    if (!selectedFile && !textAnswer.trim()) {
+      toast.error('Please attach a file or enter text response to submit');
+      return;
+    }
+    if (!matchingAssignment) {
+      toast.error('Assignment target record not found for this lesson');
       return;
     }
     try {
       setIsSubmitting(true);
       const formData = new FormData();
-      formData.append('document', selectedFile);
-      await api.post(`/courses/upload/document`, formData, {
+      if (selectedFile) {
+        formData.append('file', selectedFile);
+      }
+      if (textAnswer) {
+        formData.append('textSubmission', textAnswer);
+      }
+      await api.post(`/assignments/${matchingAssignment.id || matchingAssignment._id}/submit`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setSubmittedStatus('Submitted for Review');
       toast.success('Assignment submitted successfully!');
+      setSelectedFile(null);
+      setTextAnswer('');
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['courseAssignments'] });
+      queryClient.invalidateQueries({ queryKey: ['studentProgress'] });
+      queryClient.invalidateQueries({ queryKey: ['studentDashboard'] });
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Failed to submit assignment');
     } finally {
@@ -133,50 +172,84 @@ const AssignmentLessonView: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
           <span className="text-2xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-100/60 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full">
             Practical Assignment
           </span>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mt-1">{lesson.title}</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mt-1">{matchingAssignment?.title || lesson.title}</h2>
         </div>
       </div>
 
       <div className="p-5 bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-3">
         <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Instructions & Prompt</h3>
         <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-          {lesson.content || 'Complete the practical task as specified by your instructor and upload your completed document for grading.'}
+          {matchingAssignment?.instructions || matchingAssignment?.description || lesson.content || 'Complete the practical task as specified by your instructor and upload your completed document for grading.'}
         </p>
+        {matchingAssignment?.dueDate && (
+          <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold pt-1">
+            📅 Due Date: {new Date(matchingAssignment.dueDate).toLocaleDateString()}
+          </p>
+        )}
       </div>
 
-      {submittedStatus ? (
-        <div className="p-5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-sm">✓</span>
-            <div>
-              <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Assignment Submitted</p>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">Status: {submittedStatus}</p>
+      {studentSubmission ? (
+        <div className="p-6 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-sm">✓</span>
+              <div>
+                <p className="text-sm font-bold text-emerald-900 dark:text-emerald-300">Assignment Submitted</p>
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
+                  Status: <strong className="capitalize">{studentSubmission.status}</strong>
+                </p>
+              </div>
             </div>
+            {studentSubmission.status === 'graded' && (
+              <div className="text-right">
+                <span className="text-xs text-gray-500 block">Grade</span>
+                <span className="text-base font-extrabold text-emerald-700 dark:text-emerald-300">
+                  {studentSubmission.score} / {matchingAssignment?.maxScore || 100}
+                </span>
+              </div>
+            )}
           </div>
-          <button
-            onClick={() => setSubmittedStatus(null)}
-            className="text-xs text-emerald-700 underline hover:text-emerald-900 font-semibold"
-          >
-            Resubmit File
-          </button>
+
+          {studentSubmission.feedback && (
+            <div className="p-3 bg-white dark:bg-gray-850 rounded-xl border border-emerald-100 dark:border-emerald-900/40 text-xs text-gray-700 dark:text-gray-300">
+              <strong className="text-emerald-800 dark:text-emerald-400">Instructor Feedback:</strong> {studentSubmission.feedback}
+            </div>
+          )}
+
+          {studentSubmission.fileUrl && (
+            <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
+              📎 <span>Submitted File: {studentSubmission.fileName || 'Document'}</span>
+            </div>
+          )}
         </div>
       ) : (
         <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-2xl space-y-4">
           <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Submit Work</h3>
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx,.zip,.png,.txt"
-              onChange={handleFileChange}
-              className="block w-full text-xs text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+          
+          <div className="space-y-3">
+            <textarea
+              rows={3}
+              placeholder="Optional notes or text response for instructor..."
+              value={textAnswer}
+              onChange={(e) => setTextAnswer(e.target.value)}
+              className="w-full p-3 text-xs rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
             />
-            <button
-              onClick={handleSubmitAssignment}
-              disabled={isSubmitting || !selectedFile}
-              className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-50 cursor-pointer flex-shrink-0"
-            >
-              {isSubmitting ? 'Uploading...' : 'Submit Assignment'}
-            </button>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.zip,.png,.txt"
+                onChange={handleFileChange}
+                className="block w-full text-xs text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+              />
+              <button
+                onClick={handleSubmitAssignment}
+                disabled={isSubmitting || (!selectedFile && !textAnswer.trim())}
+                className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-50 cursor-pointer flex-shrink-0"
+              >
+                {isSubmitting ? 'Uploading...' : 'Submit Assignment'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -184,7 +257,7 @@ const AssignmentLessonView: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
   );
 };
 
-export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson }) => {
+export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson, courseId }) => {
   if (!lesson) {
     return (
       <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-12 text-center text-gray-400 space-y-3">
@@ -201,16 +274,16 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson }) => {
 
   // Priority 1: Quiz Lesson
   if (lesson.type === 'quiz') {
-    return <QuizLessonView lesson={lesson} />;
+    return <QuizLessonView lesson={lesson} courseId={courseId} />;
   }
 
   // Priority 2: Assignment Lesson
   if (lesson.type === 'assignment') {
-    return <AssignmentLessonView lesson={lesson} />;
+    return <AssignmentLessonView lesson={lesson} courseId={courseId} />;
   }
 
   // Priority 3: Video Lesson
-  if (lesson.type === 'video' || lesson.videoUrl) {
+  if (lesson.type === 'video' || lesson.videoUrl || lesson.externalVideoUrl) {
     return <VideoLesson lesson={lesson} />;
   }
 
@@ -239,3 +312,4 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ lesson }) => {
 };
 
 export default LessonViewer;
+

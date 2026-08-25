@@ -10,16 +10,23 @@ import {
   useInstructorProfile,
   useInstructorDiscussions,
   useInstructorNotifications,
+  useInstructorCourses,
 } from '../hooks/useInstructorDashboard';
 import { BoxCubeIcon, GridIcon, TaskIcon, ChatIcon, MailIcon } from '../../../icons';
 import { Link } from 'react-router-dom';
-import { INSTRUCTOR } from '../../../constants/routes';
+import { INSTRUCTOR, STUDENT } from '../../../constants/routes';
 
 export const InstructorDashboard: React.FC = () => {
   const { data: stats, isLoading: isStatsLoading } = useInstructorStats();
   const { data: profile } = useInstructorProfile();
   const { data: discussions, isLoading: isDiscussionsLoading, isError: isDiscussionsError } = useInstructorDiscussions();
   const { data: notifications, isLoading: isNotificationsLoading, isError: isNotificationsError } = useInstructorNotifications();
+  const { data: coursesData, isLoading: isCoursesLoading } = useInstructorCourses();
+
+  const teachingCoursesList = React.useMemo(() => {
+    if (!coursesData) return [];
+    return Array.isArray(coursesData) ? coursesData : (coursesData as any).courses || [];
+  }, [coursesData]);
 
   const welcomeName = profile?.name || 'Instructor';
 
@@ -50,7 +57,13 @@ export const InstructorDashboard: React.FC = () => {
               Here is your enterprise teaching overview. Track assigned courses, live student enrollments, quiz evaluations, and analytics.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to={STUDENT.DASHBOARD}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors shadow-xs"
+            >
+              🎓 Student Dashboard
+            </Link>
             <Link
               to={INSTRUCTOR.COURSES}
               className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-colors shadow-xs"
@@ -119,6 +132,73 @@ export const InstructorDashboard: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* ── MY TEACHING COURSES SECTION ───────────────────────────────────── */}
+        <ComponentCard title="My Teaching Courses" desc="Select a course to enter its dedicated management workspace">
+          {isCoursesLoading ? (
+            <div className="py-8 text-center text-xs text-gray-400">Loading teaching courses...</div>
+          ) : teachingCoursesList.length === 0 ? (
+            <div className="py-8 text-center text-xs text-gray-400 border border-dashed border-gray-200 dark:border-gray-800 rounded-xl">
+              No teaching courses assigned yet.{' '}
+              <Link to={INSTRUCTOR.COURSES} className="text-indigo-600 font-semibold underline">
+                Create a course
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {teachingCoursesList.map((course: any) => {
+                const cId = course.id || course._id;
+                return (
+                  <div
+                    key={cId}
+                    className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col justify-between hover:shadow-md transition group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full bg-brand-50 text-brand-600 dark:bg-brand-950/40 dark:text-brand-400">
+                          {course.category || 'General'}
+                        </span>
+                        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${
+                          course.status === 'published'
+                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400'
+                            : 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400'
+                        }`}>
+                          {course.status || 'draft'}
+                        </span>
+                      </div>
+
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition mb-2">
+                        {course.title}
+                      </h3>
+
+                      <div className="grid grid-cols-3 gap-2 py-3 border-y border-gray-100 dark:border-gray-800/80 my-3 text-center">
+                        <div>
+                          <span className="text-2xs text-gray-400 font-medium block">Students</span>
+                          <span className="text-xs font-bold text-gray-900 dark:text-white">{course.enrolledStudents || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-2xs text-gray-400 font-medium block">Modules</span>
+                          <span className="text-xs font-bold text-gray-900 dark:text-white">{course.totalModules || course.lessonsCount || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-2xs text-gray-400 font-medium block">Assessments</span>
+                          <span className="text-xs font-bold text-gray-900 dark:text-white">{course.assessmentsCount || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Link
+                      to={`/instructor/courses/${cId}/overview`}
+                      className="w-full mt-2 py-2.5 px-4 text-xs font-bold text-center text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-xs flex items-center justify-center gap-2"
+                    >
+                      Manage Course →
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </ComponentCard>
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

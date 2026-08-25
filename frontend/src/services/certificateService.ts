@@ -35,6 +35,14 @@ export interface VerificationResponse {
   data: VerifiedCertificateData;
 }
 
+const SERVER_BASE_URL = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+
+export const formatCertificateUrl = (url?: string): string => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${SERVER_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 /**
  * Public API call to verify a certificate by verification code.
  */
@@ -45,7 +53,11 @@ export const verifyCertificate = async (
   const response = await axios.get<VerificationResponse>(
     `${API_BASE_URL}/certificates/verify/${encodeURIComponent(cleanCode)}`
   );
-  return response.data.data;
+  const data = response.data.data;
+  if (data && data.certificateUrl) {
+    data.certificateUrl = formatCertificateUrl(data.certificateUrl);
+  }
+  return data;
 };
 
 /**
@@ -53,10 +65,28 @@ export const verifyCertificate = async (
  */
 export const getMyCertificates = async (): Promise<StudentCertificateItem[]> => {
   const response = await axiosInstance.get('/certificates/my');
-  return response.data?.data || [];
+  const items: StudentCertificateItem[] = response.data?.data || [];
+  return items.map((item) => ({
+    ...item,
+    certificateUrl: formatCertificateUrl(item.certificateUrl),
+  }));
+};
+
+/**
+ * Private API call to request certificate generation for a completed course.
+ */
+export const generateCertificate = async (courseId: string): Promise<StudentCertificateItem> => {
+  const response = await axiosInstance.post(`/certificates/generate/${courseId}`);
+  const item = response.data?.data;
+  if (item && item.certificateUrl) {
+    item.certificateUrl = formatCertificateUrl(item.certificateUrl);
+  }
+  return item;
 };
 
 export default {
   verifyCertificate,
   getMyCertificates,
+  generateCertificate,
+  formatCertificateUrl,
 };

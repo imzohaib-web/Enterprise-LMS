@@ -47,11 +47,21 @@ export const courseService = {
     });
   },
 
-  enrollInCourse: (id: string) =>
-    api.post<ApiResponse<{ enrollment: Enrollment }>>(`/courses/${id}/enroll`),
+  enrollInCourse: (id: string, enrollmentData?: { phone?: string; learningGoals?: string; agreedTerms?: boolean }) =>
+    api.post<ApiResponse<{ enrollment: Enrollment }>>(`/courses/${id}/enroll`, enrollmentData),
 
   getMyEnrollments: (params: { page?: number; limit?: number } = {}) =>
     api.get<ApiResponse<{ enrollments: Enrollment[] }>>('/courses/enrolled', { params }),
+
+  // ── Course Lifecycle & Moderation ──────────────────────────────────────
+  submitForReview: (id: string) =>
+    api.post<ApiResponse<{ course: Course }>>(`/courses/${id}/submit`),
+
+  approveCourse: (id: string) =>
+    api.patch<ApiResponse<{ course: Course }>>(`/courses/${id}/approve`),
+
+  rejectCourse: (id: string, rejectionReason: string) =>
+    api.patch<ApiResponse<{ course: Course }>>(`/courses/${id}/reject`, { rejectionReason }),
 
   // ── Categories ─────────────────────────────────────────────────────────
   listCategories: () =>
@@ -100,6 +110,17 @@ export const courseService = {
     fd.append('document', file);
     return api.post<ApiResponse<UploadResult>>('/courses/upload/document', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  uploadResource: (file: File, onProgress?: (pct: number) => void) => {
+    const fd = new FormData();
+    fd.append('resource', file);
+    return api.post<ApiResponse<{ name: string; url: string; publicId: string; size: number; type: string }>>('/courses/upload/resource', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (e) => {
+        if (onProgress && e.total) onProgress(Math.round((e.loaded * 100) / e.total));
+      },
     });
   },
 };

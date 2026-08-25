@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
 import { selectCurrentUser } from '../../features/auth/authSlice';
 
+import { userService } from '../../services/user.service';
+
 const AdminProfile: React.FC = () => {
   const currentUser = useSelector(selectCurrentUser);
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'permissions' | 'logs'>('profile');
@@ -12,13 +14,27 @@ const AdminProfile: React.FC = () => {
   const [email, setEmail] = useState(currentUser?.email || 'admin@enterprise.lms');
   const [saving, setSaving] = useState(false);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setTimeout(() => {
+    try {
+      await userService.updateProfile({ firstName, lastName, email });
+      toast.success('Admin profile updated successfully!');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to update profile');
+    } finally {
       setSaving(false);
-      toast.success('Admin profile updated successfully');
-    }, 600);
+    }
+  };
+
+  const handlePasswordResetRequest = async () => {
+    try {
+      const api = (await import('../../services/api')).default;
+      await api.post('/auth/request-password-reset', { email });
+      toast.success('Password reset instructions have been sent to your email');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to request password reset');
+    }
   };
 
   return (
@@ -130,7 +146,7 @@ const AdminProfile: React.FC = () => {
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => toast.success('Password reset link sent to admin email')}
+              onClick={handlePasswordResetRequest}
               className="px-4 py-2 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition"
             >
               Request Password Reset

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
 
 export interface FeatureCardProps {
   icon: React.ReactNode;
@@ -14,39 +15,35 @@ export const FeatureCard: React.FC<FeatureCardProps> = ({
   title,
   description,
   badge,
-  color = 'from-brand-500/20 to-indigo-500/20 text-brand-400 border-brand-500/30',
 }) => {
   return (
     <motion.div
-      whileHover={{ y: -8, scale: 1.02 }}
-      transition={{ duration: 0.2 }}
-      className="group relative w-[300px] sm:w-[350px] lg:w-[380px] flex-shrink-0 p-8 rounded-3xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 hover:border-brand-500/40 backdrop-blur-xl shadow-xl flex flex-col justify-between space-y-6 h-full select-none"
+      whileHover={{ y: -6 }}
+      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      className="group relative w-[310px] sm:w-[370px] lg:w-[410px] flex-shrink-0 p-7 rounded-2xl bg-[#090C15] hover:bg-[#0C101D] border border-white/10 hover:border-white/25 backdrop-blur-2xl shadow-xl flex flex-col justify-between space-y-5 h-full select-none transition-all duration-300"
     >
       <div>
-        <div className="flex items-center justify-between mb-6">
-          <motion.div
-            whileHover={{ scale: 1.1, rotate: 4 }}
-            className={`flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${color} border shadow-md transition-transform duration-300`}
-          >
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-white/[0.04] border border-white/15 text-white shadow-sm group-hover:border-brand-500/40 transition-colors">
             {icon}
-          </motion.div>
+          </div>
           {badge && (
-            <span className="px-3.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-brand-300 bg-brand-500/20 border border-brand-500/30 rounded-full">
+            <span className="px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-gray-300 bg-white/[0.04] border border-white/10 rounded-md">
               {badge}
             </span>
           )}
         </div>
-        <h3 className="text-xl font-bold text-white group-hover:text-brand-300 transition-colors">
+        <h3 className="text-base sm:text-lg font-bold text-white tracking-tight group-hover:text-brand-300 transition-colors">
           {title}
         </h3>
-        <p className="mt-3 text-sm text-gray-400 leading-relaxed font-normal">
+        <p className="mt-2 text-xs sm:text-sm text-gray-400 leading-relaxed font-normal">
           {description}
         </p>
       </div>
 
-      <div className="pt-2 flex items-center text-xs font-semibold text-brand-400 opacity-0 group-hover:opacity-100 transition-opacity gap-1.5">
+      <div className="pt-2 flex items-center text-xs font-medium text-gray-400 group-hover:text-white transition-colors gap-1.5">
         <span>Explore Feature</span>
-        <span className="group-hover:translate-x-1 transition-transform">→</span>
+        <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-white group-hover:translate-x-1 transition-all" />
       </div>
     </motion.div>
   );

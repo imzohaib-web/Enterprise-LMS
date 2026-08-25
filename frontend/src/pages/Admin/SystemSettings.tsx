@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import PageBreadcrumb from '../../components/common/PageBreadCrumb';
+import { adminService } from '../../services/admin.service';
 
 type SettingsTab =
   | 'general'
@@ -26,6 +27,7 @@ const TABS: { id: SettingsTab; label: string; icon: string }[] = [
 const SystemSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [pendingSaveTab, setPendingSaveTab] = useState<SettingsTab | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // ── 1. General & Platform Form ──────────────────────────────────────────────
   const defaultGeneral = {
@@ -114,15 +116,53 @@ const SystemSettings: React.FC = () => {
   };
   const [flagsForm, setFlagsForm] = useState(defaultFlags);
 
+  // Fetch initial settings from MongoDB on mount
+  useEffect(() => {
+    adminService.getSettings().then((res) => {
+      const data = (res as any)?.data?.data || (res as any)?.data;
+      if (data) {
+        if (data.general) setGeneralForm((prev) => ({ ...prev, ...data.general }));
+        if (data.smtp) setEmailForm((prev) => ({ ...prev, ...data.smtp }));
+        if (data.security) setSecurityForm((prev) => ({ ...prev, ...data.security }));
+        if (data.jwt) setJwtForm((prev) => ({ ...prev, ...data.jwt }));
+        if (data.storage) setStorageForm((prev) => ({ ...prev, ...data.storage }));
+        if (data.redis) setRedisForm((prev) => ({ ...prev, ...data.redis }));
+        if (data.branding) setBrandingForm((prev) => ({ ...prev, ...data.branding }));
+        if (data.maintenance) setFlagsForm((prev) => ({ ...prev, ...data.maintenance }));
+      }
+    }).catch(() => {});
+  }, []);
+
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleSaveClick = (e: React.FormEvent) => {
     e.preventDefault();
     setPendingSaveTab(activeTab);
   };
 
-  const confirmSave = () => {
-    toast.success(`Successfully saved ${TABS.find((t) => t.id === pendingSaveTab)?.label} configuration!`);
-    setPendingSaveTab(null);
+  const confirmSave = async () => {
+    if (!pendingSaveTab) return;
+    setIsSaving(true);
+    let section = '';
+    let payload = {};
+
+    if (pendingSaveTab === 'general') { section = 'general'; payload = generalForm; }
+    else if (pendingSaveTab === 'email') { section = 'smtp'; payload = emailForm; }
+    else if (pendingSaveTab === 'security') { section = 'security'; payload = securityForm; }
+    else if (pendingSaveTab === 'jwt') { section = 'jwt'; payload = jwtForm; }
+    else if (pendingSaveTab === 'storage') { section = 'storage'; payload = storageForm; }
+    else if (pendingSaveTab === 'redis') { section = 'redis'; payload = redisForm; }
+    else if (pendingSaveTab === 'branding') { section = 'branding'; payload = brandingForm; }
+    else if (pendingSaveTab === 'featureFlags') { section = 'maintenance'; payload = flagsForm; }
+
+    try {
+      await adminService.updateSettings(section, payload);
+      toast.success(`Successfully saved ${TABS.find((t) => t.id === pendingSaveTab)?.label} configuration!`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to save settings');
+    } finally {
+      setIsSaving(false);
+      setPendingSaveTab(null);
+    }
   };
 
   const handleReset = () => {
@@ -440,8 +480,8 @@ const SystemSettings: React.FC = () => {
             </p>
             <div className="flex justify-center gap-3 pt-2">
               <button onClick={() => setPendingSaveTab(null)} className="px-4 py-2 text-xs font-semibold border border-gray-200 dark:border-gray-700 rounded-xl">Cancel</button>
-              <button onClick={confirmSave} className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">
-                Confirm & Save
+              <button onClick={confirmSave} disabled={isSaving} className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition disabled:opacity-50">
+                {isSaving ? 'Saving...' : 'Confirm & Save'}
               </button>
             </div>
           </div>

@@ -21,5 +21,10 @@ router.get('/analytics/instructors', adminController.getInstructorPerformance);
 router.get('/analytics/enrollments', adminController.getEnrollmentTrend);
 router.get('/analytics/categories', adminController.getCategoryBreakdown);
 router.get('/audit-logs', adminController.listAuditLogs);
+router.get('/enrollments', adminController.listEnrollments);
+router.patch('/enrollments/:id/revoke', adminController.revokeEnrollment);
+router.get('/settings', adminController.getSystemSettings);
+router.put('/settings', adminController.updateSystemSettings);
+router.get('/health', adminController.getSystemHealth);
 
 module.exports = router;

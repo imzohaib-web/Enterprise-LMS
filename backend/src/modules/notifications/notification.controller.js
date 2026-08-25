@@ -7,7 +7,7 @@ const { sendSuccess } = require('../../utils/apiResponse');
  */
 const getNotifications = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     const { page, limit, category, isRead } = req.query;
 
     const result = await notificationService.getUserNotifications(userId, {
@@ -29,7 +29,7 @@ const getNotifications = async (req, res, next) => {
  */
 const getUnreadCount = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     const unreadCount = await notificationService.getUnreadCount(userId);
 
     return sendSuccess(res, 200, 'Unread notification count retrieved', { unreadCount });
@@ -44,7 +44,7 @@ const getUnreadCount = async (req, res, next) => {
  */
 const markAsRead = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     const { id } = req.params;
 
     const notification = await notificationService.markAsRead(id, userId);
@@ -61,7 +61,7 @@ const markAsRead = async (req, res, next) => {
  */
 const markAllAsRead = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     const result = await notificationService.markAllAsRead(userId);
 
     return sendSuccess(res, 200, 'All notifications marked as read', result);
@@ -76,7 +76,7 @@ const markAllAsRead = async (req, res, next) => {
  */
 const deleteNotification = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
     const { id } = req.params;
 
     const result = await notificationService.deleteNotification(id, userId);

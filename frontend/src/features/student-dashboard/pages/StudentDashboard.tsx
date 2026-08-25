@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
 import PageMeta from '../../../components/common/PageMeta';
 import ComponentCard from '../../../components/common/ComponentCard';
+import { BecomeInstructorModal } from '../components/BecomeInstructorModal';
 import { selectCurrentUser, fetchMeThunk } from '../../auth/authSlice';
 import type { AppDispatch } from '../../../app/store';
 import { courseService } from '../../../services/course.service';
@@ -13,7 +14,8 @@ import { getMyCertificates } from '../../../services/certificateService';
 import { getNotifications } from '../../notifications/api/notificationApi';
 import { learningPathService } from '../../../services/learningPath.service';
 import api from '../../../services/api';
-import { STUDENT } from '../../../constants/routes';
+import { STUDENT, INSTRUCTOR } from '../../../constants/routes';
+import { instructorApplicationService } from '../../../services/instructorApplication.service';
 import {
   TaskIcon,
   PieChartIcon,
@@ -35,6 +37,14 @@ export const StudentDashboard: React.FC = () => {
   }, [dispatch, user]);
 
   const userId = user?._id || (user as any)?.id;
+
+  // ── 0. Instructor Application Query ─────────────────────────────────────────
+  const { data: applicationData } = useQuery({
+    queryKey: ['myInstructorApplication', userId],
+    queryFn: () => instructorApplicationService.getMyApplication(),
+    enabled: !!userId,
+  });
+  const myApp = applicationData?.data?.application;
 
   // ── 1. Enrolled Courses Query ────────────────────────────────────────────────
   const { data: enrollments = [], isLoading: isEnrollmentsLoading } = useQuery({
@@ -152,11 +162,18 @@ export const StudentDashboard: React.FC = () => {
     );
   }
 
+  const [isInstructorModalOpen, setIsInstructorModalOpen] = useState(false);
+
   return (
     <>
       <PageMeta
         title={`${studentName} | Student Dashboard`}
         description="Personalized learning dashboard for active courses, progress tracking, learning paths, and assessments."
+      />
+
+      <BecomeInstructorModal
+        isOpen={isInstructorModalOpen}
+        onClose={() => setIsInstructorModalOpen(false)}
       />
 
       <div className="space-y-6">
@@ -188,6 +205,29 @@ export const StudentDashboard: React.FC = () => {
               >
                 Learning Paths ({learningPaths.length})
               </Link>
+              {/* Role-Aware Instructor CTA Button */}
+              {user?.role === 'instructor' || user?.role === 'admin' || myApp?.status === 'APPROVED' ? (
+                <Link
+                  to={INSTRUCTOR.DASHBOARD}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-400/30 rounded-xl transition-colors backdrop-blur-xs cursor-pointer"
+                >
+                  <span>🎓</span> Instructor Dashboard
+                </Link>
+              ) : myApp?.status === 'PENDING' || (user as any)?.accountStatus === 'PENDING_APPROVAL' ? (
+                <button
+                  onClick={() => setIsInstructorModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-amber-300 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-400/30 rounded-xl transition-colors backdrop-blur-xs cursor-pointer"
+                >
+                  <span>⏳</span> Application Pending
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsInstructorModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-amber-300 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-400/30 rounded-xl transition-colors backdrop-blur-xs cursor-pointer"
+                >
+                  <span>🎓</span> Become an Instructor
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -213,10 +253,10 @@ export const StudentDashboard: React.FC = () => {
                   />
                 </div>
                 <Link
-                  to={`/courses/${typeof continueLearningEnrollment.course === 'object' ? continueLearningEnrollment.course._id : continueLearningEnrollment.course}/learn`}
+                  to={`/student/courses/${typeof continueLearningEnrollment.course === 'object' ? continueLearningEnrollment.course._id : continueLearningEnrollment.course}/overview`}
                   className="inline-flex items-center justify-center w-full mt-2 px-3 py-2 text-xs font-semibold text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors"
                 >
-                  Resume Course
+                  Open Course Learning Space
                 </Link>
               </div>
             ) : (
@@ -269,10 +309,10 @@ export const StudentDashboard: React.FC = () => {
               <p className="text-xs text-gray-500 py-2 text-center">No upcoming quizzes.</p>
             )}
             <Link
-              to={STUDENT.ASSESSMENTS}
+              to={STUDENT.COURSES}
               className="inline-flex items-center justify-center w-full mt-3 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-100/60 dark:bg-amber-900/30 rounded-lg hover:bg-amber-200/60 transition-colors"
             >
-              View Quizzes ({quizzes.length})
+              Select Course to View Quizzes ({quizzes.length})
             </Link>
           </ComponentCard>
 

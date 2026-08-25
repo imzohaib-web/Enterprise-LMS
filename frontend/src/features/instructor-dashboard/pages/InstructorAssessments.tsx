@@ -19,8 +19,12 @@ interface QuestionForm {
   explanation: string;
 }
 
-export const InstructorAssessments: React.FC = () => {
-  const { data: assessments, isLoading, isError, error, refetch } = useInstructorAssessments();
+interface InstructorAssessmentsProps {
+  courseId?: string;
+}
+
+export const InstructorAssessments: React.FC<InstructorAssessmentsProps> = ({ courseId: propCourseId }) => {
+  const { data: assessments, isLoading, isError, error, refetch } = useInstructorAssessments(propCourseId);
   const { data: courses } = useInstructorCourses();
 
   const createMutation = useCreateAssessment();
@@ -37,7 +41,7 @@ export const InstructorAssessments: React.FC = () => {
   // Form Fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [courseId, setCourseId] = useState('');
+  const [courseId, setCourseId] = useState(propCourseId || '');
   const [status, setStatus] = useState<'published' | 'draft'>('published');
   const [duration, setDuration] = useState(30);
   const [passingScore, setPassingScore] = useState(70);

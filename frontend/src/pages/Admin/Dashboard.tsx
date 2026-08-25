@@ -19,11 +19,6 @@ const BookIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
   </svg>
 );
-const CheckIcon = () => (
-  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-full h-full">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
 const TrendIcon = () => (
   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-full h-full">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -158,32 +153,67 @@ const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         <StatsCard
           title="Total Users"
-          value={overview?.users.total ?? 0}
-          subtitle={`${overview?.users.students ?? 0} active students • ${overview?.users.admins ?? 0} admins`}
+          value={overview?.users?.total ?? 0}
+          subtitle={`${overview?.users?.students ?? 0} active students • ${overview?.users?.admins ?? 0} admins`}
           icon={<UsersIcon />}
           color="indigo"
         />
         <StatsCard
           title="Published Courses"
-          value={overview?.courses.published ?? 0}
-          subtitle={`${overview?.courses.draft ?? 0} draft submissions`}
+          value={overview?.courses?.published ?? 0}
+          subtitle={`${overview?.courses?.draft ?? 0} draft courses`}
           icon={<BookIcon />}
           color="emerald"
         />
         <StatsCard
+          title="Course Moderation"
+          value={overview?.courses?.pending ?? (overview as any)?.actionable?.coursesAwaitingReviewCount ?? 0}
+          subtitle="Pending Approval"
+          icon={<BookIcon />}
+          color="amber"
+        />
+        <StatsCard
           title="Total Enrollments"
-          value={overview?.enrollments.total ?? 0}
-          subtitle={`${overview?.enrollments.completed ?? 0} course completions`}
+          value={overview?.enrollments?.total ?? 0}
+          subtitle={`${overview?.enrollments?.completed ?? 0} completions (${overview?.enrollments?.completionRate ?? 0}%)`}
           icon={<TrendIcon />}
           color="purple"
         />
-        <StatsCard
-          title="Completion Rate"
-          value={`${overview?.enrollments.completionRate ?? 0}%`}
-          subtitle="Platform learning index"
-          icon={<CheckIcon />}
-          color="amber"
-        />
+      </div>
+
+      {/* Quick Action Governance Banner */}
+      <div className="bg-gradient-to-r from-indigo-900 via-indigo-850 to-purple-900 rounded-2xl p-5 text-white shadow-md flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-amber-400 text-amber-950">
+              Governance Hub
+            </span>
+            <h3 className="text-sm font-extrabold text-white">Administrative Action Center</h3>
+          </div>
+          <p className="text-xs text-indigo-200">
+            Direct access to pending instructor applications, course moderation, security telemetry, and data exporters.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            to="/admin/users?tab=applications"
+            className="px-3.5 py-2 text-xs font-bold bg-white text-indigo-900 hover:bg-indigo-50 rounded-xl transition shadow-xs flex items-center gap-1.5"
+          >
+            <span>🎓</span> Review Applications
+          </Link>
+          <Link
+            to="/admin/courses"
+            className="px-3.5 py-2 text-xs font-bold bg-indigo-700 hover:bg-indigo-600 text-white rounded-xl transition shadow-xs flex items-center gap-1.5"
+          >
+            <span>📚</span> Review Courses ({overview?.courses?.pending ?? 0})
+          </Link>
+          <Link
+            to="/admin/audit-logs"
+            className="px-3.5 py-2 text-xs font-bold bg-indigo-950/60 hover:bg-indigo-950 text-indigo-200 rounded-xl transition border border-indigo-700/50 flex items-center gap-1.5"
+          >
+            <span>🛡️</span> Security Logs
+          </Link>
+        </div>
       </div>
 
       {/* Charts row 1 */}
@@ -277,6 +307,123 @@ const AdminDashboard: React.FC = () => {
               No course categories registered
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── Actionable Management Sections ────────────────────────────────────── */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        {/* Pending Instructor Applications */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col justify-between">
+          <div>
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+                  INSTRUCTOR APPLICATIONS
+                </h2>
+              </div>
+              <span className="px-2.5 py-0.5 text-xs font-extrabold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                Pending: {overview?.actionable?.pendingApplicationsCount ?? (overview as any)?.actionable?.pendingApplications?.length ?? 0}
+              </span>
+            </div>
+            <div className="p-4">
+              {overview?.actionable?.pendingApplications && overview.actionable.pendingApplications.length > 0 ? (
+                <div className="space-y-3">
+                  {overview.actionable.pendingApplications.map((app: any) => (
+                    <div key={app._id} className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl flex items-center justify-between gap-3 border border-gray-100 dark:border-gray-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold">
+                          🎓
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-gray-900 dark:text-white">{app.applicantName || app.email}</div>
+                          <div className="text-[11px] text-gray-500">{app.specialization || 'Instructor Applicant'} • {app.experienceYears || 0} yrs exp</div>
+                        </div>
+                      </div>
+                      <Link
+                        to="/admin/users?tab=applications"
+                        className="px-3 py-1 bg-indigo-600 text-white text-[11px] font-bold rounded-lg hover:bg-indigo-700 transition"
+                      >
+                        Review
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-gray-400 italic">
+                  ✓ Pending Applications: 0 (No applications requiring review)
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="p-4 pt-0 border-t border-gray-100 dark:border-gray-800 mt-2 flex items-center justify-between">
+            <span className="text-xs text-gray-500">
+              Pending: <strong className="text-gray-900 dark:text-white font-bold">{overview?.actionable?.pendingApplicationsCount ?? 0}</strong>
+            </span>
+            <Link
+              to="/admin/users?tab=applications"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
+            >
+              Review Applications →
+            </Link>
+          </div>
+        </div>
+
+        {/* Course Moderation */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col justify-between">
+          <div>
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                <h2 className="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+                  COURSE MODERATION
+                </h2>
+              </div>
+              <span className="px-3 py-1 text-xs font-extrabold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                Pending Approval: {overview?.courses?.pending ?? (overview as any)?.actionable?.coursesAwaitingReviewCount ?? 0}
+              </span>
+            </div>
+            <div className="p-4">
+              {overview?.actionable?.coursesAwaitingReview && overview.actionable.coursesAwaitingReview.length > 0 ? (
+                <div className="space-y-3">
+                  {overview.actionable.coursesAwaitingReview.map((c: any) => (
+                    <div key={c._id} className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl flex items-center justify-between gap-3 border border-gray-100 dark:border-gray-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold">
+                          📚
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-gray-900 dark:text-white line-clamp-1">{c.title}</div>
+                          <div className="text-[11px] text-gray-500">By {c.instructor?.firstName ? `${c.instructor.firstName} ${c.instructor.lastName}` : 'Instructor'} • ${c.price || 0}</div>
+                        </div>
+                      </div>
+                      <Link
+                        to="/admin/courses"
+                        className="px-3 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-lg hover:bg-indigo-700 transition"
+                      >
+                        Review Course
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-gray-400 italic">
+                  ✓ Pending Approval: 0 (No course submissions pending moderation approval)
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="p-4 pt-0 border-t border-gray-100 dark:border-gray-800 mt-2 flex items-center justify-between">
+            <span className="text-xs text-gray-500">
+              Pending Approval: <strong className="text-gray-900 dark:text-white font-bold">{overview?.courses?.pending ?? 0}</strong>
+            </span>
+            <Link
+              to="/admin/courses"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
+            >
+              Review Courses →
+            </Link>
+          </div>
         </div>
       </div>
 

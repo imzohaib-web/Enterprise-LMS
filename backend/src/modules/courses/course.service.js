@@ -12,6 +12,16 @@ const User = require('../../models/User');
 
 const CACHE_TTL = 300; // 5 minutes
 
+const checkCourseOwnership = (course, requestingUser) => {
+  if (!requestingUser) throw AppError.unauthorized();
+  if (requestingUser.role === 'admin') return;
+  const reqUserId = (requestingUser._id || requestingUser.id || '').toString();
+  const courseInstId = (course.instructor?._id || course.instructor || '').toString();
+  if (!reqUserId || reqUserId !== courseInstId) {
+    throw AppError.forbidden('You do not have permission to modify this course');
+  }
+};
+
 /* ── Course CRUD ─────────────────────────────────────────────────────────── */
 
 const listCourses = async (query) => {
@@ -57,15 +67,40 @@ const getCourseById = async (id, requestingUser = null) => {
 
   if (!course) throw AppError.notFound('Course');
 
-  const isOwnerOrAdmin = requestingUser && (
+  const reqUserId = requestingUser && typeof requestingUser === 'object' ? (requestingUser._id || requestingUser.id || '').toString() : '';
+  const courseInstId = course.instructor ? (course.instructor._id || course.instructor).toString() : '';
+
+  const isOwnerOrAdmin = requestingUser && typeof requestingUser === 'object' && (
     requestingUser.role === 'admin' ||
-    (course.instructor && (course.instructor._id || course.instructor).toString() === requestingUser._id.toString())
+    (Boolean(reqUserId) && courseInstId === reqUserId)
   );
 
   if (!isOwnerOrAdmin && course.status !== 'published') {
     throw AppError.notFound('Course');
   }
-  return course;
+
+  let isEnrolled = false;
+  if (requestingUser && requestingUser._id) {
+    const enc = await Enrollment.findOne({ student: requestingUser._id, course: id }).lean();
+    if (enc) isEnrolled = true;
+  }
+
+  const courseObj = course.toObject ? course.toObject({ virtuals: true }) : { ...course };
+  courseObj.isEnrolled = isEnrolled;
+
+  // Sanitize protected lesson content if user is not enrolled and not course owner/admin
+  if (!isOwnerOrAdmin && !isEnrolled && courseObj.sections) {
+    courseObj.sections = courseObj.sections.map((section) => ({
+      ...section,
+      lessons: (section.lessons || []).map((lesson) => {
+        if (lesson.isPreview) return lesson;
+        const { videoUrl, videoPublicId, externalVideoUrl, documentUrl, documentPublicId, content, resources, ...publicLesson } = lesson;
+        return publicLesson;
+      }),
+    }));
+  }
+
+  return courseObj;
 };
 
 const getCourseBySlug = async (slug) => {
@@ -80,7 +115,11 @@ const getCourseBySlug = async (slug) => {
 const createCourse = async (data, instructorId) => {
   const course = await Course.create({ ...data, instructor: instructorId });
   if (data.category) {
-    await Category.findByIdAndUpdate(data.category, { $inc: { courseCount: 1 } });
+    if (mongoose.Types.ObjectId.isValid(data.category)) {
+      await Category.findByIdAndUpdate(data.category, { $inc: { courseCount: 1 } });
+    } else if (typeof data.category === 'string') {
+      await Category.findOneAndUpdate({ name: data.category }, { $inc: { courseCount: 1 } });
+    }
   }
   await cacheDelPattern('courses:*');
   return course;
@@ -90,9 +129,11 @@ const updateCourse = async (id, updates, requestingUser) => {
   const course = await Course.findById(id);
   if (!course) throw AppError.notFound('Course');
 
-  // Instructors can only update their own courses
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden('You can only update your own courses');
+  checkCourseOwnership(course, requestingUser);
+
+  // Security Guard: Only admin can transition course to published
+  if (updates.status === 'published' && requestingUser.role !== 'admin') {
+    throw AppError.forbidden('Only administrators can publish courses. Please submit your course for admin review.');
   }
 
   // Validate publishing requirements
@@ -109,8 +150,18 @@ const updateCourse = async (id, updates, requestingUser) => {
 
   // Handle category change
   if (updates.category && updates.category !== course.category?.toString()) {
-    if (course.category) await Category.findByIdAndUpdate(course.category, { $inc: { courseCount: -1 } });
-    await Category.findByIdAndUpdate(updates.category, { $inc: { courseCount: 1 } });
+    if (course.category) {
+      if (mongoose.Types.ObjectId.isValid(course.category)) {
+        await Category.findByIdAndUpdate(course.category, { $inc: { courseCount: -1 } });
+      } else if (typeof course.category === 'string') {
+        await Category.findOneAndUpdate({ name: course.category }, { $inc: { courseCount: -1 } });
+      }
+    }
+    if (mongoose.Types.ObjectId.isValid(updates.category)) {
+      await Category.findByIdAndUpdate(updates.category, { $inc: { courseCount: 1 } });
+    } else if (typeof updates.category === 'string') {
+      await Category.findOneAndUpdate({ name: updates.category }, { $inc: { courseCount: 1 } });
+    }
   }
 
   const updated = await Course.findByIdAndUpdate(id, { $set: updates }, { new: true, runValidators: true });
@@ -123,9 +174,7 @@ const deleteCourse = async (id, requestingUser) => {
   const course = await Course.findById(id);
   if (!course) throw AppError.notFound('Course');
 
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden('You can only delete your own courses');
-  }
+  checkCourseOwnership(course, requestingUser);
 
   // Delete all Cloudinary media
   for (const section of course.sections) {
@@ -149,9 +198,7 @@ const deleteCourse = async (id, requestingUser) => {
 const updateThumbnail = async (id, thumbnailUrl, thumbnailPublicId, requestingUser) => {
   const course = await Course.findById(id);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   if (course.thumbnailPublicId) await deleteFromCloudinary(course.thumbnailPublicId, 'image');
   const updated = await Course.findByIdAndUpdate(id, { thumbnail: thumbnailUrl, thumbnailPublicId }, { new: true });
   await cacheDel(`course:${id}`);
@@ -160,20 +207,29 @@ const updateThumbnail = async (id, thumbnailUrl, thumbnailPublicId, requestingUs
 
 /* ── Enrollment ─────────────────────────────────────────────────────────── */
 
-const enrollInCourse = async (courseId, studentId) => {
+const enrollInCourse = async (courseId, studentId, enrollmentData = {}) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
   if (course.status !== 'published') throw AppError.badRequest('Course is not available for enrollment');
 
-  // Check prerequisites
-  if (course.prerequisites.length > 0) {
+  // Instructor Self-Enrollment Guard
+  if (course.instructor && course.instructor.toString() === studentId.toString()) {
+    throw AppError.badRequest('Instructors cannot enroll in their own courses');
+  }
+
+  // Check prerequisites (normalize Objects or ObjectIds)
+  const prereqIds = (course.prerequisites || []).map((p) =>
+    p && typeof p === 'object' && p._id ? p._id.toString() : String(p)
+  );
+
+  if (prereqIds.length > 0) {
     const completedEnrollments = await Enrollment.find({
       student: studentId,
-      course: { $in: course.prerequisites },
+      course: { $in: prereqIds },
       status: 'completed',
     }).lean();
 
-    if (completedEnrollments.length < course.prerequisites.length) {
+    if (completedEnrollments.length < prereqIds.length) {
       throw AppError.badRequest('You must complete the prerequisite courses before enrolling in this course');
     }
   }
@@ -185,6 +241,13 @@ const enrollInCourse = async (courseId, studentId) => {
     student: studentId,
     course: courseId,
     instructor: course.instructor,
+    status: 'active',
+    enrolledAt: new Date(),
+    enrollmentData: {
+      phone: enrollmentData.phone || '',
+      learningGoals: enrollmentData.learningGoals || '',
+      agreedTerms: true,
+    },
   });
   await Course.findByIdAndUpdate(courseId, { $inc: { enrollmentCount: 1, enrolledStudentsCount: 1 } });
 
@@ -194,12 +257,25 @@ const enrollInCourse = async (courseId, studentId) => {
     if (StudentProgressModel) {
       await StudentProgressModel.updateOne(
         { studentId, courseId },
-        { $setOnInsert: { studentId, courseId, completedLessons: [], completedQuizzes: [], quizScores: [], progressPercentage: 0 } },
+        {
+          $setOnInsert: {
+            studentId,
+            courseId,
+            completedLessons: [],
+            completedQuizzes: [],
+            quizScores: [],
+            overallScore: 0,
+            progressPercentage: 0,
+            completed: false,
+            startedAt: new Date(),
+            lastActivity: new Date(),
+          },
+        },
         { upsert: true }
       );
     }
   } catch (err) {
-    // Non-blocking progress creation fallback
+    console.error('Progress record creation warning:', err.message);
   }
 
   // Send confirmation email
@@ -214,7 +290,7 @@ const enrollInCourse = async (courseId, studentId) => {
 
 const getEnrolledCourses = async (studentId, page = 1, limit = 12) => {
   const skip = (page - 1) * limit;
-  const [enrollments, total] = await Promise.all([
+  const [rawEnrollments, total] = await Promise.all([
     Enrollment.find({ student: studentId })
       .populate({ path: 'course', select: '-sections', populate: [{ path: 'instructor', select: 'firstName lastName avatar' }] })
       .sort({ enrolledAt: -1 })
@@ -223,6 +299,7 @@ const getEnrolledCourses = async (studentId, page = 1, limit = 12) => {
       .lean(),
     Enrollment.countDocuments({ student: studentId }),
   ]);
+  const enrollments = rawEnrollments.filter((e) => e.course != null);
   return { enrollments, meta: paginationMeta(page, limit, total) };
 };
 
@@ -231,9 +308,7 @@ const getEnrolledCourses = async (studentId, page = 1, limit = 12) => {
 const addSection = async (courseId, sectionData, requestingUser) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   course.sections.push(sectionData);
   await course.save();
   await cacheDel(`course:${courseId}`);
@@ -243,9 +318,7 @@ const addSection = async (courseId, sectionData, requestingUser) => {
 const updateSection = async (courseId, sectionId, updates, requestingUser) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   const section = course.sections.id(sectionId);
   if (!section) throw AppError.notFound('Section');
   Object.assign(section, updates);
@@ -257,9 +330,7 @@ const updateSection = async (courseId, sectionId, updates, requestingUser) => {
 const deleteSection = async (courseId, sectionId, requestingUser) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   const section = course.sections.id(sectionId);
   if (!section) throw AppError.notFound('Section');
 
@@ -279,9 +350,7 @@ const deleteSection = async (courseId, sectionId, requestingUser) => {
 const addLesson = async (courseId, sectionId, lessonData, requestingUser) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   const section = course.sections.id(sectionId);
   if (!section) throw AppError.notFound('Section');
   section.lessons.push(lessonData);
@@ -293,9 +362,7 @@ const addLesson = async (courseId, sectionId, lessonData, requestingUser) => {
 const updateLesson = async (courseId, sectionId, lessonId, updates, requestingUser) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   const section = course.sections.id(sectionId);
   if (!section) throw AppError.notFound('Section');
   const lesson = section.lessons.id(lessonId);
@@ -309,9 +376,7 @@ const updateLesson = async (courseId, sectionId, lessonId, updates, requestingUs
 const deleteLesson = async (courseId, sectionId, lessonId, requestingUser) => {
   const course = await Course.findById(courseId);
   if (!course) throw AppError.notFound('Course');
-  if (requestingUser.role === 'instructor' && course.instructor.toString() !== requestingUser._id.toString()) {
-    throw AppError.forbidden();
-  }
+  checkCourseOwnership(course, requestingUser);
   const section = course.sections.id(sectionId);
   if (!section) throw AppError.notFound('Section');
   const lesson = section.lessons.id(lessonId);
@@ -341,10 +406,125 @@ const createCategory = async (data) => {
   return category;
 };
 
+/* ── Course Lifecycle & Moderation ────────────────────────────────────────── */
+
+const submitForReview = async (id, requestingUser) => {
+  const course = await Course.findById(id);
+  if (!course) throw AppError.notFound('Course');
+
+  checkCourseOwnership(course, requestingUser);
+
+  if (['pending_approval', 'under_review', 'published'].includes(course.status)) {
+    throw AppError.badRequest(`Course is already in ${course.status.replace('_', ' ')} status`);
+  }
+
+  // Completeness Validation
+  if (!course.title || course.title.trim().length < 5) {
+    throw AppError.badRequest('Course must have a valid title (at least 5 characters) before submission');
+  }
+  if (!course.description || course.description.trim().length < 10) {
+    throw AppError.badRequest('Course must have a valid description (at least 10 characters) before submission');
+  }
+  if (!course.category) {
+    throw AppError.badRequest('Course must have a category assigned before submission');
+  }
+  if (!course.sections || course.sections.length === 0) {
+    throw AppError.badRequest('Course must have at least one curriculum section before submitting for review');
+  }
+  const totalLessons = course.sections.reduce((acc, s) => acc + (s.lessons ? s.lessons.length : 0), 0);
+  if (totalLessons === 0) {
+    throw AppError.badRequest('Course must have at least one lesson before submitting for review');
+  }
+
+  course.status = 'pending_approval';
+  course.submittedAt = new Date();
+  course.rejectionReason = undefined;
+  await course.save();
+
+  await cacheDel(`course:${id}`);
+  await cacheDelPattern('courses:*');
+
+  try {
+    const notificationService = require('../notifications/notification.service');
+    await notificationService.createAndEmitNotification({
+      userId: course.instructor,
+      title: 'Course Submitted for Review ⏳',
+      message: `Your course "${course.title}" has been submitted for admin moderation.`,
+      type: 'info',
+      category: 'system',
+    });
+  } catch (err) {}
+
+  return course;
+};
+
+const approveCourse = async (id, adminUser) => {
+  const course = await Course.findById(id);
+  if (!course) throw AppError.notFound('Course');
+
+  if (!['pending_approval', 'under_review'].includes(course.status)) {
+    throw AppError.badRequest(`Course is not pending review (current status: ${course.status})`);
+  }
+
+  course.status = 'published';
+  course.reviewedBy = adminUser._id;
+  course.reviewedAt = new Date();
+  course.rejectionReason = undefined;
+  await course.save();
+
+  await cacheDel(`course:${id}`);
+  await cacheDelPattern('courses:*');
+
+  try {
+    const notificationService = require('../notifications/notification.service');
+    await notificationService.createAndEmitNotification({
+      userId: course.instructor,
+      title: 'Course Approved & Published! 🎉',
+      message: `Congratulations! Your course "${course.title}" has been approved and published on the platform.`,
+      type: 'success',
+      category: 'system',
+    });
+  } catch (err) {}
+
+  return course;
+};
+
+const rejectCourse = async (id, adminUser, { rejectionReason }) => {
+  const course = await Course.findById(id);
+  if (!course) throw AppError.notFound('Course');
+
+  if (!['pending_approval', 'under_review'].includes(course.status)) {
+    throw AppError.badRequest(`Course is not pending review (current status: ${course.status})`);
+  }
+
+  course.status = 'rejected';
+  course.rejectionReason = rejectionReason || 'Course content requires revision.';
+  course.reviewedBy = adminUser._id;
+  course.reviewedAt = new Date();
+  await course.save();
+
+  await cacheDel(`course:${id}`);
+  await cacheDelPattern('courses:*');
+
+  try {
+    const notificationService = require('../notifications/notification.service');
+    await notificationService.createAndEmitNotification({
+      userId: course.instructor,
+      title: 'Course Review Feedback ⚠️',
+      message: `Your course "${course.title}" requires revisions. Reason: ${course.rejectionReason}`,
+      type: 'warning',
+      category: 'system',
+    });
+  } catch (err) {}
+
+  return course;
+};
+
 module.exports = {
   listCourses, getCourseById, getCourseBySlug, createCourse, updateCourse, deleteCourse, updateThumbnail,
   enrollInCourse, getEnrolledCourses,
   addSection, updateSection, deleteSection,
   addLesson, updateLesson, deleteLesson,
   listCategories, createCategory,
+  submitForReview, approveCourse, rejectCourse,
 };

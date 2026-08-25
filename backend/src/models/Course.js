@@ -1,20 +1,35 @@
 'use strict';
 const mongoose = require('mongoose');
 
+/* ── Resource ───────────────────────────────────────────────────────────── */
+const resourceSchema = new mongoose.Schema(
+  {
+    name:     { type: String },
+    url:      { type: String, required: true },
+    publicId: { type: String },
+    type:     { type: String },
+    size:     { type: Number },
+  },
+  { _id: false }
+);
+
 /* ── Lesson ─────────────────────────────────────────────────────────────── */
 const lessonSchema = new mongoose.Schema(
   {
-    title:       { type: String, required: true, trim: true, maxlength: 200 },
-    type:        { type: String, enum: ['video', 'pdf', 'text', 'assignment', 'article', 'quiz'], required: true },
-    content:     { type: String },           // text content or assignment description
-    videoUrl:    { type: String },           // Cloudinary secure_url
-    videoPublicId: { type: String },         // Cloudinary public_id for deletion
-    duration:    { type: Number, default: 0 }, // seconds
-    documentUrl: { type: String },           // PDF Cloudinary URL
+    title:            { type: String, required: true, trim: true, maxlength: 200 },
+    type:             { type: String, enum: ['video', 'pdf', 'text', 'assignment', 'article', 'quiz'], required: true, default: 'video' },
+    description:      { type: String, maxlength: 2000 },
+    content:          { type: String },           // text content or assignment description
+    videoUrl:         { type: String },           // Cloudinary secure_url
+    videoPublicId:    { type: String },         // Cloudinary public_id for deletion
+    externalVideoUrl: { type: String },
+    duration:         { type: Number, default: 0 }, // seconds or minutes
+    documentUrl:      { type: String },           // PDF Cloudinary URL
     documentPublicId: { type: String },
-    isPreview:   { type: Boolean, default: false },
-    order:       { type: Number, default: 0 },
-    resources:   [{ name: String, url: String }],
+    isPreview:        { type: Boolean, default: false },
+    isPublished:      { type: Boolean, default: true },
+    order:            { type: Number, default: 0 },
+    resources:        { type: [resourceSchema], default: [] },
   },
   { timestamps: true, _id: true }
 );
@@ -44,7 +59,11 @@ const courseSchema = new mongoose.Schema(
     language:     { type: String, default: 'English' },
     price:        { type: Number, default: 0, min: 0 },
     isFree:       { type: Boolean, default: true },
-    status:       { type: String, enum: ['draft', 'published', 'archived', 'pending_approval', 'rejected'], default: 'draft', index: true },
+    status:       { type: String, enum: ['draft', 'published', 'archived', 'pending_approval', 'under_review', 'rejected'], default: 'draft', index: true },
+    submittedAt:     { type: Date },
+    reviewedAt:      { type: Date },
+    reviewedBy:      { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    rejectionReason: { type: String, maxlength: 2000 },
     isFeatured:   { type: Boolean, default: false, index: true },
     tags:         { type: [String], default: [] },
     category:     { type: mongoose.Schema.Types.Mixed },
@@ -87,11 +106,13 @@ courseSchema.pre('validate', function () {
 
 // Virtual: total lesson count
 courseSchema.virtual('lessonCount').get(function () {
-  return this.sections.reduce((acc, s) => acc + s.lessons.length, 0);
+  if (!this.sections || !Array.isArray(this.sections)) return 0;
+  return this.sections.reduce((acc, s) => acc + (s.lessons ? s.lessons.length : 0), 0);
 });
 
 // Virtual: section count
 courseSchema.virtual('sectionCount').get(function () {
+  if (!this.sections || !Array.isArray(this.sections)) return 0;
   return this.sections.length;
 });
 

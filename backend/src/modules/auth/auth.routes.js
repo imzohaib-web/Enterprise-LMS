@@ -87,5 +87,6 @@ router.get('/me', authenticate, authController.getMe);
  *       - bearerAuth: []
  */
 router.patch('/change-password', authenticate, validate(schemas.changePassword), authController.changePassword);
+router.post('/request-password-reset', authController.requestPasswordReset);
 
 module.exports = router;

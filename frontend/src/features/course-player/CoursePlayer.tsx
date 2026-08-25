@@ -14,6 +14,7 @@ import LessonNavigation from './LessonNavigation';
 import CoursePlayerSkeleton from './CoursePlayerSkeleton';
 import CoursePlayerError from './CoursePlayerError';
 import CourseOverviewPreview from './CourseOverviewPreview';
+import EnrollmentModal from '../student-dashboard/components/EnrollmentModal';
 
 export const CoursePlayer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ export const CoursePlayer: React.FC = () => {
   const urlLessonId = searchParams.get('lessonId');
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
 
   // 1. Fetch Course details
   const {
@@ -119,6 +121,7 @@ export const CoursePlayer: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['studentProgressPage'] });
       queryClient.invalidateQueries({ queryKey: ['studentDashboard'] });
       queryClient.invalidateQueries({ queryKey: ['myEnrollments'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
       queryClient.invalidateQueries({ queryKey: ['studentLearningActivity'] });
     },
     onError: (err: any) => {
@@ -158,12 +161,15 @@ export const CoursePlayer: React.FC = () => {
 
   // Enroll Mutation for Preview page
   const enrollMutation = useMutation({
-    mutationFn: () => courseService.enrollInCourse(courseId),
+    mutationFn: (enrollmentData: { phone?: string; learningGoals?: string; agreedTerms?: boolean }) => courseService.enrollInCourse(courseId, enrollmentData),
     onSuccess: () => {
       toast.success('Successfully enrolled in course!');
+      setIsEnrollModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['myEnrollments'] });
+      queryClient.invalidateQueries({ queryKey: ['courseDetail', courseId] });
       queryClient.invalidateQueries({ queryKey: ['courseProgress', courseId] });
       queryClient.invalidateQueries({ queryKey: ['studentDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || 'Enrollment failed');
@@ -226,7 +232,14 @@ export const CoursePlayer: React.FC = () => {
         <CourseOverviewPreview
           course={course}
           isEnrolling={enrollMutation.isPending}
-          onEnroll={() => enrollMutation.mutate()}
+          onEnroll={() => setIsEnrollModalOpen(true)}
+        />
+        <EnrollmentModal
+          isOpen={isEnrollModalOpen}
+          onClose={() => setIsEnrollModalOpen(false)}
+          courseTitle={course.title}
+          isLoading={enrollMutation.isPending}
+          onSubmit={(formData: { phone?: string; learningGoals?: string; agreedTerms?: boolean }) => enrollMutation.mutate(formData)}
         />
       </>
     );
@@ -261,7 +274,7 @@ export const CoursePlayer: React.FC = () => {
           {/* Left / Main Content & Navigation Column */}
           <main className="lg:col-span-8 xl:col-span-9 p-4 md:p-6 lg:p-8 overflow-y-auto space-y-6 flex flex-col justify-between">
             <div className="space-y-6">
-              <LessonViewer lesson={activeLesson} />
+              <LessonViewer lesson={activeLesson} courseId={courseId} />
             </div>
 
             {/* Bottom Lesson Navigation Bar */}

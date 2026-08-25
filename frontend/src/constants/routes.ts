@@ -28,6 +28,7 @@ export const ADMIN = {
   DASHBOARD:  '/admin/dashboard',
   USERS:      '/admin/users',
   COURSES:    '/admin/courses',
+  ENROLLMENTS: '/admin/enrollments',
   REPORTS:    '/admin/reports',
   ANALYTICS:  '/admin/analytics',
   AUDIT_LOGS: '/admin/audit-logs',
@@ -37,8 +38,8 @@ export const ADMIN = {
 } as const;
 
 // ── Courses ───────────────────────────────────────────────────────────────────
-export const getCourseLearnRoute = (id: string) => `/courses/${id}/learn`;
-export const getCourseDetailRoute = (id: string) => `/courses/${id}`;
+export const getCourseLearnRoute = (id: string) => `/student/courses/${id}/overview`;
+export const getCourseDetailRoute = (id: string) => `/student/courses/${id}/overview`;
 
 export const COURSES = {
   LIST:    '/courses',
@@ -61,23 +62,48 @@ export const LEARNING_PATHS = {
 export const INSTRUCTOR_DASH = '/instructor/dashboard';
 
 // ── Student Routes ────────────────────────────────────────────────────────────
+export const getStudentCourseRoute = (courseId: string, tab: string = 'overview') =>
+  `/student/courses/${courseId}/${tab}`;
+
 export const STUDENT = {
-  DASHBOARD:      '/student/dashboard',
-  COURSES:        '/student/courses',
-  LEARNING_PATHS: '/student/learning-paths',
-  ASSESSMENTS:    '/student/assessments',
-  PROGRESS:       '/student/progress',
-  CERTIFICATES:   '/student/certificates',
-  DISCUSSIONS:    '/student/discussions',
-  NOTIFICATIONS:  '/student/notifications',
-  PROFILE:        '/student/profile',
-  SETTINGS:       '/student/settings',
+  DASHBOARD:          '/student/dashboard',
+  COURSES:            '/student/courses',
+  COURSE_LEARN:       (courseId: string) => `/student/courses/${courseId}`,
+  COURSE_OVERVIEW:    (courseId: string) => `/student/courses/${courseId}/overview`,
+  COURSE_CONTENT:     (courseId: string) => `/student/courses/${courseId}/content`,
+  COURSE_ASSESSMENTS: (courseId: string) => `/student/courses/${courseId}/assessments`,
+  COURSE_ASSIGNMENTS: (courseId: string) => `/student/courses/${courseId}/assignments`,
+  COURSE_PROGRESS:    (courseId: string) => `/student/courses/${courseId}/progress`,
+  COURSE_CERTIFICATE: (courseId: string) => `/student/courses/${courseId}/certificate`,
+  LEARNING_PATHS:     '/student/learning-paths',
+  ASSESSMENTS:        '/student/assessments',
+  PROGRESS:           '/student/progress',
+  CERTIFICATES:       '/student/certificates',
+  DISCUSSIONS:        '/student/discussions',
+  NOTIFICATIONS:      '/student/notifications',
+  PROFILE:            '/student/profile',
+  SETTINGS:           '/student/settings',
 } as const;
+
+// ── Instructor Course Management Route Helper ─────────────────────────────
+export const getInstructorCourseRoute = (courseId: string, tab: string = 'overview') =>
+  `/instructor/courses/${courseId}/${tab}`;
 
 // ── Instructor Routes ─────────────────────────────────────────────────────────
 export const INSTRUCTOR = {
   DASHBOARD:     '/instructor/dashboard',
   COURSES:       '/instructor/courses',
+  COURSE_MANAGE: (courseId: string) => `/instructor/courses/${courseId}`,
+  COURSE_OVERVIEW: (courseId: string) => `/instructor/courses/${courseId}/overview`,
+  COURSE_CONTENT: (courseId: string) => `/instructor/courses/${courseId}/content`,
+  COURSE_SECTIONS: (courseId: string) => `/instructor/courses/${courseId}/sections`,
+  COURSE_LESSONS: (courseId: string) => `/instructor/courses/${courseId}/lessons`,
+  COURSE_ASSESSMENTS: (courseId: string) => `/instructor/courses/${courseId}/assessments`,
+  COURSE_ASSIGNMENTS: (courseId: string) => `/instructor/courses/${courseId}/assignments`,
+  COURSE_QUIZZES: (courseId: string) => `/instructor/courses/${courseId}/quizzes`,
+  COURSE_STUDENTS: (courseId: string) => `/instructor/courses/${courseId}/students`,
+  COURSE_PROGRESS: (courseId: string) => `/instructor/courses/${courseId}/progress`,
+  COURSE_SETTINGS: (courseId: string) => `/instructor/courses/${courseId}/settings`,
   LEARNING_PATHS: '/instructor/learning-paths',
   STUDENTS:      '/instructor/students',
   ASSESSMENTS:   '/instructor/assessments',
