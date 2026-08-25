@@ -208,7 +208,7 @@ export const Notifications: React.FC = () => {
   const getTypeBadgeColor = (type: string) => {
     switch (type?.toLowerCase()) {
       case 'important':
-        return 'danger';
+        return 'error';
       case 'assessment':
       case 'assignment':
         return 'warning';
@@ -465,7 +465,7 @@ export const Notifications: React.FC = () => {
                     const cId = c._id || (c as any).id;
                     return (
                       <option key={cId} value={cId}>
-                        {c.title} ({c.level || 'course'})
+                        {c.title} ({(c as any).level || 'course'})
                       </option>
                     );
                   })}
